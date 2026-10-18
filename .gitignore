@@ -1,0 +1,19 @@
+# Daten des Programms: Einstellungen, Ergebnisse, geladene Treiber und Installer
+Treiber/
+*.neu
+
+# gebaute Dateien zum Weitergeben (PulsRig-Paket.ps1 erzeugt sie neu)
+dist/
+
+# erzeugte Prüfberichte (enthalten Angaben zum eigenen PC)
+PulsRig-Prüfbericht-*.html
+
+# alte Sicherungsordner - ihr Stand steckt in den ersten beiden Einträgen der Versionsgeschichte
+Sicherung-*/
+
+# gehört nicht zu PulsRig
+schwerkraft-golf/
+Natur-Reset_Planer.pdf
+
+# die Programmdatei baut PulsRig-Paket.ps1 aus PulsRig-Start.cs
+PulsRig.exe

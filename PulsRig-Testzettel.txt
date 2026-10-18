@@ -1,0 +1,103 @@
+﻿PulsRig – Testversion
+
+Danke, dass du PulsRig ausprobierst. Das Programm sucht neuere Treiber, prüft die Hardware, erklärt Abstürze
+und schafft vor dem Spielen Platz im Arbeitsspeicher. Es ist eine Testversion: Bisher lief es erst auf einer
+Handvoll PCs.
+
+
+WAS BEIM INSTALLIEREN PASSIERT
+
+- Windows warnt mit "Der Computer wurde durch Windows geschützt", weil das Programm nicht signiert ist.
+  Auf "Weitere Informationen" und dann "Trotzdem ausführen" klicken.
+- Beim Start fragt PulsRig nach Adminrechten. Mit "Nein" läuft es eingeschränkt: Scannen und Prüfen geht,
+  Installieren und Reparieren nicht.
+- Meldet sich dein Virenschutz, schreib mir bitte, welcher es ist und was genau er meldet.
+
+
+BITTE IN DIESER REIHENFOLGE AUSPROBIEREN
+
+Links im Fenster steht die Leiste mit Scan, Boost, Werkzeuge, Hardware und Optionen.
+
+1. Scan: auf den großen Knopf SCAN klicken und warten (ein bis zwei Minuten). Du musst nichts installieren –
+   mich interessiert, ob die Liste zu deinem PC passt.
+2. Scan → "Was ist los?" (oben rechts): einmal durch die Reiter klicken. Passen die Vorschläge zu deinem PC?
+3. Hardware: nacheinander Sensoren, Laufwerke, Arbeitsspeicher, Abstürze, Bildschirm und BIOS öffnen.
+   Stimmen die Angaben? Steht unter Sensoren keine Temperatur des Prozessors, dort auf "Freischalten" klicken:
+   Das installiert den kleinen Treiber PawnIO (braucht Adminrechte). Wer FACEIT spielt, lässt das besser aus.
+4. Hardware → Benchmark (oben rechts): einmal laufen lassen, etwa eine Minute. Zwischendurch geht ein Fenster
+   für die Grafikkarte auf. Wie viele Punkte hat dein PC?
+5. Hardware → Stabilitätstest: "Beides", 5 Minuten. Die Lüfter werden dabei laut, das ist gewollt –
+   Prozessor und Grafikkarte laufen voll. Bei Rechenfehlern oder zu viel Hitze bricht der Test von selbst ab.
+6. Boost → "Gaming-Check" (oben rechts): Welche Punkte sind gelb oder rot, und stimmt das?
+7. Hardware → Bericht & Diagnose: "Als ZIP speichern". Die Datei landet auf dem Desktop. Danach gern
+   "Per E-Mail schicken" ausprobieren und mir sagen, ob sich dein Mailprogramm geöffnet hat.
+
+Wenn du magst, zusätzlich: Boost einschalten und wieder ausschalten, ein anderes Aussehen wählen
+(Optionen → Design), unter "Was ist los?" → Internet den Ping-Test laufen lassen.
+
+Spielsitzungen aufzeichnen (lohnt sich, wenn du ohnehin spielst):
+- Optionen → Hintergrund → "Helfer neben der Uhr" einschalten.
+- "Was ist los?" → Spiele ruckeln → "Alle … Spiele einzeln prüfen": bei deinem Spiel auf "Aufzeichnen".
+- Normal spielen. Danach Hardware → Sensoren → Spielsitzungen: Wie warm wurde es, hat etwas gedrosselt?
+
+
+BESONDERS GESUCHT
+
+Hast du einen der folgenden PCs, ist dein Test besonders wertvoll – bisher hat das niemand ausprobiert:
+
+- Notebook mit Akku: Hardware → Akku. Passen Kapazität und Ladezyklen?
+- Grafikkarte von AMD (Radeon) oder Intel: Was zeigen Scan und Sensoren?
+- Mehrere Bildschirme oder ein Monitor mit mehr als 60 Hz: Hardware → Bildschirm. Stimmen die Hz?
+- PulsRig ohne Adminrechte aktualisieren (siehe "Neue Fassungen" unten).
+
+
+WAS NOCH NIEMAND AUSPROBIERT HAT
+
+Das hilft mir am meisten, ist aber freiwillig. PulsRig dafür "Als Admin" starten. Bitte erst die Schritte oben
+machen und danach noch einmal "Als ZIP speichern".
+
+A. Einen Treiber aktualisieren: Zeigt der Scan unter "Neuere Treiber" etwas an, einen Haken setzen (am liebsten
+   Grafikkarte, Netzwerk oder Audio – keine Firmware) und oben auf "aktualisieren" klicken.
+B. Steht in der Liste "Der Chipsatz-Treiber fehlt" oder ein Gerät ohne Treiber mit dem Knopf "Installieren":
+   einmal darauf klicken und die Rückfrage bestätigen.
+C. Werkzeuge → Speicherplatz freigeben: zeigt, wie viel Platz alte Treiberpakete und der Shader-Cache belegen.
+   Nach dem Aufräumen ruckeln Spiele beim ersten Start kurz, das ist normal.
+
+Schreib mir bitte, ob es geklappt hat und ob danach alles läuft wie vorher. Nach einem neuen Treiber behält
+PulsRig ihn einige Tage im Auge und meldet sich, wenn es seitdem öfter abstürzt.
+
+
+NEUE FASSUNGEN
+
+Gibt es eine neuere Fassung, steht das oben rechts im Fenster. Ein Klick darauf öffnet ein Fenster mit dem Knopf
+"Laden und installieren": PulsRig holt die Setup-Datei selbst, prüft sie und startet sich danach neu.
+Die Einstellungen bleiben erhalten.
+
+
+WAS ICH VON DIR BRAUCHE
+
+- die ZIP-Datei vom Desktop (PulsRig-Bericht-....zip) – darin stecken Prüfbericht und Diagnose-Angaben
+- zwei, drei Sätze: Was hat nicht funktioniert, was war unverständlich, was sah falsch aus?
+  Ein Bildschirmfoto hilft mehr als jede Beschreibung.
+
+Schicken kannst du alles an pulsrig.hilfe@gmail.com.
+
+In der ZIP-Datei stehen Angaben zu Windows, Prozessor, Mainboard, Grafikkarte, Arbeitsspeicher und Laufwerken,
+dazu Einstellungen, Fehlerprotokoll und die Ausgabe der Werkzeuge von PulsRig. Seriennummern, dein Benutzername
+und der Name des PCs sind nicht enthalten. Verschickt wird nichts von allein.
+
+
+VORSICHT BEI TREIBERN
+
+Treiber zu installieren ändert etwas an deinem PC. PulsRig legt vorher einen Wiederherstellungspunkt an und
+sichert den alten Treiber – auf fremden PCs ist das aber noch kaum erprobt. Firmware- und BIOS-Updates
+bitte nicht über PulsRig einspielen; die BIOS-Karte zeigt nur die Seite des Herstellers. Im Zweifel nur scannen
+und mir die Liste zeigen.
+Läuft nach einem Treiber etwas schlechter: Werkzeuge → Treiber-Sicherung → Wiederherstellen, oder
+Windows-Suche → "Wiederherstellungspunkt" → Systemwiederherstellung.
+
+
+WIEDER ENTFERNEN
+
+Windows-Einstellungen → Apps → Installierte Apps → PulsRig → Deinstallieren.
+Einstellungen und geladene Treiber liegen danach noch unter %LOCALAPPDATA%\PulsRig und lassen sich dort löschen.
