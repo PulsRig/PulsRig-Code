@@ -22,7 +22,12 @@ function Open-GamesSheet {
 
 function Start-GamesQuery {
     Start-SheetLoader 'Suche die Spiele …'
-    Start-Query 'ProblemGames' { param($result) if ($script:Sheet -and $script:Sheet.Title -eq 'Deine Spiele') { $script:Sheet.Games = @($result.Games); Show-GamesTab } }
+    Start-Query 'ProblemGames' {
+        param($result)
+        # die Bildschirme kommen mit: so steht bei der Bildwiederholrate gleich ein Ergebnis
+        if (@($result.Displays).Count) { Set-DisplayCardState @($result.Displays) }
+        if ($script:Sheet -and $script:Sheet.Title -eq 'Deine Spiele') { $script:Sheet.Games = @($result.Games); Show-GamesTab }
+    } @{ Displays = $script:Queries.Displays }
 }
 
 # die neueste Sitzung eines Spiels (Dateiname endet auf _<Programmdatei>.csv), sonst $null

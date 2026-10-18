@@ -691,6 +691,7 @@ function Start-SnapshotTour {
             @{ Until = { $script:Sheet -and $null -ne $script:Sheet.Games }; Timeout = 30000; Do = { } },
             @{ Wait = 1200; Do = {
                     Save-Snapshot '28zck-deine-spiele'
+                    Write-Host "Deine Spiele: $(@($script:Sheet.Games).Count) | $((@($script:Sheet.Games) | ForEach-Object { "$($_.Name) [$($_.Exe)] $($_.Letter): $($_.Kind)$(if (Get-GameRecording $_.Exe) { ' mit Sitzung' })" }) -join ', ')"
                     # Verschleiß: erst der echte Stand, dann gestellt (zwei Monate, Grafikkarte wird wärmer, SSD nutzt sich ab)
                     Close-Sheet -Quick; Open-SensorSheet 2
                 }
@@ -716,7 +717,6 @@ function Start-SnapshotTour {
                     Save-Snapshot '28zcm-verschleiss-beispiel'
                     Write-Host "Verschleiß: $((Get-CoolingTrend 'G').State) / $((Get-CoolingTrend 'C').State) / $(@(Get-SsdLife | ForEach-Object { "$($_.Title) $($_.State)" }) -join ', ')"
                     $script:History.Thermal = $script:WearBackup.Thermal; $script:History.Disks = $script:WearBackup.Disks
-                    Write-Host "Deine Spiele: $(@($script:Sheet.Games).Count) | $((@($script:Sheet.Games) | ForEach-Object { "$($_.Name) [$($_.Exe)] $($_.Letter): $($_.Kind)$(if (Get-GameRecording $_.Exe) { ' mit Sitzung' })" }) -join ', ')"
                     Remove-Item -LiteralPath $script:RecordFolder -Recurse -Force -Confirm:$false
                     Close-Sheet -Quick
                 }

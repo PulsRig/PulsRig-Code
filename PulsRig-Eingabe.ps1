@@ -217,10 +217,11 @@ function Save-InputResult($Test) {
     try {
         $clicks = [int](([PulsRigMouse]::Clicks | Measure-Object -Sum).Sum)
         for ($b = 0; $b -lt 5; $b++) { if ([PulsRigMouse]::Bounces[$b] -gt 0) { $bounces += '{0} {1}×' -f $script:MouseButtons[$b], [PulsRigMouse]::Bounces[$b] } }
+        $bounceMax = [int](([PulsRigMouse]::Bounces | Measure-Object -Maximum).Maximum)
     }
     catch { }
     if ($Test.Hz -gt 0) { $state.Hz = [int]$Test.Hz; $state.HzMin = [bool]$Test.HzMin; $changed = $true }
-    if ($clicks -ge 20) { $state.Clicks = $clicks; $state.Bounces = (@($bounces | ForEach-Object { T $_ }) -join ', '); $changed = $true }
+    if ($clicks -ge 20) { $state.Clicks = $clicks; $state.Bounces = (@($bounces | ForEach-Object { T $_ }) -join ', '); $state.BounceMax = $bounceMax; $changed = $true }
     if ($Test.DriftResult) {
         $state.DriftL = [int]$Test.DriftResult.L; $state.DriftR = [int]$Test.DriftResult.R; $state.DriftTone = "$($Test.DriftResult.Tone)"
         $changed = $true
@@ -230,7 +231,8 @@ function Save-InputResult($Test) {
     if (-not $changed) { return }
     # Ton: ungewollte Doppelklicks oder Drift = auffällig
     $tone = 'good'
-    if ($state.Bounces) { $tone = 'warn' }
+    # ältere Stände ohne BounceMax gelten wie bisher als auffällig
+    if ($state.Bounces -and ($null -eq $state.BounceMax -or [int]$state.BounceMax -ge 2)) { $tone = 'warn' }
     if ($state.DriftTone -in 'warn', 'bad') { $tone = $(if ($state.DriftTone -eq 'bad') { 'bad' } else { 'warn' }) }
     $parts = @()
     if ($state.Hz) { $parts += ('Maus {0}{1:N0} Hz' -f $(if ($state.HzMin) { '≥ ' } else { '' }), $state.Hz) }
@@ -247,7 +249,11 @@ function Get-InputSummary {
     if (-not $state) { return '' }
     $parts = @()
     if ($state.Hz) { $parts += ('Maus mit {0}{1:N0} Hz' -f $(if ($state.HzMin) { 'mindestens ' } else { '' }), [int]$state.Hz) }
-    if ($state.Clicks) { $parts += $(if ($state.Bounces) { "ungewollte Doppelklicks: $($state.Bounces) (bei $($state.Clicks) Klicks)" } else { "kein ungewollter Doppelklick bei $($state.Clicks) Klicks" }) }
+    if ($state.Clicks) {
+        $parts += $(if (-not $state.Bounces) { "kein ungewollter Doppelklick bei $($state.Clicks) Klicks" }
+            elseif ($null -ne $state.BounceMax -and [int]$state.BounceMax -lt 2) { "einmal nachgeprellt: $($state.Bounces) (bei $($state.Clicks) Klicks)" }
+            else { "ungewollte Doppelklicks: $($state.Bounces) (bei $($state.Clicks) Klicks)" })
+    }
     if ($null -ne $state.DriftL) { $parts += ('Sticks in Ruhe {0} % und {1} % aus der Mitte' -f $state.DriftL, $state.DriftR) }
     if ($state.Buttons) { $parts += "$($state.Buttons) Tasten getestet" }
     $parts += "getestet am $($state.Date)"
@@ -353,8 +359,16 @@ function Update-MouseView($Test) {
     }
     $Test.Wheel.Child.Text = '{0} · {1}' -f (T 'Rad'), $mouse.Wheel
     $row = $Test.MouseRow
-    $bad = @(for ($b = 0; $b -lt 5; $b++) { if ($mouse.Bounces[$b] -gt 0) { '{0} {1}×' -f (T $script:MouseButtons[$b]), $mouse.Bounces[$b] } })
-    if ($bad) {
+    # ab zwei Fällen bei derselben Taste ist es ein verschlissener Schalter; ein einzelner kann vorkommen (etwa beim Mausrad)
+    $bad = @(for ($b = 0; $b -lt 5; $b++) { if ($mouse.Bounces[$b] -ge 2) { '{0} {1}×' -f (T $script:MouseButtons[$b]), $mouse.Bounces[$b] } })
+    $once = @(for ($b = 0; $b -lt 5; $b++) { if ($mouse.Bounces[$b] -eq 1) { T $script:MouseButtons[$b] } })
+    $total = ($mouse.Clicks | Measure-Object -Sum).Sum
+    if (-not $bad -and $once) {
+        $row.FindName('Title').Text = T 'Einmal nachgeprellt'
+        $row.FindName('Text').Text = T ("Bei $total Klicks hat diese Taste einmal kurz nach dem Loslassen nachgeprellt: $($once -join ', '). Das kann einmal vorkommen, etwa beim Mausrad; passiert es öfter, ist der Schalter verschlissen.")
+        Set-Paint $row.FindName('Glyph') 'Foreground' 'Accent'
+    }
+    elseif ($bad) {
         $row.FindName('Title').Text = T 'Ungewollte Doppelklicks'
         $row.FindName('Text').Text = T ("Kurz nach dem Loslassen wieder ausgelöst: $($bad -join ', '). Das ist meist ein verschlissener Schalter; tritt es öfter auf, hilft nur ein neuer Schalter oder eine neue Maus.")
         Set-Paint $row.FindName('Glyph') 'Foreground' 'Warn'

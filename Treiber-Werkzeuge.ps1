@@ -1862,6 +1862,8 @@ function Get-KnownGames {
     foreach ($entry in @(Get-ChildItem 'HKCU:\System\GameConfigStore\Children' -ErrorAction SilentlyContinue)) {
         $path = "$((Get-ItemProperty -LiteralPath $entry.PSPath -ErrorAction SilentlyContinue).MatchedExeFullPath)"
         if (-not $path -or -not (Test-Path -LiteralPath $path)) { continue }
+        # Plattformen, die Windows als Spiel führt, die aber keines sind (Google Play Games: client.exe, crosvm.exe)
+        if ($path -match '\\Google\\Play Games\\') { continue }
         $exe = [IO.Path]::GetFileNameWithoutExtension($path)
         if ($games.ContainsKey($exe.ToLower())) { continue }
         $name = ''

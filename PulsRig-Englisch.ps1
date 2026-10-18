@@ -871,6 +871,8 @@
         'Gestoppt', 'Stopped'
         'Rechenfehler', 'Calculation error'
         'Zu heiß', 'Too hot'
+        'PROZESSOR', 'PROCESSOR'
+        'Einmal nachgeprellt', 'Bounced once'
         'Die Maus meldet nur, wenn sie sich bewegt: Für eine höhere Rate schneller kreisen oder die DPI erhöhen.', 'The mouse only reports when it moves: for a higher rate circle faster or raise the DPI.'
         'Maus jetzt ein paar Sekunden schnell und ohne Pause im Kreis bewegen', 'Move the mouse quickly in circles for a few seconds without pausing'
         'Controller und Maus', 'Controller and mouse'
@@ -1678,6 +1680,8 @@
         @{ R = '^mindestens (\S+) Hz$'; F = 'at least $1 Hz' }
         @{ R = '^Maus mit mindestens (\S+) Hz$'; F = 'mouse at least $1 Hz' }
         @{ R = '^Maus ≥ (\S+) Hz$'; F = 'mouse ≥ $1 Hz' }
+        @{ R = '^Bei (\d+) Klicks hat diese Taste einmal kurz nach dem Loslassen nachgeprellt: (.+)\. Das kann einmal vorkommen, etwa beim Mausrad; passiert es öfter, ist der Schalter verschlissen\.$'; F = 'In $1 clicks this button bounced once right after release: $2. That can happen once, e.g. with the wheel; if it happens more often, the switch is worn.' }
+        @{ R = '^einmal nachgeprellt: (.+) \(bei (\d+) Klicks\)$'; F = 'bounced once: {T:1} (in $2 clicks)' }
         @{ R = '^Höchstens (\d+) °C$'; F = 'Max. $1 °C' }
         @{ R = '^Grafikkarte höchstens (\d+) °C(\.?)$'; F = 'Graphics card max. $1 °C$2' }
         @{ R = '^Takt bis ([\d,]+) GHz(\.?)$'; F = 'Clock up to $1 GHz$2' }

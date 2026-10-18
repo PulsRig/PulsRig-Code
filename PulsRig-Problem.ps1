@@ -24,7 +24,10 @@ foreach ($game in @(Get-KnownGames)) {
     $letter = if ("$($game.Path)" -match '^([A-Za-z]):') { $Matches[1].ToUpper() } else { '' }
     $games += @{ Name = "$($game.Name)"; Letter = $letter; Kind = "$($kinds[$letter])"; Exe = "$($game.Exe)"; Running = [bool]$game.Running }
 }
-@{ Games = $games }
+# auf Wunsch die Bildschirme (für "Deine Spiele": Läuft der Monitor mit seiner höchsten Hz-Zahl?)
+$displays = @()
+if ($a -and $a.Displays) { try { $displays = @((& ([scriptblock]::Create($a.Displays)) $null).Displays) } catch { } }
+@{ Games = $games; Displays = $displays }
 '@
 
 $script:ProblemTabs = 'Spiele ruckeln', 'Stürzt ab', 'Ist langsam', 'Kein Ton', 'Internet', 'Sonstiges'
