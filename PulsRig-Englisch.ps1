@@ -22,6 +22,29 @@
         'Adminrechte aktiv', 'Admin rights active'
         'Alles freigeschaltet', 'Everything unlocked'
         'Schließen', 'Close'
+        # --- Stromverbrauch (PulsRig-Strom.ps1)
+        'Stromverbrauch', 'Power usage'
+        'Watt und Stromkosten im Jahr, geschätzt', 'Watts and yearly electricity cost, estimated'
+        'Was der PC gerade zieht und was das im Jahr kostet', 'What the PC draws right now and what that costs per year'
+        'Mainboard, Speicher, Laufwerke, Lüfter', 'Mainboard, memory, drives, fans'
+        'Warte auf den ersten Messwert …', 'Waiting for the first reading …'
+        'Zusammen', 'Total'
+        'mit dem Verlust im Netzteil', 'including power supply losses'
+        'Strompreis', 'Electricity price'
+        'Steht auf der Stromrechnung (Arbeitspreis je kWh)', 'On your electricity bill (price per kWh)'
+        'Nutzung am Tag', 'Use per day'
+        'So lange läuft der PC im Schnitt', 'How long the PC runs on average'
+        'Kosten', 'Cost'
+        'Aus dem Mittel seit dem Öffnen dieses Fensters', 'From the average since this window was opened'
+        'Geschätzt: keine NVIDIA-Grafikkarte, deren Verbrauch PulsRig messen kann', 'Estimated: no NVIDIA graphics card whose power PulsRig can measure'
+        'Gemessen über LibreHardwareMonitor', 'Measured via LibreHardwareMonitor'
+        'Pauschal geschätzt', 'Flat estimate'
+        'Stromkosten dieser Sitzung', 'Electricity cost of this session'
+        'Grafikkarte und Prozessor gemessen, der Rest geschätzt', 'Graphics card and processor measured, the rest estimated'
+        'Grafikkarte gemessen, Prozessor und Rest geschätzt', 'Graphics card measured, processor and the rest estimated'
+        'Prozessor gemessen, Grafikkarte und Rest geschätzt', 'Processor measured, graphics card and the rest estimated'
+        'Geschätzt: weder Grafikkarte noch Prozessor gemessen', 'Estimated: neither graphics card nor processor measured'
+        'Schätzung – ein Messgerät an der Steckdose ist genauer', 'Estimate – a power meter at the socket is more accurate'
         'Zurück', 'Back'
         'Ja', 'Yes'
         'Nein', 'No'
@@ -1834,6 +1857,14 @@
         @{ R = '^Der Prozessor hat unter Last in (\d+) % der Zeit deutlich weniger Takt gehabt als sonst\.$'; F = 'Under load the processor ran at a clearly lower clock than usual $1 % of the time.' }
         @{ R = '^(\d+):(\d\d) Std\.$'; F = '$1:$2 h' }
         @{ R = '^(\d+) Min\.$'; F = '$1 min' }
+        @{ R = '^(\d+) Std\.$'; F = '$1 h' }
+        @{ R = '^Gemessen · (.+)$'; F = 'Measured · $1' }
+        @{ R = '^Geschätzt aus (\d+) % Auslastung × (\d+) W Nennleistung$'; F = 'Estimated from $1 % load × $2 W rated power' }
+        @{ R = '^mit dem Verlust im Netzteil · (\S+) Cent pro Stunde$'; F = 'including power supply losses · $1 cents per hour' }
+        @{ R = '^(\S+) € im Jahr$'; F = '€$1 per year' }
+        @{ R = '^(\d+) Cent$'; F = '$1 cents' }
+        @{ R = '^Im Mittel (\S+) W · (\S+) kWh bei (\S+) €/kWh$'; F = 'Average $1 W · $2 kWh at €$3/kWh' }
+        @{ R = '^Im Mittel (\S+) W · (\S+) € am Tag bei (\d+) Std\.$'; F = 'Average $1 W · €$2 per day at $3 h' }
         @{ R = '^(\d+) von höchstens 30 Sitzungen gespeichert$'; F = '$1 of at most 30 sessions saved' }
         @{ R = '^diese läuft gerade$'; F = 'this one is running right now' }
         @{ R = '^Sobald eines der gewählten Spiele läuft \((.+)\), schreibt der Helfer alle 5 Sekunden mit\. Für alles andere: Rechtsklick auf das Symbol neben der Uhr → Temperaturen aufzeichnen\.$'; F = 'As soon as one of the selected games runs ($1), the helper records every 5 seconds. For anything else: right-click the icon next to the clock → Record temperatures.' }

@@ -144,6 +144,7 @@ function New-ReleaseNotes($Earlier, [string]$Version, [datetime]$Built) {
         "Setup-Datei von PulsRig $Version, gebaut am $($Built.ToString('dd.MM.yyyy')) um $($Built.ToString('HH:mm')) Uhr."
         ''
         '- Nicht signiert: Windows warnt beim Start. Dort auf „Weitere Informationen“ und dann auf „Trotzdem ausführen“ klicken.'
+        '- AVG/Avast (CyberCapture) halten das Setup oder die Deinstallation manchmal zur Prüfung an. Das ist kein Virenfund: ein paar Stunden warten oder im Virenschutz „Weitere Optionen“ → Datei ausführen/als vertrauenswürdig markieren.'
         '- Eine ältere Fassung muss nicht entfernt werden: Das Setup spielt die neue darüber, die Einstellungen bleiben erhalten.'
         '- Installierte Fassungen zeigen eine neuere selbst oben rechts an und installieren sie auf Knopfdruck.'
         ''

@@ -11,7 +11,11 @@ WAS BEIM INSTALLIEREN PASSIERT
   Auf "Weitere Informationen" und dann "Trotzdem ausführen" klicken.
 - Beim Start fragt PulsRig nach Adminrechten. Mit "Nein" läuft es eingeschränkt: Scannen und Prüfen geht,
   Installieren und Reparieren nicht.
-- Meldet sich dein Virenschutz, schreib mir bitte, welcher es ist und was genau er meldet.
+- Manche Virenschutz-Programme (z. B. AVG/Avast mit "CyberCapture") halten unbekannte Programme ohne
+  Signatur erst an und schicken sie zur Prüfung. Das ist kein Virenfund. Entweder ein paar Stunden warten,
+  oder im Fenster des Virenschutzes "Weitere Optionen" → Datei als vertrauenswürdig/ausführen wählen.
+  Das gilt auch beim Deinstallieren (Meldung "Fehler 5: Zugriff verweigert").
+- Meldet sich dein Virenschutz anders, schreib mir bitte, welcher es ist und was genau er meldet.
 
 
 BITTE IN DIESER REIHENFOLGE AUSPROBIEREN

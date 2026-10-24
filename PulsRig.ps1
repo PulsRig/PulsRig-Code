@@ -30,7 +30,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$script:Version = '0.6 Beta'
+$script:Version = '0.7 Beta'
 # Im installierten Programm stecken alle Dateien in PulsRig.exe: die Hülle (PulsRig-Start.cs) übergibt ihren Inhalt
 # als $PulsRigEmbedded (Name der Datei -> Text) und ihren Ordner als $PulsRigRoot. In der Werkstatt und im
 # ZIP-Paket liegen die Dateien lose daneben. Get-AppText und Get-AppCode liefern beides auf dieselbe Weise.
@@ -318,6 +318,8 @@ $script:Settings = @{
     RecordList       = @()        # nur aufzeichnen, ohne Boost: Programmdateien ohne ".exe" (die Boost-Spiele zählen auch)
     DriveWarnHidden  = ''         # weggeklickter Laufwerkshinweis der Startseite (Kennung, siehe PulsRig-Verlauf.ps1)
     ProbeWarnHidden  = ''         # weggeklickter Treiberhinweis der Startseite (Kennung, siehe PulsRig-Probezeit.ps1)
+    PowerPrice       = 0.35       # Strompreis in €/kWh für die Stromkosten (PulsRig-Strom.ps1)
+    PowerHours       = 4          # Stunden am Tag, die der PC läuft
     Opacity          = 100
     Theme            = 'Lila-Nacht'
     ThemeHue         = 224.0
@@ -1320,6 +1322,7 @@ $script:Tools = [ordered]@{
     Autostart           = @{ Glyph = 0xE7E8; Title = 'Autostart'; Desc = 'Programme, die mit Windows starten' }
     CleanDisk           = @{ Glyph = 0xE74D; Title = 'Speicherplatz freigeben'; Desc = 'Temporäre Dateien, Shader-Cache und alte Treiberpakete löschen' }
     Standby             = @{ Glyph = 0xE708; Title = 'Standby-Detektiv'; Desc = 'Warum der PC aufwacht oder wach bleibt' }
+    Power               = @{ Glyph = 0xE945; Title = 'Stromverbrauch'; Desc = 'Watt und Stromkosten im Jahr, geschätzt'; Find = 'Strom Stromkosten Watt Verbrauch Euro kWh' }
     InputTest           = @{ Glyph = 0xE7FC; Title = 'Controller und Maus'; Desc = 'Tasten, Stick-Drift, Abfragerate und Doppelklick-Fehler'; Find = 'Controller Gamepad Maus Drift Hz Doppelklick' }
     GameBoost           = @{ Glyph = 0xEC4A; Title = 'Spiel-Beschleunigung'; Desc = 'Energieplan, Dienste und speicherhungrige Programme' }
 }
@@ -1402,7 +1405,7 @@ $script:ToolGroups = [ordered]@{
     'Schnelle Reparaturen' = 'FixAudio', 'FixNetwork', 'FixResolution', 'FixDevices'
     # der Treiberverlauf ist über "Was hat sich geändert?" und Optionen → Schnellzugriff erreichbar
     'Treiber und Komponenten' = 'DriverBackup', 'IncompatibleDrivers', 'CleanDevices', 'GameRuntimes'
-    'System'                  = 'Autostart', 'CleanDisk', 'Standby', 'SystemInfo', 'InputTest'
+    'System'                  = 'Autostart', 'CleanDisk', 'Standby', 'Power', 'SystemInfo', 'InputTest'
 }
 # Symbolfarben der Reihe nach: Akzent- und Ringfarben des Designs
 $script:ToolColors = '#22D3EE', '#FB923C', '#A855F7', '#F43F5E', '#FDE047'
@@ -1415,6 +1418,7 @@ function Open-Tool([string]$Name) {
         'History' { Open-HistorySheet }
         'Autostart' { Open-AutostartSheet }
         'Standby' { Open-StandbySheet }
+        'Power' { Open-PowerSheet }
         'InputTest' { Open-InputSheet }
         'DriverBackup' { Open-DriverBackupSheet }
         default { Open-ToolDialog $Name }
@@ -1489,7 +1493,7 @@ foreach ($group in $script:ToolGroups.Keys) {
         $tile.FindName('Desc').Text = T $(if ($big -and $tool.ShortDesc) { $tool.ShortDesc } else { $tool.Desc })
         if ($big) { $tile.ToolTip = T $tool.Title }
         # ohne Adminrechte zeigen diese Werkzeuge nur, was sie tun würden
-        if (-not $script:IsAdmin -and $script:NoAdminTools -notcontains $name -and $name -notin 'GameRuntimes', 'SystemInfo', 'History', 'Autostart', 'Standby', 'DriverBackup', 'InputTest') {
+        if (-not $script:IsAdmin -and $script:NoAdminTools -notcontains $name -and $name -notin 'GameRuntimes', 'SystemInfo', 'History', 'Autostart', 'Standby', 'Power', 'DriverBackup', 'InputTest') {
             $tile.FindName('Badge').Visibility = 'Visible'
             # in der schmalen Reihe ist für das Schild kein Platz: der Hinweis steht im Tooltip
             if ($big) { $tile.ToolTip = "$(T $tool.Title) – $(T 'Probelauf ohne Adminrechte')" }
@@ -3002,6 +3006,7 @@ $window.Add_Closing({
 . (Get-AppCode 'PulsRig-Monitor.ps1')
 . (Get-AppCode 'PulsRig-Ping.ps1')
 . (Get-AppCode 'PulsRig-Autostart.ps1')
+. (Get-AppCode 'PulsRig-Strom.ps1')
 . (Get-AppCode 'PulsRig-Helfer.ps1')
 . (Get-AppCode 'PulsRig-Bento.ps1')   # Nacht-Bento: Weg-Leiste, Zurück-Knopf, Seitenumbau (nur in diesem Skin)
 # Dauerbewegungen des Skins beginnen, sobald das Fenster zu sehen ist

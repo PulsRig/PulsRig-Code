@@ -592,7 +592,9 @@ function Start-SnapshotTour {
                 }
             },
             @{ Wait = 900; Do = { Save-Snapshot '28y-standby-beispiel'; Select-SheetTab 1 } },
-            @{ Wait = 900; Do = { Save-Snapshot '28z-standby-beispiel-wach'; Close-Sheet -Quick } },
+            @{ Wait = 900; Do = { Save-Snapshot '28z-standby-beispiel-wach'; Close-Sheet -Quick; Open-PowerSheet } },
+            # Stromverbrauch mit den echten Messwerten dieses PCs (ein paar Sekunden für das Mittel)
+            @{ Wait = 4000; Do = { Save-Snapshot '28zz-stromverbrauch'; Close-Sheet -Quick } },
             # Was ist los? (Problem zuerst): Spiele ruckeln mit der Liste der Spiele, dann Abstürze und Sonstiges
             @{ Wait = 700; Do = { Open-ProblemSheet } },
             @{ Until = { $null -ne $script:Sheet.Games }; Timeout = 30000; Do = {

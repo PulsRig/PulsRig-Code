@@ -238,6 +238,7 @@ function Show-RecordingTab {
     $summary = Get-RecordingSummary $recording
     $slot = Add-SettingRow $(if ($summary.Tone -eq 'warn') { 'Zu warm oder gedrosselt' } else { 'Zusammenfassung' }) $summary.Text $(if ($summary.Tone -eq 'warn') { 0xE7BA } else { 0xE73E })
     try { Set-Paint $slot.Parent.FindName('Glyph') 'Foreground' $(if ($summary.Tone -eq 'warn') { 'Warn' } else { 'Good' }) } catch { }
+    Add-RecordingEnergyRow $recording   # PulsRig-Strom.ps1
     # Auswahl der Sitzung: die letzten acht als Knöpfe
     $pick = New-Object Windows.Controls.WrapPanel
     $pick.Margin = '-3,2,0,0'
