@@ -2268,6 +2268,78 @@ function Open-SettingsSheet([int]$Tab = -1) {
         return
     }
     & $script:BentoOpenSettingsSheet $Tab
+    # die Seite heißt schon "Optionen": das Fenster trägt den Namen des Links, der es öffnet
+    if ($script:Sheet -and $script:Sheet.Title -eq 'Optionen') {
+        $script:Sheet.Title = T 'Alle Einstellungen'
+        $ui.SheetTitle.Text = $script:Sheet.Title
+        Update-BentoCrumbs
+    }
+}
+
+# --- "Alle Einstellungen" im Kachel-Look ------------------------------------------
+# Das Fenster baut seine Zeilen wie gehabt; danach wird jede Zeile zur getönten Kachel mit farbiger Überschrift
+# (ohne Symbolkasten), und die Auswahlknöpfe bekommen den Lila-Pink-Verlauf der Optionen-Seite.
+
+$script:BentoChipStyle = [Windows.Markup.XamlReader]::Parse(@'
+<Style xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" TargetType="Button">
+    <Setter Property="Foreground" Value="#8C819F"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Template">
+        <Setter.Value>
+            <ControlTemplate TargetType="Button">
+                <Grid>
+                    <Border x:Name="Back" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" CornerRadius="10" Background="#0DFFFFFF" BorderBrush="#14FFFFFF" BorderThickness="1"/>
+                    <Border x:Name="On" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" CornerRadius="10" Opacity="0">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#6D43C9" Offset="0"/>
+                                <GradientStop Color="#A8326F" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Grid>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter TargetName="Back" Property="Background" Value="#1AFFFFFF"/>
+                        <Setter Property="Foreground" Value="#E2DCEB"/>
+                    </Trigger>
+                    <Trigger Property="Tag" Value="on">
+                        <Setter TargetName="On" Property="Opacity" Value="1"/>
+                        <Setter TargetName="Back" Property="BorderBrush" Value="Transparent"/>
+                        <Setter Property="Foreground" Value="White"/>
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Setter.Value>
+    </Setter>
+</Style>
+'@)
+
+$script:BentoShowSettingsTab = ${function:Show-SettingsTab}
+function Show-SettingsTab {
+    & $script:BentoShowSettingsTab
+    $tones = 'Lila', 'Beere', 'Indigo', 'Gruen', 'Bernst', 'Rose'
+    $i = 0
+    foreach ($row in @($ui.SheetPanel.Children)) {
+        if ($row -isnot [Windows.Controls.Border] -or -not $row.FindName('Title')) { continue }
+        $tone = $tones[$i % $tones.Count]; $i++
+        Set-BentoTone $row $tone
+        $row.CornerRadius = 18
+        $row.Padding = '20,16,20,16'
+        $row.Margin = '0,0,0,10'
+        $row.FindName('Tile').Visibility = 'Collapsed'
+        $title = $row.FindName('Title')
+        $title.FontSize = 12.5
+        $title.Foreground = New-SolidBrush $script:BentoTones[$tone].C
+        $row.FindName('Text').Foreground = New-SolidBrush '#8C819F'
+        foreach ($panel in $row.FindName('Below'), $row.FindName('Slot')) {
+            foreach ($chip in $panel.Children) {
+                if ($chip -is [Windows.Controls.Button] -and $chip.Style -eq $window.FindResource('ChipButton')) { $chip.Style = $script:BentoChipStyle; $chip.Height = 34 }
+            }
+        }
+    }
 }
 
 # --- Hardware-Übersicht als Kachelmosaik (Entwurf Q6) --------------------------------
