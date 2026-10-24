@@ -1,0 +1,59 @@
+PULSRIG – SPARLISTE (Tokens und Modellwahl)
+============================================
+
+VOR JEDEM START
+[ ] Claude Code aus D:\PulsRig heraus starten (lädt CLAUDE.md und settings.json).
+[ ] settings.json heißt genau so (nicht settings.json.json).
+[ ] Mit /mcp prüfen: Nur die Server aktiv, die du brauchst.
+[ ] Sitzungsziel festlegen: eine Aufgabe pro Sitzung.
+    Nach Abschluss /clear oder neue Sitzung starten.
+[ ] Freigabe prüfen: Betrifft die Aufgabe eines der Themen unter
+    „Nur nach ausdrücklichem Go“ (Design übernehmen, C#-Übertragung,
+    Release, Commit oder Push, FPS-Anzeige, Intenso-SSD)?
+    Dann nur mit ausdrücklichem Go starten.
+[ ] Gesperrte Ordner: dist/, Treiber/, Sensoren/ kann Claude nicht
+    lesen. Bei Bedarf selbst nachsehen oder die Zeile in settings.json
+    kurz entfernen.
+
+VOR JEDER AUFGABE – MODELLWAHL
+[ ] Ist die Aufgabe leicht?
+    (Umbenennen, Text ändern, kleiner Fix in einer Datei,
+     Formatierung, einfache Frage)
+[ ] Ja  -> /model eingeben, SONNET 5.5 wählen
+           (bei ganz kurzen Befehlen oder Fragen: HAIKU 5.5)
+[ ] Nein -> bei OPUS 5.5 bleiben
+           (Fehler über mehrere Dateien, Umbau, Planung)
+
+NACH DER AUFGABE
+[ ] Aufgabe erledigt?  -> /clear oder neue Sitzung starten
+[ ] Modell zurück auf OPUS 5.5, falls die nächste Aufgabe schwer ist
+    (oder bei Unsicherheit einfach so lassen)
+
+EINMAL PRO WOCHE
+[ ] /context ansehen: Liegt die Startgröße wieder bei etwa 50k?
+[ ] /mcp prüfen: Ist nichts Neues dazugekommen, das du nicht brauchst?
+
+FAUSTREGEL MODELL
+Kannst du die Antwort in einer Minute selbst prüfen, reicht ein
+kleineres Modell. Kann ein Fehler mehrere Dateien betreffen, nimm Opus.
+Bei falschen Ergebnissen sofort zurück auf Opus wechseln.
+
+SPARTIPPS BEIM PROGRAMMIEREN
+- Dateien und Stellen konkret nennen. Nicht „schau dir die Ansicht an“,
+  sondern „in PulsRig-Ansichten.ps1, Funktion Show-Verlauf, den Abstand
+  ändern“. Claude sucht dann gezielt.
+- Mehrere kleine Wünsche in einer Nachricht bündeln, statt zehn einzelne
+  zu schicken.
+- Erst einen kurzen Plan (drei bis fünf Punkte) geben lassen, dann
+  umsetzen. Ein falscher Ansatz kostet so weniger.
+- Test- und Build-Ausgaben kürzen, zum Beispiel per
+  „| Select-Object -Last 30“ oder nur die Fehlerzeilen.
+- Sehr große Dateien nie komplett lesen lassen: PulsRig-Englisch.ps1,
+  PulsRig.xaml, PulsRig-Bento.ps1. Immer nach Name oder Textstelle suchen.
+- Breite Suchen über viele Dateien an einen Suchagenten geben, der nur
+  das Ergebnis zurückschickt.
+- Bei langen Sitzungen mit /compact und Fokus verdichten, zum Beispiel
+  „/compact behalte Stand der Sensor-Logik und offene Fehler“.
+
+Am meisten bringt die Kombination aus konkreten Dateinamen, gebündelten
+Aufgaben und dem passenden Modell.

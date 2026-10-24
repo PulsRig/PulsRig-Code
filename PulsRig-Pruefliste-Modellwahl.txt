@@ -1,0 +1,25 @@
+PULSRIG – PRÜFLISTE MODELLWAHL
+==============================
+
+VOR JEDER AUFGABE
+[ ] Ist die Aufgabe leicht?
+    (Umbenennen, Text ändern, kleiner Fix in einer Datei,
+     Formatierung, einfache Frage)
+[ ] Ja  -> Modell wechseln: /model eingeben, SONNET 5.5 wählen
+           (bei ganz kurzen Befehlen oder Fragen: HAIKU 5.5)
+[ ] Nein -> bei OPUS 5.5 bleiben
+           (Fehler über mehrere Dateien, Umbau, Planung)
+
+NACH DER AUFGABE
+[ ] Aufgabe erledigt?  -> /clear oder neue Sitzung starten
+[ ] Modell zurück auf OPUS 5.5, falls die nächste Aufgabe schwer ist
+    (oder bei Unsicherheit einfach so lassen)
+
+EINMAL PRO WOCHE
+[ ] /context ansehen: Liegt die Startgröße wieder bei etwa 50k?
+[ ] /mcp prüfen: Ist nichts Neues dazugekommen, das du nicht brauchst?
+
+FAUSTREGEL
+Kannst du die Antwort in einer Minute selbst prüfen, reicht ein
+kleineres Modell. Kann ein Fehler mehrere Dateien betreffen, nimm Opus.
+Bei falschen Ergebnissen sofort zurück auf Opus wechseln.

@@ -14,6 +14,10 @@ $script:PowerGpuGuess = 20.0     # W für eine Grafikkarte ohne Messwert (etwa i
 $script:PowerCpuRated = 65.0     # W Nennleistung, wenn der Prozessor nicht gemessen wird
 $script:PowerEfficiency = 0.88   # Wirkungsgrad des Netzteils
 $script:Power = $null            # das offene Fenster: Felder, Timer, Summe der Messungen
+$script:PowerLimitLead = 10      # s Vorlauf, um ins Spiel zu wechseln, bevor der FPS-Limit-Vergleich misst
+$script:PowerLimitSeconds = 30   # s Messdauer je Durchgang
+$script:PowerLimit = @{}         # Ergebnisse des Vergleichs (Off/On: mittlere Watt), bleiben bis zum Beenden
+$script:PowerLimitRun = $null    # laufender Durchgang: Kind, Start, End, Sum, Count
 
 function Open-PowerSheet {
     Initialize-CpuTemp
@@ -30,6 +34,7 @@ function Open-PowerSheet {
 
 function Stop-PowerSheet {
     if ($script:Power) { $script:Power.Timer.Stop(); $script:Power = $null }
+    $script:PowerLimitRun = $null   # ohne Fenster keine Messwerte: Durchgang abbrechen
     Stop-Sensors
 }
 
@@ -92,15 +97,50 @@ function Show-PowerPanel {
     }
     Update-SettingChips $slot "$($script:Settings.PowerHours)"
 
+    # FPS-Limit-Vergleich: zweimal im laufenden Spiel messen, einmal ohne und einmal mit Limit
+    foreach ($kind in @('Off', 'Ohne FPS-Limit', 0xE7FC), @('On', 'Mit FPS-Limit', 0xE7FC)) {
+        $slot = Add-SettingRow $kind[1] '' $kind[2]
+        $value = New-PowerValue '–' 17
+        $value.Margin = '0,0,10,0'
+        [void]$slot.Children.Add($value)
+        $chip = New-SettingChip 'Messen' $kind[0]
+        $chip.Add_Click({ try { Start-PowerLimitMeasure $this.Uid } catch { Write-AppError $_ } })
+        [void]$slot.Children.Add($chip)
+        $text = $slot.Parent.FindName('Text')
+        $text.Visibility = 'Visible'
+        $fields["Limit$($kind[0])"] = @{ Value = $value; Text = $text }
+    }
+    $slot = Add-SettingRow 'Ersparnis durch das FPS-Limit' 'Erst ohne, dann mit Limit messen' 0xE9D2
+    foreach ($hours in 1, 2, 4, 6) {
+        $chip = New-SettingChip "$hours Std." "$hours"
+        $chip.Add_Click({
+                try {
+                    $script:Settings.GameHours = [int]$this.Uid
+                    Save-Settings
+                    Update-SettingChips $this.Parent $this.Uid
+                    Update-PowerLimit
+                }
+                catch { Write-AppError $_ }
+            })
+        [void]$slot.Children.Add($chip)
+    }
+    Update-SettingChips $slot "$($script:Settings.GameHours)"
+    $saving = New-PowerValue '–' 20
+    $saving.Margin = '0,0,10,0'
+    Set-Paint $saving 'Foreground' 'Accent'
+    $slot.Children.Insert(0, $saving)
+    $fields.Saving = @{ Value = $saving; Text = $slot.Parent.FindName('Text') }
+
     # ohne gemessenen Prozessor: der Hinweis mit dem Knopf zum Freischalten (wie im Fenster Sensoren)
     if (-not $script:CpuTempSeen -or (-not $sync.CpuTempDemo -and "$([PulsRigCpuTemp]::Source)" -eq 'Core Temp')) { Add-CpuTempHint }
 
     if ($script:Power) { $script:Power.Timer.Stop() }
     $timer = New-Object Windows.Threading.DispatcherTimer
     $timer.Interval = [TimeSpan]::FromMilliseconds(500)
-    $timer.Add_Tick({ try { Update-PowerPanel } catch { Write-AppError $_ } })
+    $timer.Add_Tick({ try { Update-PowerPanel; Update-PowerLimit } catch { Write-AppError $_ } })
     $script:Power = @{ Fields = $fields; Timer = $timer; Stamp = 0; Sum = 0.0; Count = 0; Last = $null }
     $timer.Start()
+    Update-PowerLimit
     $ui.SheetState.Text = T 'Schätzung – ein Messgerät an der Steckdose ist genauer'
 }
 
@@ -176,6 +216,12 @@ function Update-PowerPanel([switch]$Force) {
         $power.Last = Get-PowerParts $values
         $power.Sum += $power.Last.Total
         $power.Count++
+        $run = $script:PowerLimitRun
+        if ($run -and [DateTime]::Now -ge $run.Start) {
+            $run.Sum += $power.Last.Total
+            $run.Count++
+            if (-not $power.Last.GpuMeasured) { $run.GpuGuessed = $true }
+        }
     }
     elseif (-not $Force) { return }
     $parts = $power.Last
@@ -194,4 +240,59 @@ function Update-PowerPanel([switch]$Force) {
     $day = $average / 1000.0 * [double]$script:Settings.PowerHours * [double]$script:Settings.PowerPrice
     $fields.Cost.Value.Text = T $('{0:N0} € im Jahr' -f ($day * 365))
     $fields.Cost.Text.Text = T $('Im Mittel {0:N0} W · {1:N2} € am Tag bei {2} Std.' -f $average, $day, $script:Settings.PowerHours)
+}
+
+# FPS-Limit-Vergleich: PulsRig stellt das Limit nicht selbst um. Der Nutzer startet einen Durchgang, wechselt ins
+# Spiel, und nach dem Vorlauf mittelt PulsRig den Verbrauch eine halbe Minute lang. Das Fenster bleibt dabei offen.
+function Start-PowerLimitMeasure([string]$Kind) {
+    $now = [DateTime]::Now
+    $start = $now.AddSeconds($script:PowerLimitLead)
+    $script:PowerLimitRun = @{ Kind = $Kind; Start = $start; End = $start.AddSeconds($script:PowerLimitSeconds); Sum = 0.0; Count = 0; GpuGuessed = $false }
+    Update-PowerLimit
+}
+
+function Update-PowerLimit {
+    $power = $script:Power
+    if (-not $power -or -not $power.Fields.Saving) { return }
+    $fields = $power.Fields
+    $run = $script:PowerLimitRun
+    $now = [DateTime]::Now
+    if ($run -and $now -ge $run.End) {
+        if ($run.Count -gt 0) {
+            $script:PowerLimit[$run.Kind] = @{ Watt = $run.Sum / $run.Count; GpuGuessed = $run.GpuGuessed; Time = $run.End }
+        }
+        $script:PowerLimitRun = $run = $null
+    }
+    foreach ($kind in 'Off', 'On') {
+        $field = $fields["Limit$kind"]
+        $result = $script:PowerLimit[$kind]
+        if ($run -and $run.Kind -eq $kind) {
+            $field.Value.Text = '…'
+            $field.Text.Text = if ($now -lt $run.Start) { T $('Jetzt ins Spiel wechseln – Messung beginnt in {0:N0} s' -f [Math]::Ceiling(($run.Start - $now).TotalSeconds)) }
+            else { T $('Misst im Spiel … noch {0:N0} s' -f [Math]::Ceiling(($run.End - $now).TotalSeconds)) }
+        }
+        elseif ($result) {
+            $field.Value.Text = '{0:N0} W' -f $result.Watt
+            $field.Text.Text = T $(if ($result.GpuGuessed) { 'Gemessen um {0:HH:mm} – Grafikkarte nur geschätzt, der Vergleich sagt so wenig' -f $result.Time } else { 'Gemessen um {0:HH:mm}, Mittel über {1} s im Spiel' -f $result.Time, $script:PowerLimitSeconds })
+        }
+        else {
+            $field.Value.Text = '–'
+            $field.Text.Text = T $(if ($kind -eq 'Off') { 'Spiel ohne Limit starten, hier „Messen“ und ins Spiel wechseln' } else { 'Limit im Spiel oder Treiber setzen, dann erneut messen' })
+        }
+    }
+    $off = $script:PowerLimit['Off']; $on = $script:PowerLimit['On']
+    if (-not $off -or -not $on) {
+        $fields.Saving.Value.Text = '–'
+        $fields.Saving.Text.Text = T 'Erst ohne, dann mit Limit messen'
+        return
+    }
+    $diff = $off.Watt - $on.Watt
+    $year = $diff / 1000.0 * [double]$script:Settings.GameHours * 365 * [double]$script:Settings.PowerPrice
+    if ($diff -lt 1) {
+        $fields.Saving.Value.Text = '0 €'
+        $fields.Saving.Text.Text = T 'Kein Unterschied gemessen – das Limit greift wohl nicht oder liegt über der erreichten Bildrate'
+        return
+    }
+    $fields.Saving.Value.Text = T $('{0:N0} € im Jahr' -f $year)
+    $fields.Saving.Text.Text = T $('{0:N0} W weniger ({1:N0} %) bei {2} Std. Spielen am Tag' -f $diff, ($diff / $off.Watt * 100), $script:Settings.GameHours)
 }

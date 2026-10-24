@@ -1,0 +1,24 @@
+{"mcpServers": {
+  "nvidia-app": {
+    "type": "http",
+    "url": "http://127.0.0.1:13508/mcp"
+  }
+}
+  "permissions": {
+    "deny": [
+      "Read(./dist/**)",
+      "Read(./Treiber/**)",
+      "Read(./Sensoren/**)",
+      "Read(./bilder/**)",
+      "Read(./Webseite/**)",
+      "Edit(./dist/**)",
+      "Edit(./Treiber/**)",
+      "Edit(./Sensoren/**)",
+      "Edit(./LICENSE)",
+      "Write(./dist/**)",
+      "Write(./Treiber/**)",
+      "Write(./Sensoren/**)",
+      "Write(./LICENSE)"
+    ]
+  }
+}

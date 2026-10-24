@@ -1,3 +1,24 @@
+## Neu in 0.7 Beta
+
+**Stromverbrauch und Stromkosten**
+- Neues Werkzeug „Stromverbrauch“: zeigt, was der PC gerade zieht und was das im Jahr kostet. Die Grafikkarte misst PulsRig bei NVIDIA direkt, den Prozessor über die freigeschaltete Prozessor-Temperatur, den Rest schätzt es.
+- Strompreis und Nutzung am Tag lassen sich einstellen.
+- FPS-Limit-Vergleich: Im Spiel einmal ohne und einmal mit Bildraten-Limit messen. PulsRig zeigt, wie viel Watt das Limit spart und was das im Jahr ausmacht. Das Limit stellst du selbst im Spiel oder Treiber ein.
+- Jede aufgezeichnete Spielsitzung nennt den Verbrauch in kWh und was sie gekostet hat.
+
+**Treiber**
+- Radeon-Grafikkarten (RX 5000 bis 9000, Vega): Der Scan fragt jetzt direkt bei AMD nach dem neuesten Adrenalin-Treiber, statt nur auf die Seite zu verweisen.
+
+**Weniger Arbeitsspeicher**
+- PulsRig gibt nach dem Start und beim Minimieren ungenutzten Arbeitsspeicher frei: im Leerlauf rund 120 statt 270 MB.
+
+**Fehler behoben**
+- Fenster wie Sensoren oder Laufwerke behalten im Aussehen Nacht-Bento ihre Größe und schrumpfen nicht mehr, wenn sich die Temperaturkurven bewegen.
+- Das Suchfeld bei Werkzeuge schneidet die Schrift unten nicht mehr ab.
+- Notebooks: Die Akku-Zeile steht jetzt auch im Aussehen Nacht-Bento in der Karte „Sensoren“, und der Akku wird auch erkannt, wenn Windows ihn auf dem üblichen Weg nicht meldet.
+- Der Prüfbericht brach ab, wenn PulsRig keine Abstürze gefunden hatte.
+- Hinweis für AVG und Avast: CyberCapture hält Setup oder Deinstallation manchmal zur Prüfung an. Das ist kein Virenfund – ein paar Stunden warten oder die Datei im Virenschutz als vertrauenswürdig markieren.
+
 ## Neu in 0.6 Beta
 
 **Bericht & Diagnose**

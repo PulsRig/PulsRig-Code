@@ -320,6 +320,7 @@ $script:Settings = @{
     ProbeWarnHidden  = ''         # weggeklickter Treiberhinweis der Startseite (Kennung, siehe PulsRig-Probezeit.ps1)
     PowerPrice       = 0.35       # Strompreis in €/kWh für die Stromkosten (PulsRig-Strom.ps1)
     PowerHours       = 4          # Stunden am Tag, die der PC läuft
+    GameHours        = 2          # Stunden am Tag, die gespielt wird (FPS-Limit-Vergleich, PulsRig-Strom.ps1)
     Opacity          = 100
     Theme            = 'Lila-Nacht'
     ThemeHue         = 224.0
@@ -1322,7 +1323,7 @@ $script:Tools = [ordered]@{
     Autostart           = @{ Glyph = 0xE7E8; Title = 'Autostart'; Desc = 'Programme, die mit Windows starten' }
     CleanDisk           = @{ Glyph = 0xE74D; Title = 'Speicherplatz freigeben'; Desc = 'Temporäre Dateien, Shader-Cache und alte Treiberpakete löschen' }
     Standby             = @{ Glyph = 0xE708; Title = 'Standby-Detektiv'; Desc = 'Warum der PC aufwacht oder wach bleibt' }
-    Power               = @{ Glyph = 0xE945; Title = 'Stromverbrauch'; Desc = 'Watt und Stromkosten im Jahr, geschätzt'; Find = 'Strom Stromkosten Watt Verbrauch Euro kWh' }
+    Power               = @{ Glyph = 0xE945; Title = 'Stromverbrauch'; Desc = 'Watt und Stromkosten im Jahr, geschätzt'; Find = 'Strom Stromkosten Watt Verbrauch Euro kWh FPS Limit Bildrate sparen' }
     InputTest           = @{ Glyph = 0xE7FC; Title = 'Controller und Maus'; Desc = 'Tasten, Stick-Drift, Abfragerate und Doppelklick-Fehler'; Find = 'Controller Gamepad Maus Drift Hz Doppelklick' }
     GameBoost           = @{ Glyph = 0xEC4A; Title = 'Spiel-Beschleunigung'; Desc = 'Energieplan, Dienste und speicherhungrige Programme' }
 }
