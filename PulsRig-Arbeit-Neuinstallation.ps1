@@ -1,6 +1,7 @@
 ﻿# PulsRig - Arbeitsbereich: Neuinstallations-Begleiter. Wird von PulsRig.ps1 als Text geladen.
 # Save:     Ordner "Neuinstallation_<Datum>" mit Offline-Treiberpaket und Programmliste (winget export) anlegen
 # Drivers:  Treiber aus so einem Ordner wieder einspielen (nur mit Adminrechten)
+# Stick:    Notfall-Stick - PulsRig portabel auf einen USB-Stick kopieren, dazu ein Offline-Treiberpaket
 # Programs: ausgewählte Programme der Liste per winget installieren
 param($a)
 $global:DryRun = [bool]$a.DryRun
@@ -71,6 +72,67 @@ if ($a.Mode -eq 'Drivers') {
     if ($LASTEXITCODE -in 0, 259, 3010) { Write-Host 'Fertig. Bitte den PC danach neu starten.' -ForegroundColor Green }
     else { Write-Host "pnputil meldet Code $LASTEXITCODE - einzelne Treiber passten evtl. nicht zu den Geräten." -ForegroundColor Yellow }
     return @{ Failed = $false }
+}
+
+if ($a.Mode -eq 'Stick') {
+    # PulsRig läuft vom Stick ohne Installation: liegt es nicht unter "Programme", schreibt es nach Treiber\ daneben
+    $root = Join-Path $a.Drive 'PulsRig'
+    $out = Join-Path $root 'Treiber'
+    Write-Host 'Schritt 1 von 2: PulsRig auf den Stick' -ForegroundColor Cyan
+    if ($a.Embedded) { $names = 'PulsRig.exe', 'PulsRig.ico', 'PulsRig-Testzettel.txt' }
+    else {
+        # lose Dateien wie im ZIP-Paket (Auswahl wie in PulsRig-Paket.ps1)
+        $names = @(Get-ChildItem -LiteralPath $a.Source -File | Where-Object {
+                $_.Name -match '^(PulsRig.*\.(ps1|xaml|bat|cs|ico)|Treiber-(Scan|Werkzeuge)\.ps1|Treiber-Scan\.bat|PulsRig-Testzettel\.txt|PulsRig-Bau\.txt)$' -and
+                $_.Name -notin 'PulsRig-Tests.ps1', 'PulsRig-Paket.ps1', 'PulsRig-Fremdsystem.ps1', 'PulsRig-Hochladen.ps1', 'PulsRig-Start.cs'
+            } | ForEach-Object { $_.Name })
+    }
+    if ($DryRun) {
+        Write-Host "  [Probelauf] $($names.Count) Dateien und Sensoren\ nach $root kopieren" -ForegroundColor DarkGray
+    }
+    else {
+        try {
+            New-Item -ItemType Directory -Path $out -Force | Out-Null
+            foreach ($name in $names) {
+                $file = Join-Path $a.Source $name
+                if (Test-Path -LiteralPath $file) { Copy-Item -LiteralPath $file -Destination (Join-Path $root $name) -Force }
+            }
+            $sensors = Join-Path $a.Source 'Sensoren'
+            if (Test-Path -LiteralPath $sensors) { Copy-Item -LiteralPath $sensors -Destination $root -Recurse -Force }
+            Write-Host "$($names.Count) Dateien kopiert." -ForegroundColor Green
+        }
+        catch {
+            Write-Host "Kopieren fehlgeschlagen: $($_.Exception.Message)" -ForegroundColor Red
+            return @{ Failed = $true }
+        }
+    }
+    Write-Host ''
+    Write-Host 'Schritt 2 von 2: Offline-Treiberpaket' -ForegroundColor Cyan
+    Write-Host 'Schätze die Größe der Treiber ...'
+    $need = Get-OfflinePackageSize
+    $free = (New-Object IO.DriveInfo $a.Drive).AvailableFreeSpace
+    Write-Host ('Treiber: etwa {0:N1} GB, frei auf dem Stick: {1:N1} GB' -f ($need / 1GB), ($free / 1GB))
+    if ($need -gt $free) {
+        Write-Host ('Zu wenig Platz für die Treiber - es fehlen etwa {0:N1} GB. Einen größeren Stick nehmen oder dort Platz schaffen.' -f (($need - $free) / 1GB)) -ForegroundColor Red
+        $script:ExitCode = 1
+    }
+    else { New-OfflinePackage $out }
+    $start = if ($a.Embedded) { 'PulsRig.exe' } else { 'PulsRig.bat' }
+    $readme = @(
+        "PulsRig-Notfall-Stick vom $(Get-Date -Format 'dd.MM.yyyy HH:mm') für den PC $env:COMPUTERNAME"
+        ''
+        "Starten: im Ordner PulsRig die Datei $start doppelt anklicken - ohne Installation."
+        'Ergebnisse und geladene Treiber landen auf dem Stick im Ordner Treiber.'
+        ''
+        'Kein Internet, weil der Netzwerktreiber fehlt?'
+        '   Treiber\Offline-Paket_…\Treiber-installieren.bat doppelt anklicken und danach neu starten.'
+        '   Die Treiber passen zu genau diesem PC.'
+    )
+    if (-not $DryRun) { Set-Content -LiteralPath (Join-Path $root 'LIESMICH-Notfall-Stick.txt') -Value $readme -Encoding UTF8 }
+    Write-Host ''
+    if ($script:ExitCode) { Write-Host 'PulsRig ist auf dem Stick, das Treiberpaket fehlt aber.' -ForegroundColor Yellow }
+    else { Write-Host "Fertig. Notfall-Stick: $root" -ForegroundColor Green }
+    return @{ Failed = [bool]$script:ExitCode; Folder = $root }
 }
 
 if ($a.Mode -eq 'Programs') {

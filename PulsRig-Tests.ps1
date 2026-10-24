@@ -25,7 +25,7 @@ function Test-Equal([string]$Name, $Actual, $Expected) {
     else { $script:Failures += "$Name`n      erwartet: $Expected`n      erhalten: $Actual" }
 }
 
-Import-Functions 'Treiber-Scan.ps1' 'ConvertTo-NvidiaVersion', 'Get-CatalogQuery', 'Select-CatalogCandidate', 'Test-ChipsetDevice', 'Get-BoardDriverSearch', 'Select-MissingDriverRow', 'Format-UpdateTitle', 'Find-DeviceName', 'Get-RadeonPage'
+Import-Functions 'Treiber-Scan.ps1' 'ConvertTo-NvidiaVersion', 'Get-CatalogQuery', 'Select-CatalogCandidate', 'Test-ChipsetDevice', 'Get-BoardDriverSearch', 'Select-MissingDriverRow', 'Format-UpdateTitle', 'Find-DeviceName', 'Get-RadeonPage', 'Get-GpuShieldKey'
 Import-Functions 'PulsRig-Hardware.ps1' 'Get-MemoryRated', 'Get-MemoryProfile', 'Get-MemoryChannelKey', 'Get-MemoryChannels', 'Get-MemoryPlacement', 'Get-MemoryLayout'
 
 # --- NVIDIA-Version ---
@@ -160,6 +160,8 @@ Test-Equal 'Unterzeile: nur Windows Update' (Format-ScanHint $false $false $fals
 # --- Titel und Gerätenamen der Treiber von Windows Update ---
 Test-Equal 'Titel: Monitor' (Format-UpdateTitle 'BenQ - LCD - BenQ GW2760HS') 'BenQ – Monitor – BenQ GW2760HS'
 Test-Equal 'Titel: Datum fällt weg' (Format-UpdateTitle 'SteelSeries - System - 5/14/2019 12:00:00 AM - 1.1.10.3') 'SteelSeries – Systemgerät – 1.1.10.3'
+Test-Equal 'Treiberschutz: Schlüssel' (Get-GpuShieldKey 'PCI\VEN_10de&DEV_2684&SUBSYS_16F11043&REV_A1') 'PCI\VEN_10DE&DEV_2684'
+Test-Equal 'Treiberschutz: kein PCI' (Get-GpuShieldKey 'ROOT\BasicDisplay\0000') ''
 Test-Equal 'Titel: unbekannte Art bleibt' (Format-UpdateTitle 'Acme - Gizmo - 1.2') 'Acme – Gizmo – 1.2'
 Test-Equal 'Titel: andere Form bleibt unverändert' (Format-UpdateTitle 'Intel Driver Update (12.19.2.66)') 'Intel Driver Update (12.19.2.66)'
 $pnp = @([pscustomobject]@{ Name = 'Generic PnP Monitor'; HardwareID = @('MONITOR\BNQ78CA') }, [pscustomobject]@{ Name = 'Brother MFC Scanner'; HardwareID = @('USB\VID_04F9&PID_04BB&NETSCN&MI_01', 'USB\VID_04F9&PID_04BB') })

@@ -4,6 +4,7 @@
 #
 # Die Sicherung ist ein Ordner "Neuinstallation_<Datum>" im Zielordner: darin ein Offline-Treiberpaket
 # (New-OfflinePackage) und Programme.json aus "winget export". Programme installiert PulsRig nur, wenn sie abgehakt sind.
+# Dazu der Notfall-Stick: PulsRig portabel in <Stick>\PulsRig, das Offline-Paket in dessen Ordner Treiber.
 
 $reinstallCode = Get-AppText 'PulsRig-Arbeit-Neuinstallation.ps1'
 
@@ -139,6 +140,63 @@ function Update-ReinstallState {
     $ui.BtnSheetPrimary.IsEnabled = $selected -gt 0
     if (@($script:Sheet.Programs).Count) { $ui.BtnSheetLink.Content = T $(if (@($script:Sheet.Programs | Where-Object { -not $_.Checked }).Count) { 'Alle auswählen' } else { 'Keine auswählen' }) }
     Set-SheetStateText $(if ($selected -eq 1) { '1 Programm ausgewählt' } elseif ($selected) { "$selected Programme ausgewählt" } else { 'Der Reihe nach: Treiber, Spielkomponenten, dann die Programme abhaken.' })
+}
+
+# --- Notfall-Stick: PulsRig portabel auf einen USB-Stick, dazu die Treiber dieses PCs ---------------------------
+
+function Open-RescueStickSheet {
+    $opened = Open-Sheet @{
+        Title     = 'Notfall-Stick'
+        Sub       = 'PulsRig und die Treiber dieses PCs auf einem USB-Stick'
+        Glyph     = 0xE88E
+        Show      = { param($tab) Show-RescueStick }
+        OnLink    = { $script:SheetWay = 0; Show-RescueStick }
+        OnAction  = {
+            param($item)
+            switch ($item.Data.Do) {
+                'make' { $drive = $item.Data.Drive; Close-Sheet -Quick; Open-RescueStickDialog $drive }
+                'open' { Start-Process explorer.exe "`"$($item.Data.Folder)`"" }
+            }
+        }
+    }
+    if (-not $opened) { return }
+}
+
+function Show-RescueStick {
+    Set-SheetButtons '' 'Schließen' 'Neu suchen'
+    $rows = @(New-SheetRow -Kind 'head' -Title 'USB-STICKS')
+    $sticks = @([IO.DriveInfo]::GetDrives() | Where-Object { try { $_.DriveType -eq 'Removable' -and $_.IsReady } catch { $false } })
+    foreach ($stick in $sticks) {
+        $label = if ($stick.VolumeLabel) { "$($stick.VolumeLabel) ($($stick.Name.TrimEnd('\')))" } else { "USB-Stick ($($stick.Name.TrimEnd('\')))" }
+        $sub = '{0:N1} von {1:N1} GB frei' -f ($stick.AvailableFreeSpace / 1GB), ($stick.TotalSize / 1GB)
+        $folder = Join-Path $stick.RootDirectory.FullName 'PulsRig'
+        $done = Test-Path -LiteralPath (Join-Path $folder 'LIESMICH-Notfall-Stick.txt')
+        # das Treiberpaket braucht je nach PC 1 bis 4 GB; genau prüft es der Arbeitsbereich vor dem Export
+        $small = $stick.AvailableFreeSpace -lt 4GB
+        $rows += New-SheetRow -Title $label -Sub $sub -Glyph 0xE88E -Tone $(if ($small) { 'warn' } else { 'accent' }) `
+            -State $(if ($done) { 'eingerichtet' } elseif ($small) { 'wenig Platz' } else { '' }) `
+            -Action $(if ($done) { 'Erneuern' } else { 'Einrichten' }) -Data @{ Do = 'make'; Drive = $stick.RootDirectory.FullName }
+        if ($done) { $rows += New-SheetRow -Title 'PulsRig auf dem Stick' -Sub $folder -Glyph 0xE8B7 -Action 'Ordner öffnen' -Data @{ Do = 'open'; Folder = $folder } }
+    }
+    if (-not $sticks.Count) { $rows += New-SheetRow -Title 'Kein USB-Stick gefunden' -Sub 'Stick einstecken und „Neu suchen“ wählen.' -Glyph 0xE783 -Tone 'warn' }
+    $rows += New-SheetRow -Kind 'head' -Title 'KOMMT AUF DEN STICK'
+    $rows += New-SheetRow -Title 'PulsRig ohne Installation' -Sub 'Startet auf jedem Windows-PC direkt vom Stick' -Glyph 0xE7EF -State 'dabei' -Tone 'good'
+    $rows += New-SheetRow -Title 'Treiber dieses PCs' -Sub 'Offline-Paket – rettet den Netzwerktreiber, wenn nach einer Neuinstallation das Internet fehlt' -Glyph 0xE7B8 -State 'dabei' -Tone 'good'
+    Show-SheetList $rows
+    Set-SheetStateText 'Dateien auf dem Stick bleiben, PulsRig legt nur den Ordner „PulsRig“ an.'
+}
+
+function Open-RescueStickDialog([string]$Drive) {
+    if ($script:Busy) { return }
+    $script:Dialog = @{ Kind = 'custom'; Name = 'RescueStick'; DryRun = $false; Code = $reinstallCode
+        Argument = @{ Mode = 'Stick'; Drive = $Drive; Source = $script:Root; Embedded = [bool]$script:Files; DryRun = $false } }
+    $cards = @(
+        New-IntroCard 0xE7EF '1 · PulsRig' 'ohne Installation' 'Accent'
+        New-IntroCard 0xE7B8 '2 · Treiber' 'als Offline-Paket' 'Ring2'
+        New-IntroCard 0xE88E $Drive.TrimEnd('\') 'USB-Stick' 'Ring1'
+    )
+    $target = Join-Path $Drive 'PulsRig'
+    Open-Dialog 'Notfall-Stick einrichten' $Drive.TrimEnd('\') 0xE88E ("PulsRig kopiert sich auf den Stick und legt daneben ein Offline-Paket mit den Treibern dieses PCs an.`n`nZiel: $target`nAndere Dateien auf dem Stick bleiben unberührt.") 'Einrichten' $cards
 }
 
 function Open-ReinstallDialog([string]$Mode, [string[]]$Ids, [string]$Folder) {

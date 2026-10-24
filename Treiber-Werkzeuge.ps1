@@ -1379,6 +1379,20 @@ function Invoke-IncompatibleDriversTool {
 
 # --- Offline-Treiberpaket -----------------------------------------------------
 
+# Ungefähre Größe des Offline-Pakets in Bytes: die Ordner der Drittanbieter-Treiber im DriverStore.
+# Liegen dort mehrere Fassungen eines Treibers, zählen alle mit - die Schätzung liegt eher zu hoch.
+function Get-OfflinePackageSize {
+    $repository = Join-Path $env:windir 'System32\DriverStore\FileRepository'
+    $names = @(& pnputil.exe /enum-drivers | ForEach-Object { if ($_ -match '^\s*Original\s?name\s*:\s*(\S+\.inf)\s*$') { $Matches[1] } } | Select-Object -Unique)
+    $size = 0
+    foreach ($name in $names) {
+        foreach ($folder in @(Get-ChildItem -LiteralPath $repository -Directory -Filter "$($name)_*" -ErrorAction SilentlyContinue)) {
+            $size += (Get-ChildItem -LiteralPath $folder.FullName -Recurse -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum
+        }
+    }
+    [long]$size
+}
+
 # $Package: '*' für alle Treiber von Drittherstellern oder ein einzelnes Paket wie oem12.inf
 function New-OfflinePackage([string]$TargetRoot, [string]$Package = '*') {
     $target = Join-Path $TargetRoot ('Offline-Paket_{0:yyyy-MM-dd_HHmm}' -f (Get-Date))
@@ -1393,8 +1407,13 @@ function New-OfflinePackage([string]$TargetRoot, [string]$Package = '*') {
     New-Item -ItemType Directory -Path $drivers -Force | Out-Null
     Write-Host 'Exportiere Treiber (kann einige Minuten dauern) ...'
     & pnputil.exe /export-driver $Package $drivers | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Der Export ist fehlgeschlagen (pnputil-Code $LASTEXITCODE)." -ForegroundColor Red
+    $code = $LASTEXITCODE
+    if ($code -ne 0) {
+        # ein halbes Paket hilft niemandem und belegt nur Platz
+        Remove-Item -LiteralPath $target -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
+        # 112: Datenträger voll
+        if ($code -eq 112) { Write-Host 'Der Export ist abgebrochen: Auf dem Ziellaufwerk ist kein Platz mehr.' -ForegroundColor Red }
+        else { Write-Host "Der Export ist fehlgeschlagen (pnputil-Code $code)." -ForegroundColor Red }
         $script:ExitCode = 1
         return
     }

@@ -274,6 +274,8 @@ function Start-SnapshotTour {
                 }
             },
             @{ Wait = 900; Do = { Save-Snapshot '20b-neuinstallation-danach'; Close-Sheet } },
+            @{ Wait = 500; Do = { Open-RescueStickSheet } },
+            @{ Wait = 900; Do = { Save-Snapshot '20c-notfall-stick'; Close-Sheet } },
             @{ Wait = 500; Do = { Open-SystemSheet } },
             @{ Until = { $script:Sheet -and $script:Sheet.Info }; Timeout = 60000; Do = { } },
             @{ Wait = 900; Do = { Save-Snapshot '21-system'; Select-SheetTab 2 } },
@@ -584,7 +586,10 @@ function Start-SnapshotTour {
                     $script:Sheet.GameCheck = $real
                 }
             },
-            @{ Wait = 900; Do = { Save-Snapshot '28v-gaming-check-beispiel'; Close-Sheet -Quick; Open-StandbySheet } },
+            @{ Wait = 900; Do = { Save-Snapshot '28v-gaming-check-beispiel'; Close-Sheet -Quick; Open-GpuShieldSheet } },
+            # Grafiktreiber schützen mit den echten Grafikkarten (nur gelesen, nichts versteckt)
+            @{ Until = { $script:Sheet -and $script:Sheet.GpuShield }; Timeout = 90000; Do = { } },
+            @{ Wait = 900; Do = { Save-Snapshot '28v2-treiberschutz'; Close-Sheet -Quick; Open-StandbySheet } },
             # Standby-Detektiv mit den echten Daten dieses PCs
             @{ Until = { $script:Sheet -and $script:Sheet.Standby }; Timeout = 30000; Do = { } },
             @{ Wait = 900; Do = {

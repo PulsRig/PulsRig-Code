@@ -455,6 +455,45 @@ function Find-DriverUpdates($Session) {
     }
 }
 
+# --- Grafiktreiber vor Windows Update schützen ---------------------------------
+# Gezielt und umkehrbar: Windows Update bekommt keine Sperre und keine Richtlinie, sondern seine Angebote für die
+# geschützte Grafikkarte werden versteckt (wie mit Microsofts "Updates anzeigen oder ausblenden"). Versteckte
+# Updates spielt Windows nicht von selbst ein; Freigeben macht sie wieder sichtbar. Treiber direkt von NVIDIA oder
+# AMD und alle anderen Geräte bleiben unberührt. Neue Angebote versteckt der nächste Scan oder der Wochenscan.
+# Schlüssel einer Grafikkarte: "PCI\VEN_xxxx&DEV_xxxx" aus ihrer Geräte-ID.
+function Get-GpuShieldKey([string]$HardwareId) {
+    if ($HardwareId -match '^(PCI\\VEN_[0-9A-Fa-f]{4}&DEV_[0-9A-Fa-f]{4})') { $Matches[1].ToUpper() } else { '' }
+}
+
+function Get-ShieldGpus {
+    $seen = @{}
+    foreach ($gpu in @(Get-CimInstance Win32_VideoController)) {
+        $key = Get-GpuShieldKey "$($gpu.PNPDeviceID)"
+        if (-not $key -or $seen.ContainsKey($key)) { continue }
+        $seen[$key] = $true
+        @{ Key = $key; Name = "$($gpu.Name)"; Version = "$($gpu.DriverVersion)" }
+    }
+}
+
+# Angebote von Windows Update für diese Grafikkarten (Klasse Display, Geräte-ID passt), versteckt oder sichtbar
+function Find-GpuDriverOffers($Session, [string[]]$Keys, [bool]$Hidden) {
+    if (-not @($Keys).Count) { return }
+    $result = Invoke-UpdateSearch $Session "IsInstalled=0 and IsHidden=$([int]$Hidden) and Type='Driver'"
+    for ($i = 0; $i -lt $result.Updates.Count; $i++) {
+        $update = $result.Updates.Item($i)
+        if ("$($update.DriverClass)" -notin 'Display', 'Video') { continue }
+        if ($Keys -contains (Get-GpuShieldKey "$($update.DriverHardwareID)")) { $update }
+    }
+}
+
+# versteckt (On) oder zeigt wieder (aus) alle passenden Angebote; Ergebnis: ihre Titel
+function Set-GpuShield($Session, [string[]]$Keys, [bool]$On) {
+    foreach ($update in @(Find-GpuDriverOffers $Session $Keys (-not $On))) {
+        $update.IsHidden = $On
+        "$($update.Title)"
+    }
+}
+
 # Windows Update nennt Treiber in der Form "Hersteller - Art - Version" (manchmal mit einem Datum dazwischen), die Art
 # in Kürzeln wie "LCD" oder "MEDIA". Für die Anzeige: Kürzel übersetzt, Datum weggelassen (es steht in der Zeile darunter).
 function Format-UpdateTitle([string]$Title) {

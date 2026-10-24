@@ -27,6 +27,8 @@ $global:DD_Items = @()
 try {
     $global:DD_Session = New-Object -ComObject Microsoft.Update.Session
     $global:DD_Session.ClientApplicationID = 'PulsRig'
+    # neue Angebote für geschützte Grafikkarten zuerst verstecken (braucht Adminrechte, sonst bleiben sie sichtbar)
+    try { [void]@(Set-GpuShield $global:DD_Session @($a.Shield) $true) } catch { }
     $global:DD_Items = @(Find-DriverUpdates $global:DD_Session)
 }
 catch { $searchError = Get-UpdateErrorText $_ }

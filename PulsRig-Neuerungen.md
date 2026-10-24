@@ -12,6 +12,8 @@
 
 **Treiber**
 - Radeon-Grafikkarten (RX 5000 bis 9000, Vega): Der Scan fragt jetzt direkt bei AMD nach dem neuesten Adrenalin-Treiber, statt nur auf die Seite zu verweisen.
+- Neues Werkzeug „Grafiktreiber schützen“: Windows Update überschreibt den Grafiktreiber nicht mehr. PulsRig versteckt dafür nur die Angebote für diese Grafikkarte; Treiber von NVIDIA oder AMD lassen sich weiter installieren, andere Geräte bekommen ihre Updates wie bisher. „Freigeben“ macht alles rückgängig.
+- Neues Werkzeug „Notfall-Stick“: kopiert PulsRig ohne Installation auf einen USB-Stick, dazu das Offline-Treiberpaket dieses PCs. Vorher prüft es, ob genug Platz frei ist.
 
 **Weniger Arbeitsspeicher**
 - PulsRig gibt nach dem Start und beim Minimieren ungenutzten Arbeitsspeicher frei: im Leerlauf rund 120 statt 270 MB.

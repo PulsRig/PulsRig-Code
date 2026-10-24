@@ -429,6 +429,27 @@
         'Gelbes Warnzeichen', 'Yellow warning sign'
         'Treiber-Sicherung', 'Driver backup'
         'Sichern, zurückholen oder als Offline-Paket', 'Back up, restore or as an offline package'
+        'Grafiktreiber schützen', 'Protect graphics driver'
+        'Windows Update darf ihn nicht überschreiben', 'Keep Windows Update from replacing it'
+        'Windows Update soll den Grafiktreiber nicht überschreiben', 'Keep Windows Update from replacing the graphics driver'
+        'Frage Windows Update nach Grafiktreibern …', 'Asking Windows Update for graphics drivers …'
+        'Kein Schutz', 'Not protected'
+        'Keine Grafikkarte gefunden', 'No graphics card found'
+        'Windows meldet keine Grafikkarte mit eigener Geräte-ID.', 'Windows reports no graphics card with its own device ID.'
+        '1 Angebot von Windows Update zurückgehalten', '1 Windows Update offer held back'
+        '1 Angebot von Windows Update offen', '1 Windows Update offer pending'
+        'Windows Update bietet gerade nichts an', 'Windows Update offers nothing right now'
+        'Neue Angebote versteckt PulsRig beim Scan', 'PulsRig hides new offers during the scan'
+        'Windows Update darf den Treiber ersetzen', 'Windows Update may replace the driver'
+        'geschützt', 'protected'
+        'offen', 'open'
+        'Freigeben', 'Release'
+        'Schützen', 'Protect'
+        'Schützen und Freigeben gehen nur mit Adminrechten', 'Protecting and releasing need admin rights'
+        'Windows Update lässt Angebote nur von Admins verstecken.', 'Windows Update lets only admins hide offers.'
+        'So funktioniert der Schutz', 'How the protection works'
+        'PulsRig versteckt nur die Angebote für diese Grafikkarte, wie Microsofts Werkzeug „Updates anzeigen oder ausblenden“. Treiber von NVIDIA oder AMD lassen sich weiter installieren; Freigeben macht alles rückgängig.', 'PulsRig only hides the offers for this graphics card, like Microsoft''s "Show or hide updates" tool. Drivers from NVIDIA or AMD can still be installed; Release undoes everything.'
+        'Andere Geräte bekommen ihre Treiber weiter von Windows Update', 'Other devices keep getting their drivers from Windows Update'
         'Treiber und Komponenten', 'Drivers and components'
         'System', 'System'
         'Öffnen', 'Open'
@@ -1600,6 +1621,7 @@
         'Neuinstallation', 'Reinstall Windows'
         'Vorher Treiber und Programme sichern, danach einspielen', 'Back up drivers and programs first, restore them afterwards'
         'Sichern, zurückholen, Neuinstallation, Verlauf und Kernisolierung.', 'Back up, restore, reinstall, history and core isolation.'
+        'Sichern, zurückholen, vor Windows Update schützen, Neuinstallation und Verlauf.', 'Back up, restore, protect from Windows Update, reinstall and history.'
         'Vorher sichern, danach geführt einspielen', 'Back up first, then restore step by step'
         'Vorher sichern', 'Before: back up'
         'Danach einspielen', 'After: restore'
@@ -1667,6 +1689,37 @@
         'winget fehlt auf diesem PC. Den „App-Installer“ aus dem Microsoft Store installieren und es noch einmal versuchen.', 'winget is missing on this PC. Install "App Installer" from the Microsoft Store and try again.'
         'schon vorhanden', 'already there'
         'Die übrigen beim Hersteller laden - manche Programme lassen sich nur dort installieren.', 'Get the rest from the vendor - some programs can only be installed from there.'
+
+        # --- Notfall-Stick
+        'Notfall-Stick', 'Rescue stick'
+        'PulsRig und die Treiber auf einen USB-Stick', 'PulsRig and the drivers on a USB stick'
+        'PulsRig und die Treiber dieses PCs auf einem USB-Stick', 'PulsRig and the drivers of this PC on a USB stick'
+        'Neu suchen', 'Search again'
+        'USB-STICKS', 'USB STICKS'
+        'eingerichtet', 'set up'
+        'wenig Platz', 'low space'
+        'Erneuern', 'Renew'
+        'PulsRig auf dem Stick', 'PulsRig on the stick'
+        'Kein USB-Stick gefunden', 'No USB stick found'
+        'Stick einstecken und „Neu suchen“ wählen.', 'Plug in a stick and choose "Search again".'
+        'KOMMT AUF DEN STICK', 'GOES ON THE STICK'
+        'PulsRig ohne Installation', 'PulsRig without installation'
+        'Startet auf jedem Windows-PC direkt vom Stick', 'Starts on any Windows PC right from the stick'
+        'Treiber dieses PCs', 'Drivers of this PC'
+        'Offline-Paket – rettet den Netzwerktreiber, wenn nach einer Neuinstallation das Internet fehlt', 'Offline package - rescues the network driver when there is no internet after a reinstall'
+        'Dateien auf dem Stick bleiben, PulsRig legt nur den Ordner „PulsRig“ an.', 'Files on the stick stay, PulsRig only creates the "PulsRig" folder.'
+        '1 · PulsRig', '1 · PulsRig'
+        'ohne Installation', 'without installation'
+        '2 · Treiber', '2 · Drivers'
+        'USB-Stick', 'USB stick'
+        'Notfall-Stick einrichten', 'Set up rescue stick'
+        'PulsRig kopiert sich auf den Stick und legt daneben ein Offline-Paket mit den Treibern dieses PCs an.', 'PulsRig copies itself to the stick and adds an offline package with the drivers of this PC.'
+        'Andere Dateien auf dem Stick bleiben unberührt.', 'Other files on the stick are left untouched.'
+        'Schritt 1 von 2: PulsRig auf den Stick', 'Step 1 of 2: PulsRig to the stick'
+        'Schritt 2 von 2: Offline-Treiberpaket', 'Step 2 of 2: offline driver package'
+        'PulsRig ist auf dem Stick, das Treiberpaket fehlt aber.', 'PulsRig is on the stick, but the driver package is missing.'
+        'Schätze die Größe der Treiber ...', 'Estimating the size of the drivers ...'
+        'Der Export ist abgebrochen: Auf dem Ziellaufwerk ist kein Platz mehr.', 'The export stopped: the target drive is full.'
 
         # --- Autostart und Speicherplatz
         'Autostart', 'Startup apps'
@@ -2040,6 +2093,10 @@
         @{ R = '^von PulsRig am (\S+)$'; F = 'by PulsRig on $1' }
         @{ R = '^von Windows Update oder von Hand am (\S+)$'; F = 'by Windows Update or by hand on $1' }
         @{ R = '^(\d+) weitere Treiber geändert$'; F = '$1 more drivers changed' }
+        @{ R = '^(\d+) geschützt$'; F = '$1 protected' }
+        @{ R = '^(\d+) Angebote von Windows Update zurückgehalten$'; F = '$1 Windows Update offers held back' }
+        @{ R = '^(\d+) Angebote von Windows Update offen$'; F = '$1 Windows Update offers pending' }
+        @{ R = '^Geändert: (.+)$'; F = 'Changed: $1' }
         @{ R = '^Neues Programm: (.+)$'; F = 'New program: $1' }
         @{ R = '^(\d+) neue Programme$'; F = '$1 new programs' }
         @{ R = '^Version (\S+)$'; F = 'version $1' }

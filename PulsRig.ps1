@@ -348,6 +348,7 @@ $script:Settings = @{
     AutoBackup       = $true
     TargetDir        = ''         # leer = Ordner "Treiber" neben dem Programm
     Ignored          = @()        # @{ Key; Name }: Aktualisierungen, die nicht mehr angeboten werden
+    GpuShield        = @()        # Grafikkarten ("PCI\VEN_xxxx&DEV_xxxx"), deren Treiber Windows Update nicht einspielen soll (PulsRig-Treiberschutz.ps1)
     Boost            = @{ Apps = @(); Services = $null; PowerPlan = $true; GameMode = $true; Clipboard = $false }
     Left             = $null
     Top              = $null
@@ -363,6 +364,7 @@ function Import-Settings {
             $value = $property.Value
             switch ($key) {
                 'BoostGames' { $script:Settings.BoostGames = @($value | Where-Object { $_ -is [string] -and $_ -match '^[\w .\-]{1,80}$' }) }
+                'GpuShield' { $script:Settings.GpuShield = @($value | Where-Object { $_ -is [string] -and $_ -cmatch '^PCI\\VEN_[0-9A-F]{4}&DEV_[0-9A-F]{4}$' }) }
                 'RecordList' { $script:Settings.RecordList = @($value | Where-Object { $_ -is [string] -and $_ -match '^[\w .\-]{1,80}$' }) }
                 'Ignored' {
                     $script:Settings.Ignored = @($value | Where-Object { $_ -and $_.Key } | ForEach-Object { @{ Key = "$($_.Key)"; Name = "$($_.Name)" } })
@@ -1112,7 +1114,7 @@ function Start-Scan {
         foreach ($step in $steps) { Invoke-Later $step.At { param($m) if ($script:Busy -eq 'scan') { $sync.Queue.Enqueue($m) } } $step.Msg }
     }
     else {
-        Start-WorkerJob 'scan' $scanCode @{ Nvidia = [bool]$script:Settings.Nvidia; Catalog = [bool]$script:Settings.Catalog }
+        Start-WorkerJob 'scan' $scanCode @{ Nvidia = [bool]$script:Settings.Nvidia; Catalog = [bool]$script:Settings.Catalog; Shield = @($script:Settings.GpuShield) }
     }
 }
 
@@ -1332,7 +1334,9 @@ $script:Tools = [ordered]@{
     # Sichern, Wiederherstellen und Offline-Paket unter einem Eintrag (Auswahl in Open-DriverBackupSheet)
     DriverBackup        = @{ Glyph = 0xE74E; Title = 'Treiber-Sicherung'; Desc = 'Sichern, zurückholen oder als Offline-Paket'; Find = 'Treiber sichern wiederherstellen Offline-Paket' }
     Reinstall           = @{ Glyph = 0xE777; Title = 'Neuinstallation'; Desc = 'Vorher Treiber und Programme sichern, danach einspielen'; Find = 'Neuinstallation Windows neu installieren Programme winget Sicherung USB-Stick' }
+    RescueStick         = @{ Glyph = 0xE88E; Title = 'Notfall-Stick'; Desc = 'PulsRig und die Treiber auf einen USB-Stick'; Find = 'Notfall-Stick USB-Stick portabel Rettung Netzwerktreiber ohne Internet' }
     SystemInfo          = @{ Glyph = 0xE946; Title = 'Systeminformationen'; Desc = 'Hardware und Windows im Überblick' }
+    GpuShield           = @{ Glyph = 0xEA18; Title = 'Grafiktreiber schützen'; Desc = 'Windows Update darf ihn nicht überschreiben'; Find = 'Treiberschutz Windows Update überschreibt Grafiktreiber zurückhalten ausblenden NVIDIA AMD Radeon' }
     History             = @{ Glyph = 0xE81C; Title = 'Treiberverlauf'; Desc = 'Was Windows Update eingespielt hat und wann' }
     Autostart           = @{ Glyph = 0xE7E8; Title = 'Autostart'; Desc = 'Programme, die mit Windows starten' }
     CleanDisk           = @{ Glyph = 0xE74D; Title = 'Speicherplatz freigeben'; Desc = 'Temporäre Dateien, Shader-Cache und alte Treiberpakete löschen' }
@@ -1419,7 +1423,7 @@ $toolRowXaml = @'
 $script:ToolGroups = [ordered]@{
     'Schnelle Reparaturen' = 'FixAudio', 'FixNetwork', 'FixResolution', 'FixDevices'
     # der Treiberverlauf ist über "Was hat sich geändert?" und Optionen → Schnellzugriff erreichbar
-    'Treiber und Komponenten' = 'DriverBackup', 'Reinstall', 'IncompatibleDrivers', 'CleanDevices', 'GameRuntimes'
+    'Treiber und Komponenten' = 'DriverBackup', 'GpuShield', 'Reinstall', 'RescueStick', 'IncompatibleDrivers', 'CleanDevices', 'GameRuntimes'
     'System'                  = 'Autostart', 'CleanDisk', 'Standby', 'Power', 'SystemInfo', 'InputTest'
 }
 # Symbolfarben der Reihe nach: Akzent- und Ringfarben des Designs
@@ -1437,6 +1441,8 @@ function Open-Tool([string]$Name) {
         'InputTest' { Open-InputSheet }
         'DriverBackup' { Open-DriverBackupSheet }
         'Reinstall' { Open-ReinstallSheet }
+        'RescueStick' { Open-RescueStickSheet }
+        'GpuShield' { Open-GpuShieldSheet }
         default { Open-ToolDialog $Name }
     }
 }
@@ -1509,7 +1515,7 @@ foreach ($group in $script:ToolGroups.Keys) {
         $tile.FindName('Desc').Text = T $(if ($big -and $tool.ShortDesc) { $tool.ShortDesc } else { $tool.Desc })
         if ($big) { $tile.ToolTip = T $tool.Title }
         # ohne Adminrechte zeigen diese Werkzeuge nur, was sie tun würden
-        if (-not $script:IsAdmin -and $script:NoAdminTools -notcontains $name -and $name -notin 'GameRuntimes', 'SystemInfo', 'History', 'Autostart', 'Standby', 'Power', 'DriverBackup', 'Reinstall', 'InputTest') {
+        if (-not $script:IsAdmin -and $script:NoAdminTools -notcontains $name -and $name -notin 'GameRuntimes', 'SystemInfo', 'History', 'Autostart', 'Standby', 'Power', 'DriverBackup', 'GpuShield', 'Reinstall', 'RescueStick', 'InputTest') {
             $tile.FindName('Badge').Visibility = 'Visible'
             # in der schmalen Reihe ist für das Schild kein Platz: der Hinweis steht im Tooltip
             if ($big) { $tile.ToolTip = "$(T $tool.Title) – $(T 'Probelauf ohne Adminrechte')" }
@@ -3029,6 +3035,7 @@ $window.Add_Closing({
 . (Get-AppCode 'PulsRig-Monitor.ps1')
 . (Get-AppCode 'PulsRig-Ping.ps1')
 . (Get-AppCode 'PulsRig-Autostart.ps1')
+. (Get-AppCode 'PulsRig-Treiberschutz.ps1')
 . (Get-AppCode 'PulsRig-Strom.ps1')
 . (Get-AppCode 'PulsRig-Neuinstallation.ps1')
 . (Get-AppCode 'PulsRig-Helfer.ps1')

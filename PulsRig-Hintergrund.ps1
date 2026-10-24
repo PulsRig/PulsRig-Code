@@ -85,6 +85,9 @@ switch ($Aufgabe) {
         $names = @()
         $session = New-Object -ComObject Microsoft.Update.Session
         $session.ClientApplicationID = 'PulsRig'
+        # geschützte Grafikkarten: neue Angebote von Windows Update verstecken (nur gültige Schlüssel, nur Klasse Display)
+        $shield = @(if ($settings) { @($settings.GpuShield) | Where-Object { $_ -is [string] -and $_ -cmatch '^PCI\\VEN_[0-9A-F]{4}&DEV_[0-9A-F]{4}$' } })
+        try { foreach ($title in @(Set-GpuShield $session $shield $true)) { Write-Host "Treiberschutz: versteckt $title" } } catch { Write-Host "Treiberschutz: $($_.Exception.Message)" }
         foreach ($item in @(Find-DriverUpdates $session)) {
             $update = $item.Update
             if ((Test-IsFirmware $update) -and -not ($settings -and $settings.Firmware)) { continue }
