@@ -172,12 +172,66 @@ function New-DiagnosePackage([string]$Folder = [Environment]::GetFolderPath('Des
         if ($script:LastResult) {
             try { [IO.File]::WriteAllText((Join-Path $work 'Letzter-Scan.json'), (Hide-DiagnoseNames ($script:LastResult | ConvertTo-Json -Depth 6)), $utf8) } catch { }
         }
-        $zip = Join-Path $Folder "$Prefix-$stamp.zip"
-        if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Confirm:$false }
-        Compress-Archive -Path (Join-Path $work '*') -DestinationPath $zip
-        $zip
+        # erst im Temp-Ordner packen, dann an den Zielort kopieren: so scheitert das Packen nicht am Zielordner
+        $packed = Join-Path ([IO.Path]::GetTempPath()) "PulsRig-Paket-$stamp-$PID.zip"
+        try {
+            New-DiagnoseZip $work $packed
+            Copy-DiagnoseZip $packed "$Prefix-$stamp.zip" $Folder
+        }
+        finally { Remove-Item -LiteralPath $packed -Force -Confirm:$false -ErrorAction SilentlyContinue }
     }
     finally { Remove-Item -LiteralPath $work -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue }
+}
+
+# Packt einen Ordner in eine ZIP-Datei. Zuerst direkt mit .NET; Compress-Archive nur als Ersatz, denn das braucht ein
+# eigenes Modul, das auf manchen PCs fehlt oder sich nicht laden lässt, und stolpert über [ ] im Pfad.
+function New-DiagnoseZip([string]$Source, [string]$Zip) {
+    if (Test-Path -LiteralPath $Zip) { Remove-Item -LiteralPath $Zip -Force -Confirm:$false }
+    try {
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        [IO.Compression.ZipFile]::CreateFromDirectory($Source, $Zip, [IO.Compression.CompressionLevel]::Optimal, $false)
+    }
+    catch {
+        Write-AppError $_
+        if (Test-Path -LiteralPath $Zip) { Remove-Item -LiteralPath $Zip -Force -Confirm:$false -ErrorAction SilentlyContinue }
+        Compress-Archive -LiteralPath @(Get-ChildItem -LiteralPath $Source | ForEach-Object { $_.FullName }) -DestinationPath $Zip
+    }
+}
+
+# Wo ein Paket landen kann, in dieser Reihenfolge: der gewünschte Ordner (meist der Desktop), Downloads, der Datenordner
+# von PulsRig. Der Desktop fällt z. B. aus, wenn der überwachte Ordnerzugriff von Windows ihn sperrt, OneDrive ihn
+# verschoben hat oder es ihn nicht gibt.
+function Get-DiagnoseFolders([string]$Folder) {
+    $downloads = $null
+    try { $downloads = [Environment]::ExpandEnvironmentVariables("$((Get-ItemProperty -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' -ErrorAction Stop).'{374DE290-123F-4565-9164-39C4925E467B}')") } catch { }
+    if (-not $downloads) { $downloads = Join-Path $env:USERPROFILE 'Downloads' }
+    @($Folder, $downloads, $script:OutDir) | Where-Object { "$_".Trim() } | Select-Object -Unique
+}
+
+# Kopiert die fertige ZIP-Datei in den ersten Ordner, der sie annimmt, und gibt den Pfad zurück
+function Copy-DiagnoseZip([string]$Packed, [string]$Name, [string]$Folder) {
+    $last = $null
+    foreach ($place in @(Get-DiagnoseFolders $Folder)) {
+        try {
+            if (-not (Test-Path -LiteralPath $place)) { [IO.Directory]::CreateDirectory($place) | Out-Null }
+            $target = Join-Path $place $Name
+            [IO.File]::Copy($Packed, $target, $true)
+            return $target
+        }
+        catch { $last = $_; Write-AppError $_ }
+    }
+    if ($last) { throw $last }
+    throw 'Kein Ordner nimmt die ZIP-Datei an.'
+}
+
+# Wo die Datei liegt, für die Meldung im Fenster: "auf dem Desktop", "im Ordner Downloads" oder "im Datenordner von PulsRig"
+function Get-DiagnosePlace([string]$File) {
+    $folder = try { Split-Path -Parent $File } catch { '' }
+    $desktop = try { [Environment]::GetFolderPath('Desktop') } catch { '' }
+    if ($desktop -and $folder -eq $desktop.TrimEnd('\')) { return 'auf dem Desktop' }
+    if ($script:OutDir -and $folder -eq "$($script:OutDir)".TrimEnd('\')) { return 'im Datenordner von PulsRig' }
+    if ((Split-Path -Leaf $folder) -eq 'Downloads' -or $folder -eq (@(Get-DiagnoseFolders '')[0])) { return 'im Ordner Downloads' }
+    'im gewählten Ordner'
 }
 
 # Adresse für Diagnose-Pakete und Fehlermeldungen (steht auch auf der Webseite)
@@ -218,13 +272,14 @@ function Open-DiagnoseSheet {
             try {
                 $window.Cursor = [Windows.Input.Cursors]::Wait
                 $script:Sheet.File = if ($Snapshot) { New-DiagnosePackage $Snapshot } else { New-DiagnosePackage }
-                Set-SheetStateText "Gespeichert auf dem Desktop: $(Split-Path -Leaf $script:Sheet.File)"
-                Set-CardState 'Diagnose' @{ Text = "erstellt $((Get-Date).ToString('HH:mm'))" }
+                $place = Get-DiagnosePlace $script:Sheet.File
+                Set-SheetStateText "Gespeichert $($place): $(Split-Path -Leaf $script:Sheet.File)"
+                Set-CardState 'Diagnose' @{ Text = "erstellt $((Get-Date).ToString('HH:mm'))"; Place = $place; File = $script:Sheet.File }
                 # danach schickt derselbe Knopf das Paket per Mail
                 $ui.BtnSheetPrimary.Content = T 'Per E-Mail schicken'
                 $script:Sheet.OnPrimary = { Send-DiagnoseMail $script:Sheet.File }
             }
-            catch { Set-SheetStateText "Das Paket ließ sich nicht erstellen: $(@("$($_.Exception.Message)" -split "`r?`n")[0])" }
+            catch { Write-AppError $_; Set-SheetStateText "Das Paket ließ sich nicht erstellen: $(@("$($_.Exception.Message)" -split "`r?`n")[0])" }
             finally { $window.Cursor = $null }
         }
         OnLink    = { if ($script:Sheet.File) { Start-Process explorer.exe "/select,`"$($script:Sheet.File)`"" } else { Set-SheetStateText 'Erst ein Paket erstellen' } }

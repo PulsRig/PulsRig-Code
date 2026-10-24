@@ -1294,7 +1294,7 @@
                                             <TextBlock x:Name="HomeLive0Value" Text="–" FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource Text}"/>
                                         </StackPanel>
                                         <Grid x:Name="HomeLive0Area" Grid.Column="1" ClipToBounds="True" Margin="4,6,0,6">
-                                            <Path x:Name="HomeLive0Line" Stroke="#22D3EE" StrokeThickness="1.8" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                            <Canvas><Path x:Name="HomeLive0Line" Stroke="#22D3EE" StrokeThickness="1.8" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Canvas>
                                         </Grid>
                                     </Grid>
                                     <Grid Margin="0,6,0,0" Height="40">
@@ -1307,7 +1307,7 @@
                                             <TextBlock x:Name="HomeLive1Value" Text="–" FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource Text}"/>
                                         </StackPanel>
                                         <Grid x:Name="HomeLive1Area" Grid.Column="1" ClipToBounds="True" Margin="4,6,0,6">
-                                            <Path x:Name="HomeLive1Line" Stroke="#A855F7" StrokeThickness="1.8" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                            <Canvas><Path x:Name="HomeLive1Line" Stroke="#A855F7" StrokeThickness="1.8" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Canvas>
                                         </Grid>
                                     </Grid>
                                     <Grid Margin="0,6,0,0" Height="40">
@@ -1320,7 +1320,7 @@
                                             <TextBlock x:Name="HomeLive2Value" Text="–" FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource Text}"/>
                                         </StackPanel>
                                         <Grid x:Name="HomeLive2Area" Grid.Column="1" ClipToBounds="True" Margin="4,6,0,6">
-                                            <Path x:Name="HomeLive2Line" Stroke="{StaticResource Good}" StrokeThickness="1.8" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                            <Canvas><Path x:Name="HomeLive2Line" Stroke="{StaticResource Good}" StrokeThickness="1.8" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Canvas>
                                         </Grid>
                                     </Grid>
                                 </StackPanel>

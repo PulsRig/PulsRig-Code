@@ -1184,8 +1184,10 @@ $sensorTileXaml = @'
         </StackPanel>
         <TextBlock x:Name="Range" Grid.Row="2" FontSize="11" Foreground="#5E6E93" Margin="0,1,0,0"/>
         <Grid x:Name="Area" Grid.Row="3" Margin="0,6,0,0" ClipToBounds="True">
+            <Canvas>
             <Path x:Name="Fill" Opacity="0.2" Fill="#22D3EE"/>
             <Path x:Name="Line" Stroke="#22D3EE" StrokeThickness="1.6" StrokeLineJoin="Round"/>
+            </Canvas>
         </Grid>
     </Grid>
 </Border>
@@ -1964,20 +1966,26 @@ function New-ReportHtml($Data) {
 # Bericht & Diagnose in einem Zug: der Prüfbericht als Webseite und die Angaben des Diagnose-Pakets in einer ZIP-Datei
 # auf dem Desktop. Danach schickt derselbe Knopf die Datei per Mail.
 function Save-ReportZip {
-    if (-not $script:Sheet -or -not $script:Sheet.Report) { Set-SheetStateText 'Erst warten, bis der Bericht zusammengestellt ist'; return }
+    if (-not $script:Sheet) { return }
     try {
         $window.Cursor = [Windows.Input.Cursors]::Wait
-        $html = New-ReportHtml $script:Sheet.Report
-        $extra = @{ "PulsRig-Prüfbericht-$((Get-Date).ToString('yyyy-MM-dd')).html" = $html }
+        # ohne fertigen Bericht (er hängt oder ist gescheitert) kommen wenigstens die Angaben zur Fehlersuche ins Paket
+        $extra = @{}
+        if ($script:Sheet.Report) {
+            try { $extra["PulsRig-Prüfbericht-$((Get-Date).ToString('yyyy-MM-dd')).html"] = New-ReportHtml $script:Sheet.Report }
+            catch { Write-AppError $_; $extra['Bericht-fehlt.txt'] = "Der Prüfbericht ließ sich nicht erstellen: $($_.Exception.Message)" }
+        }
+        else { $extra['Bericht-fehlt.txt'] = 'Der Prüfbericht war beim Speichern noch nicht fertig.' }
         $file = if ($Snapshot) { New-DiagnosePackage $Snapshot $extra 'PulsRig-Bericht' } else { New-DiagnosePackage ([Environment]::GetFolderPath('Desktop')) $extra 'PulsRig-Bericht' }
         $script:Sheet.File = $file
-        Set-SheetStateText "Gespeichert auf dem Desktop: $(Split-Path -Leaf $file)"
-        Set-CardState 'Diagnose' @{ Text = "erstellt $((Get-Date).ToString('HH:mm'))" }
+        $place = Get-DiagnosePlace $file
+        Set-SheetStateText "Gespeichert $($place): $(Split-Path -Leaf $file)"
+        Set-CardState 'Diagnose' @{ Text = "erstellt $((Get-Date).ToString('HH:mm'))"; Place = $place; File = $file }
         $ui.BtnSheetPrimary.Content = T 'Per E-Mail schicken'
         $script:Sheet.OnPrimary = { Send-DiagnoseMail $script:Sheet.File }
         if (-not $Snapshot) { try { Start-Process explorer.exe "/select,`"$file`"" } catch { } }
     }
-    catch { Set-SheetStateText "Die ZIP-Datei ließ sich nicht erstellen: $(@("$($_.Exception.Message)" -split "`r?`n")[0])" }
+    catch { Write-AppError $_; Set-SheetStateText "Die ZIP-Datei ließ sich nicht erstellen: $(@("$($_.Exception.Message)" -split "`r?`n")[0])" }
     finally { $window.Cursor = $null }
 }
 
@@ -2111,7 +2119,7 @@ function Update-HardwareBadges {
     }
     # wurde in dieser Sitzung eine ZIP-Datei erstellt, steht das in der Fußzeile von Bericht & Diagnose
     $pack = $script:CardState.Diagnose
-    if ($pack) { Set-HardwareFoot 6 "ZIP $($pack.Text) · auf dem Desktop" '' }
+    if ($pack) { Set-HardwareFoot 6 "ZIP $($pack.Text) · $(if ($pack.Place) { $pack.Place } else { 'auf dem Desktop' })" '' }
     # das Alter des BIOS hängt nicht davon ab, wann nachgesehen wurde: das Schild zeigt es ohne Datum
     $bios = $script:CardState.Bios
     Set-HardwareBadge 7 $(if ($bios) { "$($bios.Text)" } else { 'Noch nicht gelesen' }) $(if ($bios) { "$($bios.Tone)" } else { '' })
@@ -2169,8 +2177,11 @@ function New-HwVisual([int]$Index) {
             $area.Height = 30; $area.Margin = '0,8,0,0'; $area.ClipToBounds = $true
             $line = New-Object Windows.Shapes.Path
             $line.StrokeThickness = 1.8; $line.StrokeLineJoin = 'Round'
+            # auf einer Zeichenfläche: die Kurve verlangt so keinen Platz und kann die Karte nicht aufweiten
+            $canvas = New-Object Windows.Controls.Canvas
+            [void]$canvas.Children.Add($line)
+            [void]$area.Children.Add($canvas)
             Set-Paint $line 'Stroke' 'Accent'
-            [void]$area.Children.Add($line)
             $area.Tag = @{ Line = $line; Values = @($row.History) }
             $area.Add_SizeChanged({
                     try {

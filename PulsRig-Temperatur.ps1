@@ -146,7 +146,9 @@ function Update-PawnIoSetup {
 
 # Kurzer Stand für das Diagnose-Paket
 function Get-CpuTempReport {
-    if (-not $script:CpuTempLoaded) { return 'Baustein fehlt' }
+    # ohne geöffnetes Fenster Sensoren ist der Baustein noch nicht geladen: jetzt nachholen, statt "fehlt" zu melden
+    if (-not $script:CpuTempLoaded) { Initialize-CpuTemp }
+    if (-not $script:CpuTempLoaded) { return $(if (Test-Path -LiteralPath (Join-Path $script:SensorFolder 'LibreHardwareMonitorLib.dll')) { 'Baustein ließ sich nicht laden' } else { 'Baustein fehlt' }) }
     $value = [PulsRigCpuTemp]::Read()
     $status = "$([PulsRigCpuTemp]::Status)"
     if (-not [double]::IsNaN($value)) { return ('{0:N0} °C über {1} ({2})' -f $value, [PulsRigCpuTemp]::Source, [PulsRigCpuTemp]::Sensor) }

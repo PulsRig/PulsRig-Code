@@ -18,6 +18,19 @@ try {
     }
 }
 catch { }
+# Win32_Battery leer: die Akku-Klassen von WMI fragen (Ladestand aus Restkapazität / volle Kapazität)
+if (-not $r.Has) {
+    try {
+        $status = @(Get-CimInstance -Namespace root\wmi -ClassName BatteryStatus -ErrorAction Stop | Where-Object { $_.Active })
+        if ($status.Count -gt 0) {
+            $r.Has = $true
+            $r.OnPower = [bool]$status[0].PowerOnline
+            $full = @(Get-CimInstance -Namespace root\wmi -ClassName BatteryFullChargedCapacity -ErrorAction SilentlyContinue)
+            if ($full.Count -and [double]$full[0].FullChargedCapacity -gt 0) { $r.Charge = [int][Math]::Min(100, [Math]::Round(100.0 * $status[0].RemainingCapacity / $full[0].FullChargedCapacity)) }
+        }
+    }
+    catch { }
+}
 if (-not $r.Has) { return $r }
 $file = Join-Path ([IO.Path]::GetTempPath()) "PulsRig-Akku-$PID.xml"
 try {
@@ -220,10 +233,14 @@ function Update-BatteryPill {
         # das Bild der Sensoren-Karte hängt davon ab, ob die Zeile da ist (ohne Kurve, damit beides passt)
         if (-not $script:BatteryRowShown -or $script:BatteryRowShown -ne "$($script:HasBattery)") { $script:BatteryRowShown = "$($script:HasBattery)"; Update-HardwareVisuals }
     }
+    # im Bento-Aussehen steht der Akku in der Sensoren-Kachel
+    if (Get-Command Update-BentoHardwareBoard -ErrorAction SilentlyContinue) { Update-BentoHardwareBoard }
 }
 
 $ui.HardwareBatteryPill.Add_MouseLeftButtonUp({ try { Open-BatterySheet } catch { Write-AppError $_ } })
 # Ob ein Akku da ist, fragt das Fenster einmal kurz selbst (Win32_Battery antwortet schnell)
 try { $script:HasBattery = [bool](Get-CimInstance Win32_Battery -ErrorAction Stop) } catch { $script:HasBattery = $false }
+# Manche Notebooks melden Win32_Battery leer, die Akku-Klassen von WMI aber schon
+if (-not $script:HasBattery) { try { $script:HasBattery = [bool](Get-CimInstance -Namespace root\wmi -ClassName BatteryStatus -ErrorAction Stop | Where-Object { $_.Active }) } catch { } }
 if ($env:PULSRIG_AKKU) { $script:HasBattery = $true }   # Probelauf: Knopf auch auf einem PC ohne Akku zeigen
 Update-BatteryPill

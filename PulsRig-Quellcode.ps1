@@ -20,7 +20,7 @@ $author = 'PulsRig'; $mail = '342117437+PulsRig@users.noreply.github.com'
 $work = Join-Path $root 'dist\PulsRig-Code'
 
 # 1. die Dateien: alles, was die Versionsverwaltung kennt, ohne die privaten
-$skip = '^(PulsRig-Übergabe\.md|handoff-.*\.md|desktop\.ini|PulsRig-GitHub\.md|PulsRig-Code\.md|PulsRig-Profilbild\.png|Webseite/.*)$'
+$skip = '^(PulsRig-Übergabe\.md|handoff-.*\.md|desktop\.ini|CLAUDE\.md|PulsRig-GitHub\.md|PulsRig-Code\.md|PulsRig-Profilbild\.png|Webseite/.*)$'
 $files = @(& $git -C $root -c core.quotepath=false ls-files | Where-Object { $_ -and $_ -notmatch $skip })
 Write-Host "Dateien: $($files.Count)"
 

@@ -1,5 +1,9 @@
 ## Neu in 0.6 Beta
 
+**Bericht & Diagnose**
+- Die ZIP-Datei entsteht jetzt auch auf PCs, auf denen das bisher scheiterte: Lässt Windows nichts auf den Desktop schreiben (z. B. wegen überwachtem Ordnerzugriff oder OneDrive), landet sie im Ordner Downloads. Das Fenster sagt, wo sie liegt.
+- Wird der Prüfbericht nicht fertig, kommen trotzdem die Angaben für die Fehlersuche in die Datei.
+
 **Controller und Maus**
 - Neues Werkzeug: Tasten und Sticks des Controllers prüfen, Stick-Drift messen, Vibration testen (Xbox-kompatible Controller).
 - Für die Maus: Abfragerate in Hz beim schnellen Bewegen und ungewollte Doppelklicks einer verschlissenen Taste erkennen.

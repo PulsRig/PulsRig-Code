@@ -269,7 +269,9 @@ function Get-CrashReportCheck($Data) {
     $found = @(Get-CrashFindings $Data | Where-Object { -not $_.Whea -and -not $_.Hint })
     if ($found.Count -eq 0) {
         if ($false -eq $Data.Log) { return $base + @{ Text = 'Nicht lesbar: Windows gibt das Ereignisprotokoll auf diesem PC nicht heraus.'; Kind = 'open' } }
-        return $base + @{ Text = 'Kein Bluescreen, kein plötzliches Ausschalten und keine Aussetzer des Grafiktreibers.'; Kind = 'good'; Go = $null }
+        # Go nicht per + überschreiben: doppelte Schlüssel wirft Hashtable-Addition als Fehler (Prüfbericht brach ab)
+        $base.Go = $null
+        return $base + @{ Text = 'Kein Bluescreen, kein plötzliches Ausschalten und keine Aussetzer des Grafiktreibers.'; Kind = 'good' }
     }
     $kind = if (@($found | Where-Object { $_.Tone -eq 'bad' }).Count) { 'bad' } else { 'warn' }
     # mit " · " verbunden: so übersetzt T jedes Stück einzeln wie im Fenster

@@ -302,10 +302,10 @@ $script:Settings = @{
     DriveWarnHidden  = ''         # weggeklickter Laufwerkshinweis der Startseite (Kennung, siehe PulsRig-Verlauf.ps1)
     ProbeWarnHidden  = ''         # weggeklickter Treiberhinweis der Startseite (Kennung, siehe PulsRig-Probezeit.ps1)
     Opacity          = 100
-    Theme            = 'Nachtblau'
+    Theme            = 'Lila-Nacht'
     ThemeHue         = 224.0
-    Skin             = 'NachtPuls' # komplettes Aussehen: Formen, Schrift, Karten, Tempo (siehe PulsRig-Skins.ps1)
-    LookVersion      = 0          # 1: einmal auf das Aussehen von Oktober 2026 (Nacht Puls) umgestellt; 2: Namen entdoppelt
+    Skin             = 'Bento'     # komplettes Aussehen: Formen, Schrift, Karten, Tempo (siehe PulsRig-Skins.ps1)
+    LookVersion      = 0          # 1: einmal auf Nacht Puls umgestellt; 2: Namen entdoppelt; 3: einmal auf Nacht-Bento
     Ring             = 'Puls'     # Animation um den SCAN-Knopf
     SkinRing         = ''         # Skin, für den die Ring-Animation zuletzt umgestellt wurde (siehe PulsRig-Skins.ps1)
     Firmware         = $true      # Firmware-Updates in den Ergebnissen zeigen
@@ -388,6 +388,13 @@ if ([int]$script:Settings.LookVersion -lt 2) {
     if ($script:Settings.Theme -eq 'Nacht Puls') { $script:Settings.Theme = 'Nachtblau' }
     if ($script:Settings.Ring -eq 'Nacht Puls') { $script:Settings.Ring = 'Herzmonitor' }
     $script:Settings.LookVersion = 2
+    if (-not $Snapshot) { Save-Settings }
+}
+# Neues Grunddesign (18.10.2026): jede Installation wechselt einmal auf Nacht-Bento; das bisherige heißt Klassisch
+if ([int]$script:Settings.LookVersion -lt 3) {
+    $script:Settings.Skin = 'Bento'
+    $script:Settings.Theme = 'Lila-Nacht'
+    $script:Settings.LookVersion = 3
     if (-not $Snapshot) { Save-Settings }
 }
 # Sprache: stellt T (Text übersetzen) und Convert-XamlLanguage bereit; bei Deutsch tun beide nichts
@@ -2972,6 +2979,7 @@ $window.Add_Closing({
 . (Get-AppCode 'PulsRig-Ping.ps1')
 . (Get-AppCode 'PulsRig-Autostart.ps1')
 . (Get-AppCode 'PulsRig-Helfer.ps1')
+. (Get-AppCode 'PulsRig-Bento.ps1')   # Nacht-Bento: Weg-Leiste, Zurück-Knopf, Seitenumbau (nur in diesem Skin)
 # Dauerbewegungen des Skins beginnen, sobald das Fenster zu sehen ist
 if ($script:Skin.Start) { $window.Add_ContentRendered({ try { & $script:Skin.Start } catch { Write-AppError $_ } }) }
 

@@ -202,7 +202,7 @@ function Start-SnapshotTour {
             @{ Wait = 1300; Do = { Save-Snapshot '10-menue'; Set-Theme 'Smaragd' } },
             @{ Wait = 900; Do = { Save-Snapshot '11-design-smaragd'; Set-Theme 'Graphit' } },
             @{ Wait = 900; Do = { Save-Snapshot '12-design-graphit'; Set-Theme 'Eigene' 150 } },
-            @{ Wait = 900; Do = { Save-Snapshot '13-design-eigen'; Set-Theme 'Nachtblau'; Open-SettingsSheet } },
+            @{ Wait = 900; Do = { Save-Snapshot '13-design-eigen'; Set-Theme 'Lila-Nacht'; Open-SettingsSheet 0 } },
             # Dialoge mit Reitern
             @{ Wait = 1300; Do = {
                     Save-Snapshot '14-einstellungen'
@@ -227,7 +227,7 @@ function Start-SnapshotTour {
                     Set-Theme 'Eigene' 150 -Instant
                 }
             },
-            @{ Wait = 700; Do = { Save-Snapshot '15a-einstellungen-eigener-farbton'; Set-Theme 'Nachtblau' -Instant; Select-SheetTab 3 } },
+            @{ Wait = 700; Do = { Save-Snapshot '15a-einstellungen-eigener-farbton'; Set-Theme 'Lila-Nacht' -Instant; Select-SheetTab 3 } },
             @{ Wait = 900; Do = { Save-Snapshot '15b-einstellungen-treiber'; Select-SheetTab 5 } },
             @{ Wait = 900; Do = { Save-Snapshot '15c-einstellungen-hintergrund'; Close-Sheet } },
             @{ Wait = 500; Do = { Open-BoostSheet } },
@@ -451,7 +451,8 @@ function Start-SnapshotTour {
             # ein geschlossenes Grafikfenster. Jedes Mal muss der Test von selbst enden und die Last stehen.
             @{ Wait = 500; Do = { Start-Stress 60 } },
             @{ Wait = 4000; Do = { $sync.Sensors = @{ Stamp = 900001; GpuTemp = 93.0; CpuClock = 4.2 }; Update-Stress } },
-            @{ Wait = 1500; Do = { & $script:SnapAbort 'heiss'; Start-Stress 60 } },
+            # die vorgetäuschten 93 °C wieder wegnehmen, sonst bricht der nächste Lauf sofort mit "Zu heiß" ab
+            @{ Wait = 1500; Do = { & $script:SnapAbort 'heiss'; $sync.Sensors = @{ Stamp = 0 }; Start-Stress 60 } },
             @{ Wait = 4000; Do = { & $script:SnapField 'errors' ([long]2); Update-Stress } },
             @{ Wait = 1500; Do = { & $script:SnapAbort 'rechenfehler'; Start-Stress 60 } },
             @{ Wait = 4000; Do = {
@@ -460,7 +461,7 @@ function Start-SnapshotTour {
                     for ($i = 1; $i -le 6 -and $script:Stress; $i++) { $sync.Sensors = @{ Stamp = 900010 + $i; CpuClock = 2.0 }; Update-Stress }
                 }
             },
-            @{ Wait = 1500; Do = { & $script:SnapAbort 'drosselt'; Start-Stress 60 } },
+            @{ Wait = 1500; Do = { & $script:SnapAbort 'drosselt'; $sync.Sensors = @{ Stamp = 0 }; Start-Stress 60 } },
             @{ Wait = 4000; Do = {
                     # der Messbereich kann dazwischen einen neuen Wert liefern, deshalb bis zu fünf Anläufe
                     for ($i = 1; $i -le 5 -and $script:Stress; $i++) {
@@ -785,7 +786,7 @@ function Start-SnapshotTour {
             @{ Wait = 1300; Do = { Save-Snapshot '38-ring-pacman-neon-nacht'; Set-RingStyle 'Puls' } },
             @{ Wait = 1700; Do = { Save-Snapshot '38b-ring-puls-neon-nacht'; Set-Theme 'Tiefsee' } },
             @{ Wait = 900; Do = { Save-Snapshot '39-design-tiefsee'; Set-Theme 'Aurora' } },
-            @{ Wait = 900; Do = { Save-Snapshot '40-design-aurora'; Set-Theme 'Nachtblau'; Show-Page 'Boost'; Open-ToolDialog 'GameBoost' } },
+            @{ Wait = 900; Do = { Save-Snapshot '40-design-aurora'; Set-Theme 'Lila-Nacht'; Show-Page 'Boost'; Open-ToolDialog 'GameBoost' } },
             # Boost-Dialog: Einstieg mit Karten, dann die Ausgabe - nur als Probelauf, damit nichts verändert wird
             @{ Wait = 1100; Do = { Save-Snapshot '41-boost-dialog'; if ($script:Dialog.DryRun) { Start-DialogJob } } },
             @{ Until = { -not $script:Busy }; Timeout = 60000; Do = { } },
@@ -873,11 +874,26 @@ function Start-SnapshotTour {
             @{ Until = { -not $script:Busy -and $script:Page -eq 'Results' }; Timeout = 30000; Do = { } },
             @{ Wait = 1600; Do = { Save-Snapshot 's3-ergebnisse'; Show-Page 'Boost' } },
             @{ Wait = 2000; Do = { Save-Snapshot 's4-boost'; Show-Page 'Tools' } },
-            @{ Wait = 1700; Do = { Save-Snapshot 's5-werkzeuge'; Open-ToolDialog 'CleanDisk' } },
+            @{ Wait = 1700; Do = { Save-Snapshot 's5-werkzeuge'; if ($script:Bento) { Show-BentoToolList 'Aufräumen' } } },
+            @{ Wait = 900; Do = { if ($script:Bento) { Save-Snapshot 's5a-werkzeuge-liste'; Close-BentoSub }; Open-ToolDialog 'CleanDisk' } },
             @{ Wait = 900; Do = { Start-DialogJob } },
             @{ Until = { -not $script:Busy }; Timeout = 120000; Do = { } },
             @{ Wait = 900; Do = { Save-Snapshot 's5b-speicherplatz'; Close-Dialog; Show-Page 'Hardware' } },
-            @{ Wait = 1900; Do = { Save-Snapshot 's6-hardware'; Show-Page 'Home' } },
+            @{ Wait = 1900; Do = { Save-Snapshot 's6-hardware'; if ($script:Bento) { Show-BentoDetail 0 } } },
+            @{ Wait = 3500; Do = { if ($script:Bento) { Save-Snapshot 's6c-sensoren'; Close-BentoSub -Quiet; Show-BentoDetail 3 } } },
+            @{ Until = { -not $script:Bento -or $script:BentoData.Memory }; Timeout = 20000; Do = { } },
+            @{ Wait = 1600; Do = { if ($script:Bento) { Save-Snapshot 's6d-arbeitsspeicher'; Close-BentoSub -Quiet; Show-BentoDetail 2 } } },
+            @{ Until = { -not $script:Bento -or $script:BentoData.Drives }; Timeout = 30000; Do = { } },
+            @{ Wait = 1400; Do = { if ($script:Bento) { Save-Snapshot 's6e-laufwerke'; Close-BentoSub -Quiet; Show-BentoDetail 4 } } },
+            @{ Until = { -not $script:Bento -or $script:BentoData.Crashes }; Timeout = 30000; Do = { } },
+            @{ Wait = 1400; Do = { if ($script:Bento) { Save-Snapshot 's6f-abstuerze'; Close-BentoSub -Quiet; Show-BentoDetail 5 } } },
+            @{ Until = { -not $script:Bento -or $script:BentoData.Displays }; Timeout = 20000; Do = { } },
+            @{ Wait = 1400; Do = { if ($script:Bento) { Save-Snapshot 's6g-bildschirm'; Close-BentoSub -Quiet; Show-BentoDetail 7 } } },
+            @{ Until = { -not $script:Bento -or $script:BentoData.Bios }; Timeout = 20000; Do = { } },
+            @{ Wait = 1400; Do = { if ($script:Bento) { Save-Snapshot 's6h-bios'; Close-BentoSub -Quiet; Show-BentoDetail 6 } } },
+            @{ Wait = 1400; Do = { if ($script:Bento) { Save-Snapshot 's6i-bericht'; Close-BentoSub -Quiet; Show-BentoDetail 1 } } },
+            @{ Wait = 1400; Do = { if ($script:Bento) { Save-Snapshot 's6j-stabilitaet'; Close-BentoSub }; Show-Page $(if ($script:Bento) { 'Options' } else { 'Home' }) } },
+            @{ Wait = 1400; Do = { if ($script:Bento) { Save-Snapshot 's6k-optionen'; Show-Page 'Home' } } },
             @{ Wait = 1200; Do = { Open-ProblemSheet } },
             @{ Until = { $null -ne $script:Sheet.Games }; Timeout = 30000; Do = { } },
             @{ Wait = 900; Do = { Save-Snapshot 's6b-problem'; Close-Sheet -Quick } },

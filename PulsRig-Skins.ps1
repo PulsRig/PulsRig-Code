@@ -27,12 +27,63 @@
 #   Snappy    $true: Bewegungen schießen los und bremsen hart
 
 $script:Skins = [ordered]@{
-    'Standard'  = @{ Text = 'Klassisch' }   # das Aussehen vor Oktober 2026
+    'Standard'  = @{ Text = 'Original' }   # das Aussehen vor Oktober 2026
 
-    # Das Aussehen ab Oktober 2026: tiefe Nacht, Cyan und Violett, ruhige Karten mit leuchtendem Rand und
-    # ein Puls, der als Schweif um den SCAN-Knopf läuft
+    # Das Grunddesign ab 18.10.2026 (Entwurf P8/Reihe Q): fast schwarzer Grund, tiefes Violett und Beerenrosa,
+    # Kacheln mit eigenem Farbton, Weg-Leiste mit Zurück-Knopf. Den Umbau der Seiten macht PulsRig-Bento.ps1.
+    'Bento'     = @{
+        Text     = 'Nacht-Bento'
+        Ring     = 'Herzmonitor'
+        Theme    = 'Lila-Nacht'
+        ThemeDef = @{ Hue = 284.0; Sat = 0.62; Light = -0.085; A = '#8C6BD6', '#A657A8', '#C0608F'; R = '#B19FE0', '#8C6BD6', '#C0608F'; OnAccent = '#FFFFFF' }
+        # große, weiche Rundungen wie im Kachelmosaik
+        Radius   = { param($r) if ($r -ge 14) { $r + 6 } else { $r } }
+        Resources = @{
+            Glass     = @'
+<LinearGradientBrush x:Key="Glass" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#F00B0710" Offset="0"/>
+            <GradientStop Color="#F009060D" Offset="1"/>
+        </LinearGradientBrush>
+'@
+            # der Rand leuchtet oben links violett und unten rechts beerenrosa
+            GlassEdge = @'
+<LinearGradientBrush x:Key="GlassEdge" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#706D43C9" Offset="0"/>
+            <GradientStop Color="#2622172F" Offset="0.35"/>
+            <GradientStop Color="#2622172F" Offset="0.7"/>
+            <GradientStop Color="#55A8326F" Offset="1"/>
+        </LinearGradientBrush>
+'@
+        }
+        Replace  = @(
+            # zarter Farbschein, fast schwarzer Grund
+            '#2A22D3EE', '#1222D3EE',
+            '#2EA855F7', '#14A855F7',
+            '#2A3B82F6', '#103B82F6',
+            '<GradientStop Color="#0C1326" Offset="0"/>', '<GradientStop Color="#06030A" Offset="0"/>',
+            '<GradientStop Color="#090D1A" Offset="1"/>', '<GradientStop Color="#040207" Offset="1"/>'
+        )
+        # Fenster wie Einstellungen, Laufwerke, Arbeitsspeicher sind hier eigene Seiten im Inhaltsbereich: Leiste und
+        # Weg-Leiste bleiben sichtbar, der Zurück-Knopf führt eine Ebene zurück
+        Transform = {
+            param($text)
+            # Kacheln nehmen Hintergrund und Rand vom Knopf: so bekommt jede Kachel ihren eigenen Farbton
+            $text = $text.Replace('<Style x:Key="TileButton" TargetType="Button">', '<Style x:Key="TileButton" TargetType="Button"><Setter Property="Background" Value="{StaticResource Glass}"/><Setter Property="BorderBrush" Value="{StaticResource GlassEdge}"/>')
+            $text = $text.Replace('<Border CornerRadius="16" Background="{StaticResource Glass}"/>', '<Border CornerRadius="16" Background="{TemplateBinding Background}"/>')
+            $text = $text.Replace('<Border x:Name="Rim" CornerRadius="16" BorderBrush="{StaticResource GlassEdge}" BorderThickness="1"/>', '<Border x:Name="Rim" CornerRadius="16" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"/>')
+            $text = $text.Replace('<Grid x:Name="Sheet" Grid.ColumnSpan="2" Grid.RowSpan="2" Visibility="Collapsed">', '<Grid x:Name="Sheet" Grid.Column="1" Grid.Row="1" Visibility="Collapsed">')
+            $text = $text.Replace('<Border x:Name="SheetDim" Background="#C2060A14" Opacity="0" CornerRadius="18"/>', '<Border x:Name="SheetDim" Background="#FF050309" Opacity="0" CornerRadius="16,0,0,0"/>')
+            $text = $text.Replace('<Border x:Name="DialogCard" Width="680" Height="520" CornerRadius="18" Background="#101930" BorderBrush="#2A3A63"', '<Border x:Name="DialogCard" Width="680" Height="520" CornerRadius="18" Background="#FA0B0710" BorderBrush="{StaticResource GlassEdge}"')
+            # ohne feste Größe füllt die Seite den ganzen Inhaltsbereich; mittig ausgerichtet richtete sie sich nach dem Inhalt
+            $text.Replace('<Border x:Name="SheetCard" Width="920" Height="616" CornerRadius="18" Background="#101930" BorderBrush="#2A3A63" BorderThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center"', '<Border x:Name="SheetCard" Margin="26,10,26,22" CornerRadius="18" Background="{StaticResource Glass}" BorderBrush="{StaticResource GlassEdge}" BorderThickness="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"')
+        }
+        Speed    = 0.95
+    }
+
+    # Das Aussehen von Oktober 2026 bis zum Nacht-Bento: tiefe Nacht, Cyan und Violett, ruhige Karten mit
+    # leuchtendem Rand und ein Puls, der als Schweif um den SCAN-Knopf läuft
     'NachtPuls' = @{
-        Text     = 'Nacht Puls'
+        Text     = 'Klassisch'
         Ring     = 'Herzmonitor'
         Theme    = 'Nachtblau'
         ThemeDef = @{ Hue = 222.0; Sat = 0.8; Light = -0.03; A = '#5CC8FF', '#7C9CFF', '#9B7BFF'; R = '#5CC8FF', '#7CA8FF', '#9B7BFF'; OnAccent = '#06101C' }
