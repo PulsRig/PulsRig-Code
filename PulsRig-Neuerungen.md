@@ -6,6 +6,10 @@
 - FPS-Limit-Vergleich: Im Spiel einmal ohne und einmal mit Bildraten-Limit messen. PulsRig zeigt, wie viel Watt das Limit spart und was das im Jahr ausmacht. Das Limit stellst du selbst im Spiel oder Treiber ein.
 - Jede aufgezeichnete Spielsitzung nennt den Verbrauch in kWh und was sie gekostet hat.
 
+**Neuinstallation von Windows**
+- Neues Werkzeug „Neuinstallation“ unter Treiber verwalten. Vorher sichert es in einen Ordner alle Treiber als Offline-Paket und die Liste der Programme, die winget kennt.
+- Danach findet PulsRig den Ordner auch auf dem USB-Stick und führt durch die Schritte: Treiber einspielen, Spielkomponenten prüfen, Programme abhaken und per winget installieren.
+
 **Treiber**
 - Radeon-Grafikkarten (RX 5000 bis 9000, Vega): Der Scan fragt jetzt direkt bei AMD nach dem neuesten Adrenalin-Treiber, statt nur auf die Seite zu verweisen.
 

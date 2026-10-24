@@ -1318,6 +1318,7 @@ $script:Tools = [ordered]@{
     OfflinePackage      = @{ Glyph = 0xE7B8; Title = 'Offline-Paket'; Desc = 'Treiberpaket für eine Neuinstallation ohne Internet' }
     # Sichern, Wiederherstellen und Offline-Paket unter einem Eintrag (Auswahl in Open-DriverBackupSheet)
     DriverBackup        = @{ Glyph = 0xE74E; Title = 'Treiber-Sicherung'; Desc = 'Sichern, zurückholen oder als Offline-Paket'; Find = 'Treiber sichern wiederherstellen Offline-Paket' }
+    Reinstall           = @{ Glyph = 0xE777; Title = 'Neuinstallation'; Desc = 'Vorher Treiber und Programme sichern, danach einspielen'; Find = 'Neuinstallation Windows neu installieren Programme winget Sicherung USB-Stick' }
     SystemInfo          = @{ Glyph = 0xE946; Title = 'Systeminformationen'; Desc = 'Hardware und Windows im Überblick' }
     History             = @{ Glyph = 0xE81C; Title = 'Treiberverlauf'; Desc = 'Was Windows Update eingespielt hat und wann' }
     Autostart           = @{ Glyph = 0xE7E8; Title = 'Autostart'; Desc = 'Programme, die mit Windows starten' }
@@ -1405,7 +1406,7 @@ $toolRowXaml = @'
 $script:ToolGroups = [ordered]@{
     'Schnelle Reparaturen' = 'FixAudio', 'FixNetwork', 'FixResolution', 'FixDevices'
     # der Treiberverlauf ist über "Was hat sich geändert?" und Optionen → Schnellzugriff erreichbar
-    'Treiber und Komponenten' = 'DriverBackup', 'IncompatibleDrivers', 'CleanDevices', 'GameRuntimes'
+    'Treiber und Komponenten' = 'DriverBackup', 'Reinstall', 'IncompatibleDrivers', 'CleanDevices', 'GameRuntimes'
     'System'                  = 'Autostart', 'CleanDisk', 'Standby', 'Power', 'SystemInfo', 'InputTest'
 }
 # Symbolfarben der Reihe nach: Akzent- und Ringfarben des Designs
@@ -1422,6 +1423,7 @@ function Open-Tool([string]$Name) {
         'Power' { Open-PowerSheet }
         'InputTest' { Open-InputSheet }
         'DriverBackup' { Open-DriverBackupSheet }
+        'Reinstall' { Open-ReinstallSheet }
         default { Open-ToolDialog $Name }
     }
 }
@@ -1494,7 +1496,7 @@ foreach ($group in $script:ToolGroups.Keys) {
         $tile.FindName('Desc').Text = T $(if ($big -and $tool.ShortDesc) { $tool.ShortDesc } else { $tool.Desc })
         if ($big) { $tile.ToolTip = T $tool.Title }
         # ohne Adminrechte zeigen diese Werkzeuge nur, was sie tun würden
-        if (-not $script:IsAdmin -and $script:NoAdminTools -notcontains $name -and $name -notin 'GameRuntimes', 'SystemInfo', 'History', 'Autostart', 'Standby', 'Power', 'DriverBackup', 'InputTest') {
+        if (-not $script:IsAdmin -and $script:NoAdminTools -notcontains $name -and $name -notin 'GameRuntimes', 'SystemInfo', 'History', 'Autostart', 'Standby', 'Power', 'DriverBackup', 'Reinstall', 'InputTest') {
             $tile.FindName('Badge').Visibility = 'Visible'
             # in der schmalen Reihe ist für das Schild kein Platz: der Hinweis steht im Tooltip
             if ($big) { $tile.ToolTip = "$(T $tool.Title) – $(T 'Probelauf ohne Adminrechte')" }
@@ -3008,6 +3010,7 @@ $window.Add_Closing({
 . (Get-AppCode 'PulsRig-Ping.ps1')
 . (Get-AppCode 'PulsRig-Autostart.ps1')
 . (Get-AppCode 'PulsRig-Strom.ps1')
+. (Get-AppCode 'PulsRig-Neuinstallation.ps1')
 . (Get-AppCode 'PulsRig-Helfer.ps1')
 . (Get-AppCode 'PulsRig-Bento.ps1')   # Nacht-Bento: Weg-Leiste, Zurück-Knopf, Seitenumbau (nur in diesem Skin)
 # Dauerbewegungen des Skins beginnen, sobald das Fenster zu sehen ist

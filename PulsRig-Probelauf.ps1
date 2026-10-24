@@ -260,6 +260,20 @@ function Start-SnapshotTour {
             @{ Until = { $script:Sheet -and $script:Sheet.Components }; Timeout = 40000; Do = { } },
             @{ Wait = 900; Do = { Save-Snapshot '19-komponenten'; Select-SheetTab 1 } },
             @{ Wait = 900; Do = { Save-Snapshot '20-dateien'; Close-Sheet } },
+            # Neuinstallation: im Bildordner eine Probe-Sicherung mit Programmliste, damit "Danach einspielen" etwas zeigt
+            @{ Wait = 500; Do = { Open-ReinstallSheet } },
+            @{ Wait = 900; Do = {
+                    Save-Snapshot '20a-neuinstallation-vorher'
+                    $probe = Join-Path $Snapshot 'Neuinstallation_Probe'
+                    New-Item -ItemType Directory -Path $probe -Force | Out-Null
+                    Set-Content -LiteralPath (Join-Path $probe 'Programme.json') -Encoding UTF8 -Value '{"Sources":[{"Packages":[{"PackageIdentifier":"Valve.Steam"},{"PackageIdentifier":"Discord.Discord"},{"PackageIdentifier":"Mozilla.Firefox"}]}]}'
+                    Set-ReinstallFolder $probe
+                    $script:Sheet.Programs[0].Checked = $true
+                    Select-SheetTab 1
+                    Write-Host "Neuinstallation: $(@($script:Sheet.Programs).Count) Programme aus der Probe-Sicherung"
+                }
+            },
+            @{ Wait = 900; Do = { Save-Snapshot '20b-neuinstallation-danach'; Close-Sheet } },
             @{ Wait = 500; Do = { Open-SystemSheet } },
             @{ Until = { $script:Sheet -and $script:Sheet.Info }; Timeout = 60000; Do = { } },
             @{ Wait = 900; Do = { Save-Snapshot '21-system'; Select-SheetTab 2 } },

@@ -1596,6 +1596,78 @@
         'Ein Spiel erscheint hier, sobald Windows es einmal als Spiel erkannt hat.', 'A game appears here once Windows has recognized it as a game.'
         '1 Spiel', '1 game'
 
+        # --- Neuinstallation
+        'Neuinstallation', 'Reinstall Windows'
+        'Vorher Treiber und Programme sichern, danach einspielen', 'Back up drivers and programs first, restore them afterwards'
+        'Sichern, zurückholen, Neuinstallation, Verlauf und Kernisolierung.', 'Back up, restore, reinstall, history and core isolation.'
+        'Vorher sichern, danach geführt einspielen', 'Back up first, then restore step by step'
+        'Vorher sichern', 'Before: back up'
+        'Danach einspielen', 'After: restore'
+        'Sicherung erstellen', 'Create backup'
+        'Alle auswählen', 'Select all'
+        'Keine auswählen', 'Select none'
+        'KOMMT IN DIE SICHERUNG', 'INCLUDED IN THE BACKUP'
+        'SELBST SICHERN', 'BACK UP YOURSELF'
+        'LETZTE SICHERUNG', 'LATEST BACKUP'
+        'Offline-Paket aller Treiber von Drittherstellern, auch ohne Internet einspielbar', 'Offline package of all third-party drivers, restorable without internet'
+        'Programmliste', 'Program list'
+        'Programme, die winget kennt – danach zum Abhaken und Installieren', 'Programs winget knows - afterwards tick them to install'
+        'dabei', 'included'
+        'winget fehlt', 'winget missing'
+        'nicht dabei', 'not included'
+        'Eigene Dateien und Spielstände', 'Your files and saved games'
+        'Dokumente, Bilder, Browser-Daten und Spielstände ohne Cloud – die sichert PulsRig nicht', 'Documents, pictures, browser data and saved games without cloud - PulsRig does not back these up'
+        'Den fertigen Ordner vor der Neuinstallation auf einen USB-Stick kopieren.', 'Copy the finished folder to a USB stick before reinstalling.'
+        'Keine Sicherung gefunden', 'No backup found'
+        'Weder im Zielordner noch auf den Laufwerken liegt ein Ordner „Neuinstallation_…“. USB-Stick einstecken oder den Ordner selbst wählen.', 'There is no "Neuinstallation_…" folder in the target folder or on the drives. Plug in the USB stick or choose the folder yourself.'
+        'Ordner wählen', 'Choose folder'
+        'Anderer Ordner', 'Other folder'
+        'Ordner der Sicherung wählen (Neuinstallation_…)', 'Choose the backup folder (Neuinstallation_…)'
+        '1 · TREIBER', '1 · DRIVERS'
+        '2 · SPIELKOMPONENTEN', '2 · GAME COMPONENTS'
+        '3 · PROGRAMME', '3 · PROGRAMS'
+        'Treiber einspielen', 'Restore drivers'
+        'Alle Treiber aus dem Offline-Paket, danach neu starten', 'All drivers from the offline package, then restart'
+        'Jetzt einspielen', 'Restore now'
+        'Keine Programmliste', 'No program list'
+        'In dieser Sicherung fehlt Programme.json', 'This backup has no Programme.json'
+        '1 Programm ausgewählt', '1 program selected'
+        'Der Reihe nach: Treiber, Spielkomponenten, dann die Programme abhaken.', 'In order: drivers, game components, then tick the programs.'
+        'Neuinstallation vorbereiten', 'Prepare a reinstall'
+        'Treiber und Programmliste sichern', 'Back up drivers and program list'
+        '1 · Treiber', '1 · Drivers'
+        'als Offline-Paket', 'as offline package'
+        '2 · Programme', '2 · Programs'
+        'Liste aus winget', 'list from winget'
+        'Paket im Ordner', 'package in the folder'
+        '2 · Nachfragen', '2 · Ask'
+        'vor dem Einspielen', 'before restoring'
+        '3 · Neustart', '3 · Restart'
+        'danach empfohlen', 'recommended afterwards'
+        'Programme installieren', 'Install programs'
+        'aus der winget-Quelle', 'from the winget source'
+        '2 · Installieren', '2 · Install'
+        'eins nach dem anderen', 'one after another'
+        'Bericht je Programm', 'report per program'
+        'Ein Programm wird mit winget installiert.', 'One program will be installed with winget.'
+        'Fragt ein Installer nach Adminrechten, dort selbst bestätigen.', 'If an installer asks for admin rights, confirm it there yourself.'
+        'Die Treiber aus der Sicherung werden eingespielt.', 'The drivers from the backup will be restored.'
+        'Ohne Adminrechte läuft das als Probelauf: Es wird nichts eingespielt.', 'Without admin rights this runs as a dry run: nothing is restored.'
+        'PulsRig legt einen Ordner „Neuinstallation_…“ mit allen Treibern und der Programmliste an.', 'PulsRig creates a "Neuinstallation_…" folder with all drivers and the program list.'
+        'Am System ändert sich nichts.', 'Nothing on the system changes.'
+        'Schritt 1 von 2: Treiber', 'Step 1 of 2: drivers'
+        'Schritt 2 von 2: Programmliste', 'Step 2 of 2: program list'
+        'winget fehlt auf diesem PC (App-Installer aus dem Microsoft Store) - die Programmliste wird ausgelassen.', 'winget is missing on this PC (App Installer from the Microsoft Store) - the program list is skipped.'
+        'Lese die installierten Programme, die winget kennt ...', 'Reading the installed programs winget knows ...'
+        'Diesen Ordner vor der Neuinstallation auf einen USB-Stick kopieren.', 'Copy this folder to a USB stick before reinstalling.'
+        'In diesem Ordner steckt kein Offline-Treiberpaket.', 'This folder contains no offline driver package.'
+        'Zum Einspielen PulsRig mit Adminrechten starten.', 'Start PulsRig with admin rights to restore.'
+        'Spiele die Treiber ein (kann einige Minuten dauern) ...', 'Restoring the drivers (may take a few minutes) ...'
+        'Fertig. Bitte den PC danach neu starten.', 'Done. Please restart the PC afterwards.'
+        'winget fehlt auf diesem PC. Den „App-Installer“ aus dem Microsoft Store installieren und es noch einmal versuchen.', 'winget is missing on this PC. Install "App Installer" from the Microsoft Store and try again.'
+        'schon vorhanden', 'already there'
+        'Die übrigen beim Hersteller laden - manche Programme lassen sich nur dort installieren.', 'Get the rest from the vendor - some programs can only be installed from there.'
+
         # --- Autostart und Speicherplatz
         'Autostart', 'Startup apps'
         'Programme, die mit Windows starten', 'Programs that start with Windows'
@@ -2244,6 +2316,18 @@
         @{ R = '^und (\d+) weitere$'; F = 'and $1 more' }
         @{ R = '^Der Treiberspeicher ließ sich nicht lesen \((.+)\)$'; F = 'The driver store could not be read ($1)' }
         @{ R = '^(.+) verfügbar$'; F = '$1 available' }
+        @{ R = '^3 · PROGRAMME \((\d+)\)$'; F = '3 · PROGRAMS ($1)' }
+        @{ R = '^(\d+) Programme ausgewählt$'; F = '$1 programs selected' }
+        @{ R = '^(\d+) Programme werden nacheinander mit winget installiert\.$'; F = '$1 programs will be installed one after another with winget.' }
+        @{ R = '^(\d+) Programme in der Liste\.$'; F = '$1 programs in the list.' }
+        @{ R = '^(\d+) Treiberpakete aus (.+)$'; F = '$1 driver packages from $2' }
+        @{ R = '^(\d+) Treiberpakete jetzt einspielen\?$'; F = 'Restore $1 driver packages now?' }
+        @{ R = '^(\d+) von (\d+) Programmen sind da\.$'; F = '$1 of $2 programs are installed.' }
+        @{ R = '^fehlgeschlagen \(winget-Code (-?\d+)\)$'; F = 'failed (winget code $1)' }
+        @{ R = '^Die Programmliste ließ sich nicht schreiben \(winget-Code (-?\d+)\)\.$'; F = 'The program list could not be written (winget code $1).' }
+        @{ R = '^pnputil meldet Code (-?\d+) - einzelne Treiber passten evtl\. nicht zu den Geräten\.$'; F = 'pnputil reports code $1 - some drivers may not have matched the devices.' }
+        @{ R = '^Fertig\. Ordner: (.+)$'; F = 'Done. Folder: $1' }
+        @{ R = '^Ordner: (.+)$'; F = 'Folder: $1' }
         @{ R = '^Bau: (.+)$'; F = 'Build: $1' }
     )
 }
