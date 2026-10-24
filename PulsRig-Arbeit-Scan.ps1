@@ -57,6 +57,16 @@ try {
 }
 catch { $failed += 'AMD' }
 
+# Grafiktreiber für Radeon bei AMD: ebenfalls nur ein Hinweis
+$radeonDriver = $null
+try {
+    if ($a.Nvidia) {
+        $r = Get-RadeonUpdate
+        if ($r) { $radeonDriver = @{ Gpu = "$($r.Gpu)"; Installed = "$($r.Installed)"; Latest = "$($r.Latest)"; Released = "$($r.Released)"; Url = "$($r.Url)"; IsNewer = [bool]$r.IsNewer } }
+    }
+}
+catch { if ($failed -notcontains 'AMD') { $failed += 'AMD' } }
+
 $updates = @()
 $allDevices = $null
 foreach ($item in $global:DD_Items) {
@@ -174,7 +184,9 @@ $drivers = @($global:DD_Installed | Group-Object DeviceClass, DeviceName, Driver
     Failed      = $failed
     Sources     = $sources
     Intel       = $intel
-    Radeon      = $radeon
+    # fragt PulsRig AMD selbst, braucht es den allgemeinen Hinweis auf AMDs Software nicht
+    Radeon      = $radeon -and -not $radeonDriver
+    RadeonDriver = $radeonDriver
     Runtimes    = $runtimes
     SearchError = $searchError
 }

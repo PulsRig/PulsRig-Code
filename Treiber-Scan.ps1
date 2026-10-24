@@ -654,6 +654,56 @@ function Get-AmdChipsetUpdate {
     }
 }
 
+# Grafiktreiber von AMD (Adrenalin): AMD nennt die neueste Fassung auf der Seite der Karte. Die Adresse folgt aus dem
+# Namen (RX 5000 bis 9000, Vega); für ältere Karten und Prozessorgrafik gibt es kein festes Muster - dann $null und es
+# bleibt beim Hinweis auf AMDs Software. Nur Hinweis, nichts wird geladen.
+function Get-RadeonPage([string]$GpuName) {
+    $name = ("$GpuName" -replace '\((TM|R)\)', '' -replace '\s+', ' ').Trim().ToLower()
+    $base = 'https://www.amd.com/de/support/downloads/drivers.html/graphics/radeon-rx/'
+    if ($name -match 'radeon rx ([5-9])(\d{3})( xtx| xt| gre)?(?![\w])') {
+        return '{0}radeon-rx-{1}000-series/amd-radeon-rx-{1}{2}{3}.html' -f $base, $Matches[1], $Matches[2], ("$($Matches[3])" -replace ' ', '-')
+    }
+    if ($name -match 'radeon rx vega (56|64)') { return "${base}radeon-rx-vega-series/radeon-rx-vega-$($Matches[1]).html" }
+}
+
+function Get-RadeonUpdate {
+    $gpu = Get-CimInstance Win32_VideoController | Where-Object { $_.Name -match 'Radeon' } |
+        Where-Object { Get-RadeonPage $_.Name } | Select-Object -First 1
+    if (-not $gpu) { return }
+    $page = Get-RadeonPage $gpu.Name
+
+    [Net.ServicePointManager]::SecurityProtocol =
+        [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    $response = Invoke-WebRequest -UseBasicParsing -Uri ($page -replace '/de/support/', '/en/support/') -TimeoutSec 30
+    # das volle Paket heißt z.B. whql-amd-software-adrenalin-edition-26.10.1-win11-b.exe
+    $versions = @([regex]::Matches("$($response.Content)", 'adrenalin-edition-([0-9]+(?:\.[0-9]+){1,3})-') | ForEach-Object { $_.Groups[1].Value } |
+            Sort-Object { [version]$_ } -Descending)
+    if ($versions.Count -eq 0) { throw 'Die Seite von AMD nennt keine Version - vermutlich wurde sie umgebaut.' }
+    $latest = $versions[0]
+    $released = ''
+    if ("$($response.Content)" -match '(?s)Release Date</strong>\s*<p>\s*([0-9]{4})-([0-9]{2})-([0-9]{2})') { $released = '{2}.{1}.{0}' -f $Matches[1], $Matches[2], $Matches[3] }
+
+    # installiert: Windows nennt nur die interne Treiberversion, die Adrenalin-Fassung steht im Schlüssel des Treibers
+    $installed = ''
+    try {
+        $driverKey = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Enum\$($gpu.PNPDeviceID)" -ErrorAction Stop).Driver
+        $class = Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Class\$driverKey" -ErrorAction Stop
+        $installed = "$($class.RadeonSoftwareVersion)".Trim()
+    }
+    catch { }
+    $isNewer = $false
+    try { $isNewer = $installed -and ([version]$latest -gt [version]$installed) } catch { }
+
+    [pscustomobject]@{
+        Gpu       = ("$($gpu.Name)" -replace '\((TM|R)\)', '' -replace '\s+', ' ').Trim()
+        Installed = $installed
+        Latest    = $latest
+        Released  = $released
+        Url       = $page
+        IsNewer   = [bool]$isNewer
+    }
+}
+
 # --- Microsoft-Katalog: nur Hinweise, nichts wird geladen ---------------------
 
 # Macht aus der Hardware-ID eines Geräts den Suchbegriff für den Katalog, z.B.

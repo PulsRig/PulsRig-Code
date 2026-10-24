@@ -1762,6 +1762,7 @@
         @{ R = '^installiert (\S+) vom (\S+)  →  neu vom (\S+)$'; F = 'installed $1 from $2  →  new from $3' }
         @{ R = '^installiert (\S+)  →  neu vom (\S+)$'; F = 'installed $1  →  new from $2' }
         @{ R = '^installiert (\S+)  →  neu (\S+) vom (\S+)$'; F = 'installed $1  →  new $2 from $3' }
+        @{ R = '^installiert (\S+)  →  neu (\S+)$'; F = 'installed $1  →  new $2' }
         @{ R = '^installiert (\S+) vom (\S+)$'; F = 'installed $1 from $2' }
         @{ R = '^installiert (\S+)$'; F = 'installed $1' }
         @{ R = '^neu vom (\S+)$'; F = 'new from $1' }

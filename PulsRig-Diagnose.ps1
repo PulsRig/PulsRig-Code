@@ -113,12 +113,13 @@ function Get-DiagnoseText {
     & $part 'Letzter Scan in dieser Sitzung' {
         $scan = $script:LastResult
         if (-not $scan) { return 'In dieser Sitzung wurde noch nicht gescannt.' }
-        $extra = @(if ($scan.Nvidia -and $scan.Nvidia.IsNewer) { 'NVIDIA' }; if ($scan.Amd -and $scan.Amd.IsNewer) { 'AMD-Chipsatz' })
+        $extra = @(if ($scan.Nvidia -and $scan.Nvidia.IsNewer) { 'NVIDIA' }; if ($scan.Amd -and $scan.Amd.IsNewer) { 'AMD-Chipsatz' }; if ($scan.RadeonDriver -and $scan.RadeonDriver.IsNewer) { 'Radeon' })
         "Geräte: $($scan.Devices) · neuere Treiber: $(@($scan.Updates).Count) von Windows Update$(if ($extra.Count) { ' + ' + ($extra -join ' + ') }) · Gerätefehler: $(@($scan.Problems).Count) · Katalog-Hinweise: $(@($scan.Hints).Count)"
         $silent = @($scan.Failed | Where-Object { $_ })
         "Quellen ohne Antwort: $(if ($silent.Count -gt 0) { $silent -join ', ' } else { 'keine' })"
         if ($scan.SearchError) { "Windows Update: $($scan.SearchError)" }
         if ($scan.Nvidia) { "NVIDIA: installiert $($scan.Nvidia.Installed), neueste $($scan.Nvidia.Latest)" }
+        if ($scan.RadeonDriver) { "Radeon ($($scan.RadeonDriver.Gpu)): installiert $($scan.RadeonDriver.Installed), neueste $($scan.RadeonDriver.Latest)" }
         if ($scan.Amd) { "AMD-Chipsatz ($($scan.Amd.Chipset)): installiert $($scan.Amd.Installed), neueste $($scan.Amd.Latest)" }
         foreach ($problem in @($scan.Problems)) { "Gerätefehler: $($problem.Name) (Code $($problem.Code)) · $(("$($problem.Id)" -split '&SUBSYS')[0])$(if ($problem.Chipset) { ' · als Chipsatz erkannt' })$(if ($problem.Catalog) { " · im Katalog: $($problem.Catalog)" })" }
     }

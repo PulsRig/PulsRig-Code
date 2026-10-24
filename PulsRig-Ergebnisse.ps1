@@ -398,8 +398,10 @@ function Show-Results($Data) {
     # Intel-Systeme: Chipsatz, Grafik und WLAN von Intel lassen sich nicht direkt abfragen - Hinweis auf Intels Assistenten
     $intelHint = [bool]($Data.Intel -and -not (Test-Ignored 'intel:assistent'))
     $radeonHint = [bool]($Data.Radeon -and -not (Test-Ignored 'amd:grafik'))
-    if ($hints.Count -gt 0 -or $amdNew -or $intelHint -or $radeonHint) {
-        [void](Add-SectionTitle $(if ($amdNew -or $intelHint -or $radeonHint) { 'Hinweise der Hersteller und aus dem Microsoft-Katalog (werden nicht automatisch geladen)' } else { 'Hinweise aus dem Microsoft-Katalog (werden nicht automatisch geladen)' }))
+    $rd = $Data.RadeonDriver
+    $radeonNew = [bool]($rd -and $rd.IsNewer -and -not (Test-Ignored "radeon:$($rd.Latest)"))
+    if ($hints.Count -gt 0 -or $amdNew -or $intelHint -or $radeonHint -or $radeonNew) {
+        [void](Add-SectionTitle $(if ($amdNew -or $intelHint -or $radeonHint -or $radeonNew) { 'Hinweise der Hersteller und aus dem Microsoft-Katalog (werden nicht automatisch geladen)' } else { 'Hinweise aus dem Microsoft-Katalog (werden nicht automatisch geladen)' }))
         if ($intelHint) {
             $title = 'Intel: Chipsatz, Grafik und WLAN'
             $menu = @(@{ Text = 'Diesen Hinweis nicht mehr zeigen'; Glyph = 0xE8D8; Kind = 'ignore'; Value = @{ Key = 'intel:assistent'; Name = $title } })
@@ -411,6 +413,13 @@ function Show-Results($Data) {
             $menu = @(@{ Text = 'Diesen Hinweis nicht mehr zeigen'; Glyph = 0xE8D8; Kind = 'ignore'; Value = @{ Key = 'amd:grafik'; Name = $title } })
             [void](Add-Row -Glyph (Get-Glyph 0xE7F4) -IconKind 'TextDim' -Title $title -Sub 'Das prüft AMDs eigene Software, nicht PulsRig' `
                     -Badge 'Hinweis' -ActionText 'Bei AMD prüfen' -ActionTag @{ Kind = 'url'; Value = 'https://www.amd.com/de/support/download/drivers.html' } -Menu $menu)
+        }
+        if ($radeonNew) {
+            $title = "$($rd.Gpu) Adrenalin $($rd.Latest)"
+            $menu = @(@{ Text = 'Diese Version ignorieren'; Glyph = 0xE8D8; Kind = 'ignore'; Value = @{ Key = "radeon:$($rd.Latest)"; Name = $title } })
+            [void](Add-Row -Glyph (Get-Glyph 0xE7F4) -IconKind 'Warn' -Title $title -Sub "installiert $($rd.Installed)  →  neu $($rd.Latest)" `
+                    -Badge $(if ($rd.Released) { "vom $($rd.Released)" } else { 'direkt von AMD' }) -BadgeKind 'Warn' `
+                    -ActionText 'Bei AMD ansehen' -ActionTag @{ Kind = 'url'; Value = $rd.Url } -Menu $menu)
         }
         if ($amdNew) {
             $title = "AMD Chipsatz-Treiber $($amd.Latest)"
@@ -430,7 +439,7 @@ function Show-Results($Data) {
                     -ActionText 'Im Katalog ansehen' -ActionTag @{ Kind = 'url'; Value = $hint.Url })
         }
     }
-    if ($count -eq 0 -and $problems.Count -eq 0 -and $hints.Count -eq 0 -and -not $amdNew -and -not $intelHint) {
+    if ($count -eq 0 -and $problems.Count -eq 0 -and $hints.Count -eq 0 -and -not $amdNew -and -not $intelHint -and -not $radeonNew) {
         [void](Add-Row -Glyph (Get-Glyph 0xE73E) -IconKind 'Good' -Title 'Alle Treiber sind auf dem neuesten Stand' `
                 -Sub "$($Data.Devices) Geräte geprüft, davon $($Data.ThirdParty) mit Treibern von Drittherstellern")
     }
@@ -462,7 +471,7 @@ function Show-Results($Data) {
     $ui.ResultChips.Children.Clear()
     if ($count -gt 0) { Add-ResultChip $(if ($count -eq 1) { '1 neuerer Treiber' } else { "$count neuere Treiber" }) 'Warn' }
     if ($problems.Count -gt 0) { Add-ResultChip "$($problems.Count) Gerätefehler" 'Bad' }
-    $hintCount = $hints.Count + [int]$amdNew + [int]$intelHint + [int]$radeonHint
+    $hintCount = $hints.Count + [int]$amdNew + [int]$intelHint + [int]$radeonHint + [int]$radeonNew
     if ($hintCount -gt 0) { Add-ResultChip $(if ($hintCount -eq 1) { '1 Hinweis' } else { "$hintCount Hinweise" }) 'Accent' }
     if ($Data.SearchError) { Add-ResultChip "$($drivers.Count) nicht geprüft" 'Bad' } else { Add-ResultChip "$($drivers.Count) aktuell" 'Good' }
 

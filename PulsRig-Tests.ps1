@@ -25,12 +25,19 @@ function Test-Equal([string]$Name, $Actual, $Expected) {
     else { $script:Failures += "$Name`n      erwartet: $Expected`n      erhalten: $Actual" }
 }
 
-Import-Functions 'Treiber-Scan.ps1' 'ConvertTo-NvidiaVersion', 'Get-CatalogQuery', 'Select-CatalogCandidate', 'Test-ChipsetDevice', 'Get-BoardDriverSearch', 'Select-MissingDriverRow', 'Format-UpdateTitle', 'Find-DeviceName'
+Import-Functions 'Treiber-Scan.ps1' 'ConvertTo-NvidiaVersion', 'Get-CatalogQuery', 'Select-CatalogCandidate', 'Test-ChipsetDevice', 'Get-BoardDriverSearch', 'Select-MissingDriverRow', 'Format-UpdateTitle', 'Find-DeviceName', 'Get-RadeonPage'
 Import-Functions 'PulsRig-Hardware.ps1' 'Get-MemoryRated', 'Get-MemoryProfile', 'Get-MemoryChannelKey', 'Get-MemoryChannels', 'Get-MemoryPlacement', 'Get-MemoryLayout'
 
 # --- NVIDIA-Version ---
 Test-Equal 'NVIDIA: 32.0.16.1742 ist 617.42' (ConvertTo-NvidiaVersion '32.0.16.1742') '617.42'
 Test-Equal 'NVIDIA: 31.0.15.5222 ist 552.22' (ConvertTo-NvidiaVersion '31.0.15.5222') '552.22'
+$radeonBase = 'https://www.amd.com/de/support/downloads/drivers.html/graphics/radeon-rx/'
+Test-Equal 'Radeon: RX 7800 XT' (Get-RadeonPage 'AMD Radeon RX 7800 XT') "${radeonBase}radeon-rx-7000-series/amd-radeon-rx-7800-xt.html"
+Test-Equal 'Radeon: RX 7900 XTX mit (TM)' (Get-RadeonPage 'AMD Radeon(TM) RX 7900 XTX') "${radeonBase}radeon-rx-7000-series/amd-radeon-rx-7900-xtx.html"
+Test-Equal 'Radeon: RX 6600' (Get-RadeonPage 'AMD Radeon RX 6600') "${radeonBase}radeon-rx-6000-series/amd-radeon-rx-6600.html"
+Test-Equal 'Radeon: Vega 56' (Get-RadeonPage 'Radeon RX Vega 56') "${radeonBase}radeon-rx-vega-series/radeon-rx-vega-56.html"
+Test-Equal 'Radeon: RX 580 ohne Seite' "$(Get-RadeonPage 'Radeon RX 580 Series')" ''
+Test-Equal 'Radeon: Prozessorgrafik ohne Seite' "$(Get-RadeonPage 'AMD Radeon(TM) Graphics')" ''
 Test-Equal 'NVIDIA: zu kurze Angabe gibt nichts' (ConvertTo-NvidiaVersion '1.2') ''
 
 # --- Suchbegriff für den Katalog ---

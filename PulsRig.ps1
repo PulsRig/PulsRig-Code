@@ -136,6 +136,23 @@ function Add-MemTrace([string]$What) {
     catch { }
 }
 
+# Gibt Arbeitsspeicher zurück, den das Programm gerade nicht anfasst (vor allem Reste des Starts). Windows legt die
+# Seiten nur beiseite und holt sie bei Bedarf zurück. Gemessen 24.10.2026: nach dem Start 270 -> 12 MB, nach einigen
+# Seitenwechseln 185 statt 270 MB, minimiert 44 MB. Kurz Höchst- auf Mindestwert setzen leert den Arbeitsbereich wie
+# EmptyWorkingSet, ohne eigenen C#-Code übersetzen zu müssen; danach gilt wieder der alte (weiche) Höchstwert.
+function Clear-WorkingSet([string]$Why) {
+    try {
+        [GC]::Collect()
+        [GC]::WaitForPendingFinalizers()
+        $me = [Diagnostics.Process]::GetCurrentProcess()
+        $max = $me.MaxWorkingSet
+        $me.MaxWorkingSet = $me.MinWorkingSet
+        $me.MaxWorkingSet = $max
+        Add-MemTrace "Speicher freigegeben: $Why"
+    }
+    catch { }
+}
+
 function Write-AppError($ErrorRecord) {
     $text = '{0:dd.MM. HH:mm:ss}  {1}{2}{3}' -f (Get-Date), $ErrorRecord.Exception.Message, [Environment]::NewLine, $ErrorRecord.ScriptStackTrace
     try { Add-Content -LiteralPath $script:ErrorLog -Value $text -Encoding UTF8 } catch { }
@@ -1026,6 +1043,7 @@ $demoResult = @{
     )
     Nvidia      = @{ Gpu = 'NVIDIA GeForce RTX 3080'; Kind = 'Game Ready'; Installed = '617.42'; Latest = '620.15'; Released = '08.10.2026'; Size = '992 MB'; IsNewer = $true }
     Amd         = @{ Chipset = 'B550'; Cpu = 'AMD Ryzen 7 5800X3D 8-Core Processor'; Installed = '8.08.12.551'; Latest = '8.08.12.551'; Released = '14.08.2026'; Size = '79 MB'; Url = 'https://www.amd.com/de/support/download/drivers.html'; IsNewer = $false }
+    RadeonDriver = @{ Gpu = 'AMD Radeon RX 7800 XT'; Installed = '26.9.2'; Latest = '26.10.1'; Released = '20.10.2026'; Url = 'https://www.amd.com/de/support/downloads/drivers.html/graphics/radeon-rx/radeon-rx-7000-series/amd-radeon-rx-7800-xt.html'; IsNewer = $true }
     Hints       = @(@{ Title = 'Advanced Micro Devices, Inc System Driver Update (2.0.0.29)'; Date = '07.07.2026'; Size = '17 KB'; Device = 'AMD SMBUS, AMD GPIO Controller, AMD PSP 11.0 Device'; Installed = '2.0.0.26 vom 04.12.2025'; Url = 'https://www.catalog.update.microsoft.com/'; NoCode = $true })
     Runtimes    = @(@{ Name = 'OpenAL'; Status = 'fehlt'; CanInstall = $false }, @{ Name = 'Visual C++ 2013 (x64)'; Status = 'veraltet'; CanInstall = $true })
     Drivers     = @(
@@ -2632,6 +2650,8 @@ function Stop-Splash {
     Set-OrbIdle
     $script:SplashDone = $true
     Add-MemTrace 'Start fertig'
+    # erst wenn die Einblendung durch ist; läuft dann schon ein Scan, braucht er den Speicher ohnehin
+    Invoke-Later 6000 { if (-not $script:Busy) { Clear-WorkingSet 'nach dem Start' } }
     Invoke-Later 2500 { Start-VersionCheck }
     Invoke-Later 600 { Update-ScanHint }
     if (($script:Settings.AutoScan -or $StartScan) -and -not $Snapshot) { Invoke-Later 900 { if (-not $script:Busy -and -not $script:Sheet -and -not $script:Dialog) { Start-Scan } } }
@@ -2673,6 +2693,10 @@ $window.Add_StateChanged({
             if ($window.WindowState -eq 'Normal' -and $script:WindowWas -eq 'Minimized' -and $script:Settings.Animations) {
                 $window.BeginAnimation([Windows.Window]::OpacityProperty, (New-DoubleAnim -From 0 -To $window.Opacity -Ms 240))
                 Invoke-Later 270 { $window.BeginAnimation([Windows.Window]::OpacityProperty, $null) }
+            }
+            # minimiert (etwa während eines Spiels) braucht die Oberfläche fast nichts; Messwerte laufen weiter
+            if ($window.WindowState -eq 'Minimized' -and $script:WindowWas -ne 'Minimized') {
+                Invoke-Later 1500 { if ($window.WindowState -eq 'Minimized') { Clear-WorkingSet 'minimiert' } }
             }
             $script:WindowWas = "$($window.WindowState)"
         }

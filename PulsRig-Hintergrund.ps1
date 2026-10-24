@@ -105,6 +105,11 @@ switch ($Aufgabe) {
                 if ($amd -and $amd.IsNewer -and $ignored -notcontains "amd:$($amd.Latest)") { $names += "AMD-Chipsatz $($amd.Latest)" }
             }
             catch { Write-Host "AMD: $($_.Exception.Message)" }
+            try {
+                $radeon = Get-RadeonUpdate
+                if ($radeon -and $radeon.IsNewer -and $ignored -notcontains "radeon:$($radeon.Latest)") { $names += "AMD Adrenalin $($radeon.Latest)" }
+            }
+            catch { Write-Host "Radeon: $($_.Exception.Message)" }
         }
         @{ Time = (Get-Date).ToString('yyyy-MM-dd HH:mm'); Count = $names.Count; Names = $names } | ConvertTo-Json |
             Set-Content -LiteralPath (Join-Path $target 'PulsRig-Hintergrund-Scan.json') -Encoding UTF8
