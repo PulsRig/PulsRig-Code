@@ -102,12 +102,22 @@ if (-not $Snapshot) { try { $script:RunningMark = New-Object Threading.Mutex $fa
 
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, System.Xaml
 
-# 40 Bilder pro Sekunde genügen für die Animationen und halbieren fast die Rechenlast der Daueranimationen
+# Daueranimationen (Ring, Glühen, Atmen) laufen mit 40 Bildern pro Sekunde, das halbiert fast ihre Rechenlast.
+# Kurze Übergänge laufen dagegen mit der Bildrate des Bildschirms: Bei 144 Hz passen 40 Bilder nicht in den Takt,
+# jedes Bild stünde mal drei-, mal viermal da - Seitenwechsel und Einblendungen wirkten dadurch ruckelig.
+$script:IdleFps = 40
+# Auf schnellen Bildschirmen (über 100 Hz) schafft das Zeichnen nicht jeden Takt; dann stünde jedes Bild mal einen,
+# mal zwei Takte da (gemessen: Abstände springen zwischen 7 und 14 ms). Mit genau der halben Bildrate steht jedes
+# Bild gleichmäßig zwei Takte lang - das wirkt ruhiger als mehr, aber ungleichmäßige Bilder.
 try {
-    [Windows.Media.Animation.Timeline]::DesiredFrameRateProperty.OverrideMetadata(
-        [Windows.Media.Animation.Timeline], (New-Object Windows.FrameworkPropertyMetadata 40))
+    $hz = [int](@(Get-CimInstance Win32_VideoController -Property CurrentRefreshRate -ErrorAction Stop | ForEach-Object { [int]$_.CurrentRefreshRate }) | Measure-Object -Maximum).Maximum
+    if ($hz -gt 100) {
+        [Windows.Media.Animation.Timeline]::DesiredFrameRateProperty.OverrideMetadata(
+            [Windows.Media.Animation.Timeline], (New-Object Windows.FrameworkPropertyMetadata ([int][Math]::Round($hz / 2.0))))
+    }
 }
 catch { }
+function Set-IdleFps($Animation) { [Windows.Media.Animation.Timeline]::SetDesiredFrameRate($Animation, $script:IdleFps) }
 
 # Mitschrift der Werkzeug- und Installationsläufe dieser Sitzung: was im Dialog stand, samt Rückfragen und Antworten.
 # Sie kommt ins Diagnose-Paket - so lässt sich nachlesen, an welchem Schritt ein Lauf hing, ohne Bildschirmfoto.
@@ -195,8 +205,10 @@ function Get-ScanHint {
 function Update-ScanHint {
     try {
         if (-not $script:ScanMakers) {
-            $cpu = "$((Get-CimInstance Win32_Processor | Select-Object -First 1).Manufacturer)"
-            $gpus = @(Get-CimInstance Win32_VideoController | ForEach-Object { "$($_.Name)" })
+            # aus der Registry statt per WMI: die erste WMI-Anfrage hielt das Fenster rund eine Sekunde an - mitten in der Einblendung
+            $cpu = "$((Get-ItemProperty -LiteralPath 'HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0' -ErrorAction SilentlyContinue).VendorIdentifier)"
+            $gpus = @(Get-ChildItem -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}' -ErrorAction SilentlyContinue |
+                    ForEach-Object { "$($_.GetValue('DriverDesc'))" })
             $script:ScanMakers = @{ Nvidia = [bool]($gpus -match 'NVIDIA'); Amd = [bool]($cpu -match 'AMD') }
         }
         if ($script:Busy -ne 'scan') { $ui.HintText.Text = T (Get-ScanHint) }
@@ -772,12 +784,15 @@ function New-DoubleAnim {
     $animation.Duration = New-Object Windows.Duration ([TimeSpan]::FromMilliseconds($Ms))
     if ($Delay -gt 0) { $animation.BeginTime = [TimeSpan]::FromMilliseconds($Delay) }
     if (-not $Linear -and $Ease) { $animation.EasingFunction = $Ease }
-    if ($Forever) { $animation.RepeatBehavior = [Windows.Media.Animation.RepeatBehavior]::Forever }
+    if ($Forever) { $animation.RepeatBehavior = [Windows.Media.Animation.RepeatBehavior]::Forever; Set-IdleFps $animation }
     if ($AutoReverse) { $animation.AutoReverse = $true }
     $animation
 }
 
 function Start-Fade($Element, [double]$To, [int]$Ms = 250, [int]$Delay = 0, $From = $null) {
+    # mit Wartezeit gilt bis zum Beginn der eigene Wert des Elements: ihn gleich auf den Startwert setzen, sonst
+    # steht es dort kurz voll da, verschwindet und blendet erst dann ein (Flackern beim Auftauchen der Kacheln)
+    if ($Delay -gt 0 -and $null -ne $From) { $Element.BeginAnimation($P.Opacity, $null); $Element.Opacity = [double]$From }
     $Element.BeginAnimation($P.Opacity, (New-DoubleAnim -To $To -Ms $Ms -Delay $Delay -From $From))
 }
 
@@ -1213,21 +1228,28 @@ function Show-Page([string]$Name) {
     $way = if ($script:NavIndex[$Name] -lt $script:NavIndex[$script:Page]) { -1 } else { 1 }
     $script:Page = $Name
 
-    # die alte Seite weicht in die Gegenrichtung aus, während sie verblasst
+    # Inhalt der neuen Seite zuerst füllen: was danach noch rechnet, hält sonst die schon laufenden Übergänge an
+    Set-GaugeIdle
+    if ($Name -ne 'Hardware') { $ui.HardwarePillDot.BeginAnimation($P.Opacity, $null) }
+    switch ($Name) {
+        'Home' { if ($script:HomeCardsFresh) { $script:HomeCardsFresh = $false; Show-HomeCardNews } }
+        'Hardware' { Update-HardwareBadges; Show-HardwareCards }
+        'Tools' { Show-Tiles }
+        'Boost' { Update-Boost; Update-Ram -WithList }
+    }
+
+    # die alte Seite verblasst nur: rückte sie dabei noch, müssten zwei ganze Seiten zugleich bewegt werden
     Start-Fade $old 0 150
-    Start-Slide $old (-12 * $way) 150 0 $null $script:EaseCubicIn
     Invoke-Later 160 { param($page) if ($page -ne $ui["Page$($script:Page)"]) { $page.Visibility = 'Collapsed' } } $old
     $new.Visibility = 'Visible'
     Start-Fade $new 1 300 110 0
     Start-Slide $new 0 1 0 0
-    # Kopf und Inhalt der neuen Seite gleiten nacheinander herein, der Inhalt mit etwas mehr Weg
+    # Kopf und Inhalt blenden nur noch nacheinander ein: das Hereingleiten von oben oder unten ruckelte auf jedem
+    # PC, gleich was am Zeichnen gespart wurde (24.10.2026). Ein Rest Verschiebung aus früheren Wechseln wird gelöscht.
     $step = 0
     foreach ($part in $new.Children) {
-        if ($part.RenderTransform -isnot [Windows.Media.TranslateTransform]) {
-            if ($part.RenderTransform -ne [Windows.Media.Transform]::Identity) { continue }
-            $part.RenderTransform = New-Object Windows.Media.TranslateTransform
-        }
-        Start-Slide $part 0 (440 + 60 * $step) (110 + 70 * $step) ((16 + 12 * $step) * $way)
+        if ($part.RenderTransform -is [Windows.Media.TranslateTransform]) { $part.RenderTransform.BeginAnimation($P.Y, $null); $part.RenderTransform.Y = 0 }
+        if ($part.Visibility -eq 'Visible') { Start-Fade $part 1 (300 + 60 * $step) (110 + 70 * $step) 0 }
         if ($step -lt 2) { $step++ }
     }
 
@@ -1245,15 +1267,6 @@ function Show-Page([string]$Name) {
             [void]$stretch.KeyFrames.Add($key)
         }
         $script:NavBarStretch.BeginAnimation($P.ScaleY, $stretch)
-    }
-
-    Set-GaugeIdle
-    if ($Name -ne 'Hardware') { $ui.HardwarePillDot.BeginAnimation($P.Opacity, $null) }
-    switch ($Name) {
-        'Home' { if ($script:HomeCardsFresh) { $script:HomeCardsFresh = $false; Show-HomeCardNews } }
-        'Hardware' { Update-HardwareBadges; Show-HardwareCards }
-        'Tools' { Show-Tiles }
-        'Boost' { Update-Boost; Update-Ram -WithList }
     }
 }
 
@@ -1554,10 +1567,14 @@ function Show-Tiles {
     for ($i = 0; $i -lt $script:Tiles.Count; $i++) {
         $tile = $script:Tiles[$i]
         $delay = $script:TileDelays[$i]
-        $wide = $tile.Width -gt 300      # die flachen Zeilen wachsen weniger, sonst wirkt es bei ihrer Breite unruhig
-        Start-Fade $tile 1 280 $delay 0
-        Start-Scale $tile 1 460 $delay $(if ($wide) { 0.95 } else { 0.86 }) $script:EaseBack
-        Start-Scale $tile.FindName('IconBox') 1 700 $delay 0.5 $script:EaseElastic
+        # die Kachel blendet nur ein (Wachsen ruckelte); das Symbol federt, sobald sie da ist
+        Start-Fade $tile 1 320 $delay 0
+        $tile.RenderTransform.BeginAnimation($P.ScaleX, $null); $tile.RenderTransform.BeginAnimation($P.ScaleY, $null)
+        $tile.RenderTransform.ScaleX = 1; $tile.RenderTransform.ScaleY = 1
+        $icon = $tile.FindName('IconBox')
+        $icon.RenderTransform.BeginAnimation($P.ScaleX, $null); $icon.RenderTransform.BeginAnimation($P.ScaleY, $null)
+        $icon.RenderTransform.ScaleX = 0.5; $icon.RenderTransform.ScaleY = 0.5
+        Start-Scale $icon 1 620 ($delay + 470) 0.5 $script:EaseElastic
     }
 }
 
@@ -2216,6 +2233,7 @@ function Set-GaugeIdle {
         $tremble = New-GaugeKeys 1700 @(@(0.0, 0.0, $null), @(0.14, 1.3, $script:EaseSineInOut), @(0.3, -0.9, $script:EaseSineInOut), @(0.47, 0.7, $script:EaseSineInOut),
             @(0.62, -1.4, $script:EaseSineInOut), @(0.8, 0.5, $script:EaseSineInOut), @(1.0, 0.0, $script:EaseSineInOut))
         $tremble.RepeatBehavior = [Windows.Media.Animation.RepeatBehavior]::Forever
+        Set-IdleFps $tremble
         $tremble.BeginTime = [TimeSpan]::FromMilliseconds(1500)      # erst, wenn der Zeiger angekommen ist
         $shake.BeginAnimation($P.Angle, $tremble)
         $ui.GaugeGlow.BeginAnimation($P.Opacity, (New-DoubleAnim -From 1 -To 0.62 -Ms 2200 -Delay 1500 -Ease $script:EaseSine -Forever -AutoReverse), [Windows.Media.Animation.HandoffBehavior]::Compose)
@@ -2409,9 +2427,10 @@ function Start-RamListCount($Rows) {
 
 function Update-Ram([switch]$WithList) {
     try {
-        $os = Get-CimInstance Win32_OperatingSystem
-        $total = [double]$os.TotalVisibleMemorySize * 1KB
-        $free = [double]$os.FreePhysicalMemory * 1KB
+        # ComputerInfo statt WMI: braucht rund 10 statt 60-120 ms - das lief bei jedem Besuch der Seite und alle 3 Sekunden
+        if (-not $script:MemInfo) { Add-Type -AssemblyName Microsoft.VisualBasic; $script:MemInfo = New-Object Microsoft.VisualBasic.Devices.ComputerInfo }
+        $total = [double]$script:MemInfo.TotalPhysicalMemory
+        $free = [double]$script:MemInfo.AvailablePhysicalMemory
         $used = 1 - $free / $total
         # beim Betreten der Seite füllt sich der Ring von null, die Zahlen zählen mit; später gleitet er nur nach.
         # Der Lichtpunkt an der Spitze dreht im selben Verlauf mit und bleibt so am Ende des Bogens.
@@ -2627,13 +2646,6 @@ function Start-Splash {
 }
 
 function Stop-Splash {
-    Start-Fade $ui.Splash 0 480
-    Start-Scale $ui.SplashMark 1.25 520
-    Start-Scale $ui.SplashGlow 1.5 520
-    Invoke-Later 500 {
-        $ui.Splash.Visibility = 'Collapsed'
-        $ui.SplashBar.RenderTransform.BeginAnimation($P.X, $null)
-    }
     # die Startseite kommt dem Blick entgegen
     Start-Scale $ui.Orb 1 900 120 0.82 $script:EaseBack
     Start-Fade $ui.PageHome 1 500 120 0
@@ -2662,6 +2674,14 @@ function Stop-Splash {
     Invoke-Later 2500 { Start-VersionCheck }
     Invoke-Later 600 { Update-ScanHint }
     if (($script:Settings.AutoScan -or $StartScan) -and -not $Snapshot) { Invoke-Later 900 { if (-not $script:Busy -and -not $script:Sheet -and -not $script:Dialog) { Start-Scan } } }
+    # der Vorspann blendet erst aus, wenn alles darunter angesetzt ist: sonst verschluckt das Ansetzen seine ersten Bilder
+    Start-Fade $ui.Splash 0 480
+    Start-Scale $ui.SplashMark 1.25 520
+    Start-Scale $ui.SplashGlow 1.5 520
+    Invoke-Later 500 {
+        $ui.Splash.Visibility = 'Collapsed'
+        $ui.SplashBar.RenderTransform.BeginAnimation($P.X, $null)
+    }
 }
 
 # --- Bedienung ----------------------------------------------------------------

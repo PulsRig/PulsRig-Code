@@ -145,7 +145,7 @@ function Start-RingSpin($Element, [double]$Seconds, [int]$Direction = 1) {
 function Start-RingSteps($Element, [double]$Seconds, [int]$Steps) {
     $animation = New-Object Windows.Media.Animation.DoubleAnimationUsingKeyFrames
     $animation.Duration = New-Object Windows.Duration ([TimeSpan]::FromSeconds($Seconds))
-    $animation.RepeatBehavior = [Windows.Media.Animation.RepeatBehavior]::Forever
+    $animation.RepeatBehavior = [Windows.Media.Animation.RepeatBehavior]::Forever; Set-IdleFps $animation
     for ($i = 0; $i -lt $Steps; $i++) {
         $time = [Windows.Media.Animation.KeyTime]::FromPercent($i / $Steps)
         [void]$animation.KeyFrames.Add((New-Object Windows.Media.Animation.DiscreteDoubleKeyFrame (360.0 * $i / $Steps), $time))
@@ -175,7 +175,7 @@ function Start-RingRun($Shape, [double]$Length, [double]$Seconds) {
 function Start-RingFrames($Target, $Property, [double]$Seconds, $Frames) {
     $animation = New-Object Windows.Media.Animation.DoubleAnimationUsingKeyFrames
     $animation.Duration = New-Object Windows.Duration ([TimeSpan]::FromSeconds($Seconds))
-    $animation.RepeatBehavior = [Windows.Media.Animation.RepeatBehavior]::Forever
+    $animation.RepeatBehavior = [Windows.Media.Animation.RepeatBehavior]::Forever; Set-IdleFps $animation
     foreach ($frame in $Frames) {
         [void]$animation.KeyFrames.Add((New-Object Windows.Media.Animation.DiscreteDoubleKeyFrame ([double]$frame[1]), ([Windows.Media.Animation.KeyTime]::FromPercent([double]$frame[0]))))
     }
@@ -186,7 +186,7 @@ function Start-RingFrames($Target, $Property, [double]$Seconds, $Frames) {
 function Start-RingKeys($Target, $Property, [double]$Seconds, $Frames) {
     $animation = New-Object Windows.Media.Animation.DoubleAnimationUsingKeyFrames
     $animation.Duration = New-Object Windows.Duration ([TimeSpan]::FromSeconds($Seconds))
-    $animation.RepeatBehavior = [Windows.Media.Animation.RepeatBehavior]::Forever
+    $animation.RepeatBehavior = [Windows.Media.Animation.RepeatBehavior]::Forever; Set-IdleFps $animation
     foreach ($frame in $Frames) {
         $time = [Windows.Media.Animation.KeyTime]::FromPercent([double]$frame[0])
         $key = if ($frame.Count -gt 2 -and $frame[2]) { New-Object Windows.Media.Animation.DiscreteDoubleKeyFrame ([double]$frame[1]), $time }

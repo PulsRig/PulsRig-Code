@@ -843,13 +843,18 @@ function Set-BentoFact([string]$Key, [string]$Value, [string]$Note, [string]$Sta
 }
 
 # Name des aktiven Energieplans (einmal je Seitenbesuch gelesen)
+# powercfg ist ein eigener Prozess und hielt jeden Wechsel auf die Boost-Seite an: die Antwort gilt 30 Sekunden
+# (schaltet sich der Boost ein oder aus, fragt Update-BentoBoostFacts sofort neu, denn dabei wechselt der Plan)
 function Get-BentoPowerPlan {
+    if ($script:BentoPlanCache -and ([DateTime]::UtcNow - $script:BentoPlanAt).TotalSeconds -lt 30) { return $script:BentoPlanCache }
+    $name = 'Windows-Vorgabe'
     try {
         $line = "$(& powercfg.exe /getactivescheme 2>$null)"
-        if ($line -match '\((.+)\)\s*$') { return $Matches[1] }
+        if ($line -match '\((.+)\)\s*$') { $name = $Matches[1] }
     }
     catch { }
-    'Windows-Vorgabe'
+    $script:BentoPlanCache = $name; $script:BentoPlanAt = [DateTime]::UtcNow
+    $name
 }
 
 # Füllt die sechs Kacheln aus dem Zustand des Boosts und den Einstellungen unter "Einrichten"
@@ -861,6 +866,7 @@ function Update-BentoBoostFacts {
     $state = $null
     if ($on) { try { $state = Get-Content -LiteralPath $statePath -Raw | ConvertFrom-Json } catch { } }
     $plan = $script:Settings.Boost
+    if ($on -ne $script:BentoPlanOn) { $script:BentoPlanCache = $null; $script:BentoPlanOn = $on }
     $ui.BentoBoostHead.Text = T $(if ($on) { 'Volle Leistung fürs Spiel' } else { 'Derzeit ausgeschaltet' })
     $ui.BentoBoostSub.Text = if ($on) { $ui.BoostInfo.Text } else { T 'Schafft vor dem Spielen Platz: Energieplan, entbehrliche Dienste und speicherhungrige Programme.' }
 
@@ -2247,6 +2253,7 @@ function Update-BentoMotion {
     $run.From = 18; $run.To = -400
     $run.Duration = New-Object Windows.Duration ([TimeSpan]::FromSeconds($seconds))
     $run.RepeatBehavior = [Windows.Media.Animation.RepeatBehavior]::Forever
+    Set-IdleFps $run
     if ($level -eq 'Aus') { $line.BeginAnimation([Windows.Shapes.Shape]::StrokeDashOffsetProperty, $null); $line.StrokeDashOffset = -120 }
     else { $line.BeginAnimation([Windows.Shapes.Shape]::StrokeDashOffsetProperty, $run) }
 }
@@ -2435,8 +2442,7 @@ function Show-HardwareCards {
         $delay = 110 + 70 * (($i % 4) + [Math]::Floor($i / 4))
         if ($script:Settings.Animations) {
             $tile.BeginAnimation($P.Opacity, $null); $tile.Opacity = 0
-            Start-Fade $tile 1 300 $delay
-            Start-Scale $tile 1 460 $delay 0.92 $script:EaseBack
+            Start-Fade $tile 1 320 $delay
         }
         else { $tile.Opacity = 1; $tile.RenderTransform = New-Object Windows.Media.ScaleTransform 1, 1 }
         $i++
