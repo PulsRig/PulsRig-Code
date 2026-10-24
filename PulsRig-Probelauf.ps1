@@ -469,11 +469,12 @@ function Start-SnapshotTour {
             @{ Wait = 4000; Do = { $sync.Sensors = @{ Stamp = 900001; GpuTemp = 93.0; CpuClock = 4.2 }; Update-Stress } },
             # die vorgetäuschten 93 °C wieder wegnehmen, sonst bricht der nächste Lauf sofort mit "Zu heiß" ab
             @{ Wait = 1500; Do = { & $script:SnapAbort 'heiss'; $sync.Sensors = @{ Stamp = 0 }; Start-Stress 60 } },
-            @{ Wait = 4000; Do = { & $script:SnapField 'errors' ([long]2); Update-Stress } },
+            # Rechenfehler zählen erst, wenn der Prozessor mitrechnet (bei "beides" ab Sekunde 10)
+            @{ Wait = 4000; Do = { $script:Stress.CpuAt = 0; Update-Stress; & $script:SnapField 'errors' ([long]2); Update-Stress } },
             @{ Wait = 1500; Do = { & $script:SnapAbort 'rechenfehler'; Start-Stress 60 } },
             @{ Wait = 4000; Do = {
                     $script:Stress.BaseClock = 4.3
-                    $script:Stress.Start = [DateTime]::UtcNow.AddSeconds(-25)
+                    $script:Stress.Start = [DateTime]::UtcNow.AddSeconds(-35)
                     for ($i = 1; $i -le 6 -and $script:Stress; $i++) { $sync.Sensors = @{ Stamp = 900010 + $i; CpuClock = 2.0 }; Update-Stress }
                 }
             },

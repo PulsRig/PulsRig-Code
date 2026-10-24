@@ -1473,7 +1473,9 @@ function Update-Stress {
     if ($cpu -and $elapsed -ge $stress.CpuAt -and -not [PulsRigStress]::CpuActive) { [PulsRigStress]::StartCpu([Environment]::ProcessorCount) }
     $cpuTime = $elapsed - $stress.CpuAt
 
-    if ([PulsRigStress]::Errors -gt 0) {
+    # den Zähler setzt erst StartCpu zurück: bei "beides" kommt der Prozessor 10 Sekunden später dazu, bis dahin
+    # stünden noch die Rechenfehler des vorigen Laufs drin
+    if ([PulsRigStress]::CpuActive -and [PulsRigStress]::Errors -gt 0) {
         Stop-Stress 'Rechenfehler' 'bad' "Der Prozessor hat sich $([PulsRigStress]::Errors)-mal verrechnet. Das deutet auf Übertaktung, zu wenig Spannung, Hitze oder defekten Arbeitsspeicher."
         return
     }
@@ -1996,7 +1998,6 @@ function Save-ReportZip {
         Set-CardState 'Diagnose' @{ Text = "erstellt $((Get-Date).ToString('HH:mm'))"; Place = $place; File = $file }
         $ui.BtnSheetPrimary.Content = T 'Per E-Mail schicken'
         $script:Sheet.OnPrimary = { Send-DiagnoseMail $script:Sheet.File }
-        if (-not $Snapshot) { try { Start-Process explorer.exe "/select,`"$file`"" } catch { } }
     }
     catch { Write-AppError $_; Set-SheetStateText "Die ZIP-Datei ließ sich nicht erstellen: $(@("$($_.Exception.Message)" -split "`r?`n")[0])" }
     finally { $window.Cursor = $null }

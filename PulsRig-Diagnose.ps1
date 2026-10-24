@@ -241,15 +241,28 @@ $script:SupportMail = 'pulsrig.hilfe@gmail.com'
 # Öffnet eine fertige Mail an die Adresse und zeigt das Paket im Ordner, damit es sich anhängen lässt.
 # Eine Mail-Adresse kann kein Programm von selbst anhängen; ohne Mailprogramm bleibt die Adresse in der Zwischenablage.
 function Send-DiagnoseMail([string]$File) {
-    try { Set-Clipboard -Value $script:SupportMail } catch { }
     $subject = [Uri]::EscapeDataString("PulsRig $($script:Version): Diagnose-Paket")
     $text = if ($script:Language -eq 'en') { "Hello,`r`n`r`nthis does not work for me:`r`n`r`n`r`nThe diagnostics package is attached: $(Split-Path -Leaf $File)`r`n" }
     else { "Hallo,`r`n`r`nbei mir klappt Folgendes nicht:`r`n`r`n`r`nDas Diagnose-Paket hängt an: $(Split-Path -Leaf $File)`r`n" }
     $body = [Uri]::EscapeDataString($text)
+    # Die ZIP-Datei selbst in die Zwischenablage: in der Mail fügt Strg+V sie als Anhang ein
+    $fileCopied = $false
+    try { Set-Clipboard -LiteralPath $File -ErrorAction Stop; $fileCopied = $true } catch { }
+    $handler = try { (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\mailto\UserChoice' -ErrorAction Stop).ProgId } catch { '' }
+    if (-not $handler) { $handler = try { (Get-ItemProperty 'Registry::HKEY_CLASSES_ROOT\mailto\shell\open\command' -ErrorAction Stop).'(default)' } catch { '' } }
     $mailOpened = $true
-    try { Start-Process "mailto:$($script:SupportMail)?subject=$subject&body=$body" } catch { $mailOpened = $false }
-    try { Start-Process explorer.exe "/select,`"$File`"" } catch { }
-    Set-SheetStateText $(if ($mailOpened) { "Mail an $($script:SupportMail) geöffnet – die ZIP-Datei aus dem Ordner anhängen" } else { "Kein Mailprogramm gefunden. Die Adresse $($script:SupportMail) ist kopiert – im Browser eine Mail schreiben und die ZIP-Datei anhängen" })
+    $webMail = $false
+    if ($handler) {
+        # Über den Explorer ohne Adminrechte: aus einem erhöhten Prozess startet Windows Store-Apps wie das neue Outlook stumm nicht
+        try { Start-Process explorer.exe "`"mailto:$($script:SupportMail)?subject=$subject&body=$body`"" } catch { $mailOpened = $false }
+    }
+    if (-not $handler -or -not $mailOpened) {
+        # Kein Mailprogramm eingetragen: Gmail im Browser mit fertiger Mail
+        try { Start-Process explorer.exe "`"https://mail.google.com/mail/?view=cm&fs=1&to=$($script:SupportMail)&su=$subject&body=$body`""; $mailOpened = $true; $webMail = $true } catch { $mailOpened = $false }
+    }
+    if (-not $mailOpened -or -not $fileCopied) { try { Start-Process explorer.exe "/select,`"$File`"" } catch { } }
+    $attach = if ($fileCopied) { 'in der Mail Strg+V drücken, dann hängt die ZIP-Datei an' } else { 'die ZIP-Datei aus dem Ordner anhängen' }
+    Set-SheetStateText $(if ($webMail) { "Mail an $($script:SupportMail) im Browser geöffnet – $attach" } elseif ($mailOpened) { "Mail an $($script:SupportMail) geöffnet – $attach" } else { "Kein Mailprogramm gefunden. Im Browser eine Mail an $($script:SupportMail) schreiben – $attach" })
 }
 
 function Open-DiagnoseSheet {

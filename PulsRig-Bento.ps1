@@ -996,8 +996,7 @@ function Set-BentoBoostLook([bool]$On, [switch]$Instant) {
 }
 
 # --- Scan als Ereignis --------------------------------------------------------------
-# Während des Scans laufen Lichtwellen aus dem SCAN-Knopf, und die Kacheln der Startseite leuchten nacheinander
-# auf, als würde PulsRig sie abhaken. Am Ende ein Lichtstoß. Alles als durchgehende Animation (kein Takt in Schritten).
+# Während des Scans laufen Lichtwellen aus dem SCAN-Knopf. Am Ende ein Lichtstoß. Alles als durchgehende Animation (kein Takt in Schritten).
 
 $script:BentoWaves = @()
 function Start-BentoScanFx {
@@ -1026,8 +1025,7 @@ function Start-BentoScanFx {
         $wave.BeginAnimation($P.Opacity, $fade)
         $script:BentoWaves += $wave
     }
-    $script:BentoTileStep = 0
-    Invoke-BentoTilePulse
+    # die Kacheln leuchten beim Scan nicht mehr nacheinander auf – das wirkte unruhig (25.10.2026)
 }
 
 function Stop-BentoScanFx {
@@ -1038,16 +1036,6 @@ function Stop-BentoScanFx {
         $ui.Orb.Children.Remove($wave)
     }
     $script:BentoWaves = @()
-}
-
-# Eine Kachel nach der anderen leuchtet kurz auf, solange der Scan läuft
-function Invoke-BentoTilePulse {
-    if ($script:Busy -ne 'scan') { return }
-    $tiles = @($ui.HomeLiveCard, $ui.HomeGameCheck, $ui.HomeHistory, $ui.ChipDrivers, $ui.ChipGames, $ui.BentoBoostTile, $ui.BentoToolsTile)
-    $tile = $tiles[$script:BentoTileStep % $tiles.Count]
-    $script:BentoTileStep++
-    Show-BentoPulse $tile '#8C6BD6'
-    Invoke-Later 650 { Invoke-BentoTilePulse }
 }
 
 # Kurzes Aufleuchten einer Kachel: heller Rand, leichtes Anheben
