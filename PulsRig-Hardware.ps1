@@ -1436,13 +1436,24 @@ function Start-Stress([int]$Seconds = 0) {
     }
     $what = $script:StressWhat
     if ($Seconds -le 0) { $Seconds = 60 * $script:StressMinutes }
-    if ($what -in 'cpu', 'both') { [PulsRigStress]::StartCpu([Environment]::ProcessorCount) }
+    # vorab als Ausfall vermerkt: endet der Test regulär, überschreibt Stop-Stress das. Bleibt es stehen, ist der PC
+    # mittendrin ausgefallen (Bildschirme schwarz, Neustart nötig) - das soll nach dem Neustart dastehen
+    $script:StressResult = @{
+        Title = 'PC während des Tests ausgefallen'
+        Text  = 'Der letzte Stabilitätstest wurde nicht zu Ende gebracht: Der PC ist abgestürzt oder hat abgeschaltet. Unter Volllast liegt das meist am Netzteil (zu schwach, alt oder überfordert von Lastspitzen der Grafikkarte) oder an einer übertakteten oder fehlerhaften Grafikkarte. Prozessor und Grafikkarte einzeln testen und unter „Abstürze“ nachsehen.'
+        Tone  = 'bad'; Time = (Get-Date).ToString('dd.MM.yyyy HH:mm'); MaxGpuTemp = 0.0; MaxCpuTemp = 0.0
+    }
+    Save-HardwareResults
+    # bei beidem kommt der Prozessor erst nach 10 Sekunden dazu: Springen beide im selben Moment auf Volllast,
+    # schaltet ein schwächeres Netzteil am ehesten ab
+    $cpuAt = $(if ($what -eq 'both') { 10 } else { 0 })
+    if ($what -eq 'cpu') { [PulsRigStress]::StartCpu([Environment]::ProcessorCount) }
     if ($what -in 'gpu', 'both') { [PulsRigStress]::StartGpu('PulsRig – Grafiklast (Schließen beendet den Test)') }
     $timer = New-Object Windows.Threading.DispatcherTimer
     $timer.Interval = [TimeSpan]::FromMilliseconds(500)
     $timer.Add_Tick({ try { Update-Stress } catch { Write-AppError $_ } })
     $script:Stress = @{ What = $what; Seconds = $Seconds; Start = [DateTime]::UtcNow; Timer = $timer; Stamp = 0
-        BaseClock = 0.0; LowClock = 0; MaxGpuTemp = 0.0; MaxCpuTemp = 0.0; MaxClock = 0.0; Seen = [DateTime]::UtcNow; HadTemp = $false }
+        BaseClock = 0.0; LowClock = 0; MaxGpuTemp = 0.0; MaxCpuTemp = 0.0; MaxClock = 0.0; Seen = [DateTime]::UtcNow; HadTemp = $false; CpuAt = $cpuAt }
     # ein langer Lauf darf nicht daran scheitern, dass Windows den PC schlafen legt
     try { [PulsRigStress]::KeepAwake($true) } catch { }
     $ui.BtnSheetPrimary.Content = T $('Stoppen')
@@ -1459,6 +1470,8 @@ function Update-Stress {
     $cpu = $stress.What -in 'cpu', 'both'
     $gpu = $stress.What -in 'gpu', 'both'
     $samples = [PulsRigStress]::Iterations
+    if ($cpu -and $elapsed -ge $stress.CpuAt -and -not [PulsRigStress]::CpuActive) { [PulsRigStress]::StartCpu([Environment]::ProcessorCount) }
+    $cpuTime = $elapsed - $stress.CpuAt
 
     if ([PulsRigStress]::Errors -gt 0) {
         Stop-Stress 'Rechenfehler' 'bad' "Der Prozessor hat sich $([PulsRigStress]::Errors)-mal verrechnet. Das deutet auf Übertaktung, zu wenig Spannung, Hitze oder defekten Arbeitsspeicher."
@@ -1501,8 +1514,8 @@ function Update-Stress {
             if ($clock -gt $stress.MaxClock) { $stress.MaxClock = $clock }
             # Vergleichswert ist der Takt unter Last zwischen der 8. und 20. Sekunde; fällt er später
             # anhaltend um ein Drittel, bremst sich der Prozessor selbst - das tut er, wenn er zu heiß wird
-            if ($elapsed -ge 8 -and $elapsed -lt 20 -and $clock -gt $stress.BaseClock) { $stress.BaseClock = $clock }
-            if ($elapsed -ge 20 -and $stress.BaseClock -gt 0) {
+            if ($cpuTime -ge 8 -and $cpuTime -lt 20 -and $clock -gt $stress.BaseClock) { $stress.BaseClock = $clock }
+            if ($cpuTime -ge 20 -and $stress.BaseClock -gt 0) {
                 if ($clock -lt 0.67 * $stress.BaseClock) { $stress.LowClock++ } else { $stress.LowClock = 0 }
                 if ($stress.LowClock -ge 6) {
                     Stop-Stress 'Prozessor drosselt' 'warn' ('Der Takt ist von {0:N2} auf {1:N2} GHz eingebrochen. So schützt sich der Prozessor vor Überhitzung: Kühler und Wärmeleitpaste prüfen. Bei Notebooks ist das unter Dauerlast oft normal.' -f $stress.BaseClock, $clock)
@@ -2418,6 +2431,6 @@ Enable-HardwareCard 6 { Open-ReportSheet }
 Enable-HardwareCard 7 { Open-BiosSheet }
 Update-HardwareBadges
 # beim Schließen des Programms darf der Messprozess der Grafikkarte nicht zurückbleiben
-$window.Add_Closing({ try { if ($script:Stress) { [PulsRigStress]::Stop() }; Stop-Sensors } catch { } })
+$window.Add_Closing({ try { if ($script:Stress) { Stop-Stress 'Gestoppt' 'warn' 'PulsRig wurde während des Tests beendet.' }; Stop-Sensors } catch { try { [PulsRigStress]::Stop() } catch { } } })
 $ui.HardwarePill.Child.Children[1].Text = T $('Testversion')
 $ui.HardwarePill.ToolTip = T $('Fehler bitte mit dem Diagnose-Paket melden')

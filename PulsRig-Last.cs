@@ -300,13 +300,15 @@ void main() {
                     SwapBuffers(dc);
                     Interlocked.Increment(ref frames);
                     phase += 0.05f;
-                    // so viel Arbeit, dass ein Bild rund 30 Millisekunden kostet: dann ist die Karte ausgelastet,
+                    // langsam steigern (rund 8 Sekunden bis zur vollen Schleife): ein Sprung von null auf Volllast
+                    // erzeugt Stromspitzen, bei denen schwächere Netzteile abschalten.
+                    // So viel Arbeit, dass ein Bild rund 30 Millisekunden kostet: dann ist die Karte ausgelastet,
                     // und Windows (Zeitgrenze 2 Sekunden je Bild) bleibt weit weg
                     double ms = watch.Elapsed.TotalMilliseconds;
                     if (shader != 0)
                     {
                         // erst die Schleife länger machen (bis 512), dann mehr Flächen; zu langsam: erst Flächen, dann Schleife
-                        if (ms < 24) { if (loops < 512) loops = Math.Min(512, loops * 1.25f + 1); else if (calls < 1000) calls++; }
+                        if (ms < 24) { if (loops < 512) loops = Math.Min(512, loops * 1.02f + 0.2f); else if (calls < 1000) calls++; }
                         else if (ms > 45) { if (calls > 1) calls--; else if (loops > 4) loops = Math.Max(4, loops * 0.7f); }
                     }
                     else if (ms < 24 && calls < 100000) calls = (int)(calls * 1.25) + 1;
