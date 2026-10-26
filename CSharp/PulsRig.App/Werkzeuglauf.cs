@@ -120,32 +120,4 @@ static class Werkzeuglauf
         System.Windows.Application.Current.Dispatcher.Invoke(() => { Log[key] = log; if (again != null) Results[key] = again; });
         return "";
     });
-
-    // das PowerShell-Programm liegt beim Entwickeln einige Ordner über der App, im Paket daneben
-    static string? Script()
-    {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
-        {
-            var file = Path.Combine(dir.FullName, "Treiber-Scan.ps1");
-            if (File.Exists(file)) return file;
-        }
-        return null;
-    }
-
-    public static bool CanBridge => Script() != null;
-
-    // startet ein Werkzeug von Treiber-Scan.ps1 in einem eigenen Fenster; Werkzeuge mit Adminrechten fragen dort selbst
-    public static void Bridge(string key, string tool)
-    {
-        var script = Script();
-        if (script == null) { State[key] = (false, "Treiber-Scan.ps1 nicht gefunden."); Changed?.Invoke(); return; }
-        try
-        {
-            Process.Start(new ProcessStartInfo("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -NoExit -File \"" + script + "\" -Tool " + tool)
-                { UseShellExecute = true, WorkingDirectory = Path.GetDirectoryName(script)! });
-            State[key] = (false, "Läuft im eigenen Fenster – dort bestätigst du jede Änderung.");
-        }
-        catch (Exception e) { State[key] = (false, e.Message); }
-        Changed?.Invoke();
-    }
 }

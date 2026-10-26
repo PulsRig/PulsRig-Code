@@ -3,8 +3,8 @@
     Baut die Dateien zum Weitergeben: dist\PulsRig-Setup-<Version>.exe und dist\PulsRig-<Version>.zip.
 
 .DESCRIPTION
-    Stellt die Dateien des Programms in dist\PulsRig zusammen (ohne Tests, Daten und Unterlagen), packt sie als ZIP
-    und baut mit Inno Setup die Installationsdatei. Fehlt Inno Setup, entsteht nur die ZIP-Datei.
+    Baut den Programmordner dist\PulsRig-Programm (PulsRig.exe, App, Sensoren), packt ihn als ZIP zum Starten ohne
+    Installation und baut mit Inno Setup die Installationsdatei. Fehlt Inno Setup, entsteht nur die ZIP-Datei.
     Vorher laufen die Tests; schlagen sie fehl, wird nichts gebaut.
 
     Aufruf:  powershell -NoProfile -ExecutionPolicy Bypass -File PulsRig-Paket.ps1
@@ -17,9 +17,9 @@ $root = Split-Path -Parent $PSCommandPath
 $dist = Join-Path $root 'dist'
 $stage = Join-Path $dist 'PulsRig'
 
-# Version aus dem Programm lesen: "0.5 Beta" wird im Dateinamen zu "0.5-Beta"
-$main = [IO.File]::ReadAllText((Join-Path $root 'PulsRig.ps1'), [Text.Encoding]::UTF8)
-if ($main -notmatch "\`$script:Version = '([^']+)'") { throw 'Version in PulsRig.ps1 nicht gefunden.' }
+# Version aus PulsRigInfo.cs lesen: "0.5 Beta" wird im Dateinamen zu "0.5-Beta"
+$info = [IO.File]::ReadAllText((Join-Path $root 'CSharp\PulsRig.Core\PulsRigInfo.cs'), [Text.Encoding]::UTF8)
+if ($info -notmatch 'const string Version = "([^"]+)"') { throw 'Version in PulsRigInfo.cs nicht gefunden.' }
 $version = $Matches[1]
 $versionName = $version -replace '\s+', '-'
 
@@ -30,9 +30,6 @@ if ($LASTEXITCODE -ne 0) { throw 'PulsRig.Core ließ sich nicht bauen.' }
 if (-not $OhneTests) {
     & dotnet test $solution -c Release --no-build -nologo
     if ($LASTEXITCODE -ne 0) { throw 'Die C#-Tests sind fehlgeschlagen - es wird nichts gebaut.' }
-    # die PowerShell-Tests laden PulsRig.Core.dll, darum erst nach dem Bauen
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'PulsRig-Tests.ps1')
-    if ($LASTEXITCODE -ne 0) { throw 'Die Tests sind fehlgeschlagen - es wird nichts gebaut.' }
 }
 $coreDll = Join-Path $root 'CSharp\PulsRig.Core\bin\Release\net48\PulsRig.Core.dll'
 
@@ -90,11 +87,7 @@ if (-not (Test-Path -LiteralPath $icon)) { New-PulsRigIcon $icon; Write-Host 'Pr
 # Dateien zusammenstellen - nur der Ordner dist\PulsRig wird dabei geleert, nichts sonst
 if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force -Confirm:$false }
 New-Item -ItemType Directory -Path $stage -Force | Out-Null
-$files = @(Get-ChildItem -LiteralPath $root -File | Where-Object {
-        $_.Name -match '^(PulsRig.*\.(ps1|xaml|bat|cs|ico)|Treiber-(Scan|Werkzeuge)\.ps1|Treiber-Scan\.bat|PulsRig-Testzettel\.txt)$' -and
-        $_.Name -notin 'PulsRig-Tests.ps1', 'PulsRig-Paket.ps1', 'PulsRig-Fremdsystem.ps1', 'PulsRig-Hochladen.ps1', 'PulsRig-Start.cs'
-    })
-foreach ($file in $files) { Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $stage $file.Name) }
+foreach ($name in 'PulsRig.ico', 'PulsRig-Testzettel.txt') { Copy-Item -LiteralPath (Join-Path $root $name) -Destination (Join-Path $stage $name) }
 Copy-Item -LiteralPath $coreDll -Destination (Join-Path $stage 'PulsRig.Core.dll')
 # Ordner Sensoren: LibreHardwareMonitor für die Temperatur des Prozessors (PulsRig-Temperatur.cs), samt Lizenzen
 $sensors = Join-Path $root 'Sensoren'
@@ -119,18 +112,10 @@ $versionNote = [ordered]@{ Version = $version; Gebaut = $stamp }
 [IO.File]::WriteAllText((Join-Path $dist 'version.json'), ($versionNote | ConvertTo-Json), (New-Object Text.UTF8Encoding $false))
 # die Beschreibung für die Projektseite bei GitHub liegt als README.md daneben
 Copy-Item -LiteralPath (Join-Path $root 'PulsRig-GitHub.md') -Destination (Join-Path $dist 'README.md') -Force
-Write-Host "Zusammengestellt: $($files.Count) Dateien"
-
-# ZIP zum Entpacken und Installieren per PulsRig-Installieren.bat
-$zip = Join-Path $dist "PulsRig-$versionName.zip"
-if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Confirm:$false }
-Compress-Archive -Path $stage -DestinationPath $zip
-Write-Host ("ZIP:   {0}  ({1:N0} KB)" -f $zip, ((Get-Item -LiteralPath $zip).Length / 1KB))
 
 # PulsRig.exe für die Installationsdatei: die Hülle (PulsRig-Start.cs), die die App im Unterordner App startet, und
 # der Helfer neben der Uhr. Im Programmordner liegen dazu App, Sensoren, das Symbol und der Testzettel. Gebaut mit dem
 # Compiler, den Windows mitbringt.
-# (Das ZIP-Paket oben bleibt bei losen Dateien und startet wie bisher über powershell.exe.)
 $program = Join-Path $dist 'PulsRig-Programm'
 if (Test-Path -LiteralPath $program) { Remove-Item -LiteralPath $program -Recurse -Force -Confirm:$false }
 New-Item -ItemType Directory -Path $program -Force | Out-Null
@@ -156,6 +141,13 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $appDir 'Pul
 Copy-Item -LiteralPath (Join-Path $stage 'PulsRig-Bau.txt') -Destination (Join-Path $appDir 'PulsRig-Bau.txt')
 $appBytes = [long]((Get-ChildItem -LiteralPath $appDir -Recurse -File | Measure-Object Length -Sum).Sum)
 Write-Host ("Neue Oberfläche: App\PulsRig.App.exe  ({0:N0} MB)" -f ($appBytes / 1MB))
+
+# ZIP ohne Installation: derselbe Programmordner wie im Setup. Entpackt außerhalb von "Programme" bleiben die Daten
+# daneben in Treiber\ (wie beim Notfall-Stick); gestartet wird PulsRig.exe.
+$zip = Join-Path $dist "PulsRig-$versionName.zip"
+if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Confirm:$false }
+Compress-Archive -Path (Join-Path $program '*') -DestinationPath $zip
+Write-Host ("ZIP:   {0}  ({1:N0} KB)" -f $zip, ((Get-Item -LiteralPath $zip).Length / 1KB))
 
 # Installationsdatei mit Inno Setup
 $compiler = Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup*", "$env:ProgramFiles\Inno Setup*", "$env:LOCALAPPDATA\Programs\Inno Setup*" -Filter ISCC.exe -Recurse -ErrorAction SilentlyContinue |

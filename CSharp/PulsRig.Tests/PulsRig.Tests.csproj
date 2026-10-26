@@ -22,4 +22,9 @@
     <ProjectReference Include="..\PulsRig.Core\PulsRig.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- die echte Wortliste der App (SpracheTests) -->
+    <None Include="..\PulsRig.App\Englisch.ps1" Link="Englisch.ps1" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

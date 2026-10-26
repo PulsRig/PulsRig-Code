@@ -5,16 +5,8 @@ namespace PulsRig.Tests;
 
 public class SpracheTests
 {
-    // die echte Wortliste des PowerShell-Programms
-    static Sprache English()
-    {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
-        {
-            var file = Path.Combine(dir.FullName, "PulsRig-Englisch.ps1");
-            if (File.Exists(file)) return Sprache.Load(File.ReadAllText(file));
-        }
-        throw new FileNotFoundException("PulsRig-Englisch.ps1");
-    }
+    // die echte Wortliste der App (CSharp\PulsRig.App\Englisch.ps1, beim Bauen neben die Tests kopiert)
+    static Sprache English() => Sprache.Load(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Englisch.ps1")));
 
     [Fact]
     public void WoerterUndMuster()

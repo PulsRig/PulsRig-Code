@@ -36,8 +36,8 @@
 
   <ItemGroup>
     <Resource Include="Schriften\*.ttf" />
-    <!-- die englischen Wörter des PowerShell-Programms (Texte.cs) -->
-    <Resource Include="..\..\PulsRig-Englisch.ps1" Link="Englisch.ps1" />
+    <!-- die englischen Wörter (Texte.cs) -->
+    <Resource Include="Englisch.ps1" />
     <None Include="Schriften\*.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

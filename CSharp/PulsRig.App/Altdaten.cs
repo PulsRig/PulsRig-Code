@@ -23,7 +23,7 @@ static class Altdaten
     // die Daten daneben in Treiber\
     public static string? Portable => ProgramRoot is { } r && !r.StartsWith(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), StringComparison.OrdinalIgnoreCase) ? r : null;
 
-    // installiert %LOCALAPPDATA%\PulsRig, ohne Installation Treiber\ daneben, beim Entwickeln Treiber\ neben Treiber-Scan.ps1
+    // installiert %LOCALAPPDATA%\PulsRig, ohne Installation Treiber\ daneben, beim Entwickeln Treiber\ neben dem Ordner CSharp
     public static string Folder
     {
         get
@@ -32,7 +32,7 @@ static class Altdaten
             var installed = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PulsRig");
             if (File.Exists(Path.Combine(installed, "PulsRig-Einstellungen.json"))) return installed;
             for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
-                if (File.Exists(Path.Combine(dir.FullName, "Treiber-Scan.ps1")) && Directory.Exists(Path.Combine(dir.FullName, "Treiber"))) return Path.Combine(dir.FullName, "Treiber");
+                if (Directory.Exists(Path.Combine(dir.FullName, "CSharp")) && Directory.Exists(Path.Combine(dir.FullName, "Treiber"))) return Path.Combine(dir.FullName, "Treiber");
             return installed;
         }
     }

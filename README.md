@@ -9,17 +9,16 @@ Windows-Programm für Treiber, Boost, Hardware-Prüfungen und Werkzeuge: sucht n
 
 ## Aufbau
 
-PowerShell 5.1 mit WPF-Oberfläche (`PulsRig.ps1`, `PulsRig.xaml`), dazu Teile in C#, die zur Laufzeit übersetzt werden (Last und Benchmark, Temperatur, Aufzeichnung, Controller und Maus). `PulsRig-Start.cs` ist die Hülle `PulsRig.exe`, die alle Skripte eingebettet trägt und den Helfer neben der Uhr enthält.
+WPF-App auf .NET 10 im Ordner `CSharp`: `PulsRig.App` (Oberfläche), `PulsRig.Core` (Logik ohne Oberfläche), `PulsRig.Tests`. Last und Benchmark, Temperatur, Aufzeichnung sowie Controller und Maus liegen als `PulsRig-*.cs` im Hauptordner. `PulsRig-Start.cs` ist die Hülle `PulsRig.exe`, die die App startet und den Helfer neben der Uhr enthält.
 
 ## Aus dem Quelltext starten
 
-- Windows 10 oder 11, PowerShell 5.1
-- `PulsRig.bat` starten (fragt nach Adminrechten; ohne sie läuft es eingeschränkt)
-- Prüfen: `powershell -NoProfile -ExecutionPolicy Bypass -File PulsRig-Tests.ps1`
-- Probelauf mit Bildschirmfotos: `powershell -NoProfile -ExecutionPolicy Bypass -File PulsRig.ps1 -Snapshot <Ordner>`
-- Setup bauen: `PulsRig-Paket.ps1` (braucht Inno Setup 7)
+- Windows 10 oder 11, .NET 10 SDK
+- Starten: `dotnet run --project CSharp\PulsRig.App` (ohne Adminrechte läuft es eingeschränkt)
+- Prüfen: `dotnet test CSharp\PulsRig.slnx`
+- Setup und ZIP bauen: `PulsRig-Paket.ps1` (braucht Inno Setup 7)
 
-Wichtig beim Ändern: Alle `.ps1`-Dateien bleiben **UTF-8 mit BOM**, sonst gehen die Umlaute kaputt.
+Wichtig beim Ändern: Die `.ps1`-Dateien (Bauskripte, englische Texte in `CSharp\PulsRig.App\Englisch.ps1`) bleiben **UTF-8 mit BOM**, sonst gehen die Umlaute kaputt.
 
 ## Lizenz
 
@@ -27,4 +26,4 @@ PulsRig steht unter der **GNU General Public License 3.0** (siehe `LICENSE`). Di
 
 ---
 
-**English:** Source code of PulsRig, a Windows tool for drivers, game boost, hardware checks and utilities (PowerShell 5.1 + WPF, parts in C#). The interface is German with an English translation. Licensed under GPL-3.0; third-party components in `Sensoren/` keep their own licenses. Releases: [PulsRig/PulsRig](https://github.com/PulsRig/PulsRig).
+**English:** Source code of PulsRig, a Windows tool for drivers, game boost, hardware checks and utilities (C#, WPF on .NET 10). The interface is German with an English translation. Licensed under GPL-3.0; third-party components in `Sensoren/` keep their own licenses. Releases: [PulsRig/PulsRig](https://github.com/PulsRig/PulsRig).

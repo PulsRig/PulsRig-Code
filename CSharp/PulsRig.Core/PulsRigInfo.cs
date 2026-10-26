@@ -6,7 +6,7 @@ namespace PulsRig.Core
     {
         public const string Name = "PulsRig";
 
-        // muss zu $script:Version in PulsRig.ps1 passen (Test PulsRigInfoTests)
+        // die Version von PulsRig: PulsRig-Paket.ps1 liest sie hier für Setup und ZIP
         public const string Version = "0.7 Beta";
     }
 }

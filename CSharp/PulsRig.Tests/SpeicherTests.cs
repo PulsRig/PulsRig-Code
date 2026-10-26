@@ -38,6 +38,13 @@ public class SpeicherTests
         Assert.Null(Speicher.Profile(new[] { new SpeicherRiegel() }));
     }
 
+    [Fact]
+    public void ProfilVollOderUnbekannt()
+    {
+        Assert.Equal("voller Takt", Speicher.Profile(new[] { new SpeicherRiegel { Part = "F4-3000C16-16GISB", Speed = 3000 } })!.Badge);
+        Assert.Equal("TextDim", Speicher.Profile(new[] { new SpeicherRiegel { Part = "M378A1K43CB2-CTD", Speed = 2666 } })!.Tone);
+    }
+
     [Theory]
     [InlineData("P0 CHANNEL A DIMM 0", "A")]
     [InlineData("BANK 0 Controller1-ChannelA-DIMM1", "1A")]
