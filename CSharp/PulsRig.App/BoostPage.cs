@@ -15,7 +15,8 @@ sealed class BoostPage : UserControl, IPage
 
     readonly MainWindow window;
     readonly Grid root = Ui.Mosaic(4, 3, 12);
-    Spielboost.Plan? plan;
+    // bleibt über Seitenwechsel erhalten: beim nächsten Besuch steht die Seite gleich fertig da, statt zweimal aufzubauen
+    static Spielboost.Plan? plan;
     // aus "Boost einrichten": nach dem Einlesen gleich einschalten (mit der üblichen Rückfrage)
     public static bool StartWhenReady;
     bool stopped;
@@ -35,6 +36,7 @@ sealed class BoostPage : UserControl, IPage
         try { p = Spielboost.Prepare(); } catch (Exception) { }
         Dispatcher.BeginInvoke(() =>
         {
+            if (stopped) return;
             plan = p;
             Fill();
             if (StartWhenReady && p != null) { StartWhenReady = false; Toggle(); }
