@@ -89,6 +89,30 @@ public class AutostartTests
     public void ProgrammdateiAusDerBefehlszeile(string command, string file) => Assert.Equal(file, Autostart.CommandFile(command));
 
     [Fact]
+    public void VerwaistNurMitFestemPfad()
+    {
+        Assert.True(Autostart.IsOrphan(@"C:\Weg\alt.exe", _ => false));
+        Assert.False(Autostart.IsOrphan(@"C:\Da\da.exe", _ => true));
+        Assert.False(Autostart.IsOrphan("rundll32.exe", _ => false));
+        Assert.True(Autostart.IsOrphan("", _ => true));
+    }
+
+    [Fact]
+    public void RegZeileZumZurueckholen()
+    {
+        Assert.Equal("\"Tool\"=\"\\\"C:\\\\A b\\\\t.exe\\\" /min\"", Autostart.RegLine("Tool", "\"C:\\A b\\t.exe\" /min", false));
+        Assert.Equal("\"X\"=hex(2):25,00,00,00", Autostart.RegLine("X", "%", true));
+    }
+
+    [Fact]
+    public void GeraetegruppenVerstaendlich()
+    {
+        Assert.Equal("Eingabegeräte", Geraete.Group("HIDClass"));
+        Assert.Equal("Speicher und Laufwerke", Geraete.Group("WPD"));
+        Assert.Equal("SoftwareDevice", Geraete.Group("SoftwareDevice"));
+    }
+
+    [Fact]
     public void NameAusBeschreibung()
     {
         Assert.Equal("Steam Client Bootstrapper", Autostart.Title("Steam", "Steam Client Bootstrapper"));

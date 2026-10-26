@@ -11,7 +11,8 @@ namespace PulsRig.App;
 
 // Ein Werkzeug prüft zuerst (Check) und schlägt dann Schritte vor; ausgeführt wird erst nach der Rückfrage auf der
 // Seite. Optionale Schritte (riskanter oder meist unnötig) bekommen eine eigene Frage, wie Confirm-Action -Optional.
-sealed record Pruefzeile(bool Ok, string Label, string Detail = "");
+// Step: eine Aktion direkt an der Zeile, als Schalter (On = Zustand) oder als Knopf mit der Aufschrift Button
+sealed record Pruefzeile(bool Ok, string Label, string Detail = "", Schritt? Step = null, bool? On = null, string Button = "");
 // Admin: braucht Adminrechte; Ask: vorher fragen (nicht beim bloßen Öffnen einer Seite von Windows)
 sealed record Schritt(string Text, Func<string> Run, bool Optional = false, bool Admin = true, bool Ask = true);
 sealed record Werkbefund(List<Pruefzeile> Lines, string Summary, List<Schritt> Steps, string Question = "Jetzt ausführen?");
@@ -209,13 +210,24 @@ static partial class Werkzeugpruefung
         var all = Geraeteliste.All();
         var absent = all.Where(d => !d.Present).ToList();
         var cleanable = all.Where(d => Geraete.IsCleanable(d.Present, d.InstanceId, d.Class)).ToList();
-        var lines = new List<Pruefzeile> { new(true, "Geräteeinträge", all.Count + ", davon " + absent.Count + " zu nicht mehr angeschlossener Hardware") };
-        foreach (var g in cleanable.GroupBy(d => d.Class).OrderByDescending(g => g.Count()))
-            lines.Add(new(false, g.Count() + " × " + (g.Key.Length > 0 ? g.Key : "ohne Klasse"), string.Join(", ", g.Select(d => d.Name).Where(n => n.Length > 0).Distinct().Take(3))));
-        if (cleanable.Count == 0) return new(lines, "Nichts zu bereinigen.", new());
+        // je Gruppe eine Zeile: verständlicher Name, Zahl als Pille rechts, darunter die Geräte
+        static string Plain(string name) => System.Text.RegularExpressions.Regex.Replace(name, @"\s+", " ").Trim() switch
+        {
+            var n when System.Text.RegularExpressions.Regex.IsMatch(n, @"^[A-Za-z]:\\?$") => "Laufwerk " + n.TrimEnd('\\'),
+            "Volume" => "Datenträger",
+            var n => n,
+        };
+        var lines = new List<Pruefzeile>();
+        foreach (var g in cleanable.GroupBy(d => Geraete.Group(d.Class)).OrderByDescending(g => g.Count()))
+        {
+            var names = g.Select(d => Plain(d.Name)).Where(n => n.Length > 0).Distinct().ToList();
+            lines.Add(new(false, g.Key + " · " + g.Count() + (g.Count() == 1 ? " Eintrag" : " Einträge"), string.Join(" · ", names.Take(5)) + (names.Count > 5 ? " und " + (names.Count - 5) + " weitere" : "")));
+        }
+        var lead = absent.Count + " von " + all.Count + " Geräteeinträgen gehören zu Hardware, die gerade nicht angeschlossen ist.";
+        if (cleanable.Count == 0) { lines.Add(new(true, "Keine Altlasten", "Alle Einträge gehören zu angeschlossener Hardware oder bleiben bewusst stehen")); return new(lines, lead + " Nichts zu bereinigen.", new()); }
         var ids = cleanable.Select(d => d.InstanceId).ToList();
-        return new(lines, cleanable.Count + " Einträge lassen sich gefahrlos entfernen (Windows legt sie beim erneuten Anschließen neu an)."
-                + (absent.Count > cleanable.Count ? " Unangetastet bleiben " + (absent.Count - cleanable.Count) + " Einträge (Bluetooth, Drucker, Netzwerk und andere, die oft nur ausgeschaltet sind)." : ""),
+        return new(lines, lead + " " + cleanable.Count + " davon lassen sich gefahrlos entfernen: Windows legt sie neu an, sobald das Gerät wieder steckt."
+                + (absent.Count > cleanable.Count ? " Die übrigen " + (absent.Count - cleanable.Count) + " (Bluetooth, Drucker, Netzwerk und andere, die oft nur ausgeschaltet sind) bleiben unangetastet." : ""),
             new() { Safety(), new(cleanable.Count + " Einträge entfernen", () =>
             {
                 var removed = 0;

@@ -142,18 +142,23 @@ static partial class Werkzeugpruefung
 
     const string Approved = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved";
 
-    internal sealed record Starteintrag(string Name, string File, string Company, string Description, bool Machine, string Folder, string Where, bool Enabled, bool Exists);
+    // Source: der Run-Schlüssel (ohne Hive) oder die Datei im Autostart-Ordner
+    internal sealed record Starteintrag(string Name, string File, string Company, string Description, bool Machine, string Folder, string Where, bool Enabled, bool Exists, string Source)
+    {
+        // Rest eines deinstallierten Programms: der Eintrag zeigt auf eine Datei, die es nicht mehr gibt
+        public bool Orphan => Core.Autostart.IsOrphan(File, System.IO.File.Exists);
+    }
 
     static RegistryKey Hive(bool machine) => machine ? Registry.LocalMachine : Registry.CurrentUser;
 
-    static Starteintrag Entry(string name, string file, bool machine, string folder, string where)
+    static Starteintrag Entry(string name, string file, bool machine, string folder, string where, string source)
     {
         string company = "", description = "";
         var exists = file.Length > 0 && File.Exists(file);
         try { if (exists) { var info = FileVersionInfo.GetVersionInfo(file); company = (info.CompanyName ?? "").Trim(); description = (info.FileDescription ?? "").Trim(); } } catch (Exception) { }
         byte[]? approved = null;
         try { using var key = Hive(machine).OpenSubKey(Approved + "\\" + folder); approved = key?.GetValue(name) as byte[]; } catch (Exception) { }
-        return new(name, file, company, description, machine, folder, where, Core.Autostart.IsEnabled(approved), exists);
+        return new(name, file, company, description, machine, folder, where, Core.Autostart.IsEnabled(approved), exists, source);
     }
 
     // wie die Abfrage "Autostart": Run-Schlüssel und Autostart-Ordner; Aufgaben und Dienste zeigt auch der Task-Manager dort nicht
@@ -165,7 +170,7 @@ static partial class Werkzeugpruefung
             {
                 using var key = Hive(machine).OpenSubKey(path);
                 foreach (var name in key?.GetValueNames() ?? Array.Empty<string>())
-                    if (name.Length > 0) entries.Add(Entry(name, Core.Autostart.CommandFile(key!.GetValue(name)?.ToString()), machine, folder, machine ? "Alle Benutzer" : "Benutzer"));
+                    if (name.Length > 0) entries.Add(Entry(name, Core.Autostart.CommandFile(key!.GetValue(name)?.ToString()), machine, folder, machine ? "Alle Benutzer" : "Benutzer", path));
             }
             catch (Exception) { }
         dynamic? shell = null;
@@ -177,7 +182,7 @@ static partial class Werkzeugpruefung
             {
                 var target = file.FullName;
                 if (file.Extension.Equals(".lnk", StringComparison.OrdinalIgnoreCase) && shell != null) try { target = (string)shell!.CreateShortcut(file.FullName).TargetPath; } catch (Exception) { }
-                entries.Add(Entry(file.Name, target, machine, "StartupFolder", machine ? "Alle Benutzer" : "Benutzer"));
+                entries.Add(Entry(file.Name, target, machine, "StartupFolder", machine ? "Alle Benutzer" : "Benutzer", file.FullName));
             }
         }
         return entries.OrderBy(e => !e.Enabled).ThenBy(e => Core.Autostart.Title(e.Name, e.Description)).ToList();
@@ -190,21 +195,58 @@ static partial class Werkzeugpruefung
         var lines = new List<Pruefzeile>();
         var steps = new List<Schritt>();
         if (entries.Count == 0) lines.Add(new(true, "Beim Anmelden startet kein Programm von selbst"));
+        var orphans = entries.Where(e => e.Orphan).ToList();
         foreach (var e in entries)
         {
             var title = Core.Autostart.Title(e.Name, e.Description);
-            var parts = new[] { e.Enabled ? "an" : "aus", e.Company, e.File.Length > 0 ? Path.GetFileName(e.File) : "", e.Where, e.Exists ? "" : "Programmdatei fehlt" }.Where(p => p.Length > 0);
-            lines.Add(new(e.Exists, title, string.Join(" · ", parts)));
+            if (e.Orphan)
+            {
+                // nur nennen, ob vom Programm noch ein Ordner da ist; gelöscht wird allein der Eintrag
+                var folder = e.File.Length > 0 ? Path.GetDirectoryName(e.File) ?? "" : "";
+                var rest = e.File.Length == 0 ? "" : folder.Length > 0 && Directory.Exists(folder) ? "Ordner " + folder + " liegt noch da" : "keine Programmdateien mehr da";
+                lines.Add(new(false, title, string.Join(" · ", new[] { e.File.Length > 0 ? "Programm deinstalliert" : "Eintrag ohne Befehl, startet nichts", Path.GetFileName(e.File), e.Where, rest }.Where(p => p.Length > 0)),
+                    RemoveStep(e, title), Button: "Entfernen"));
+                continue;
+            }
+            var parts = new[] { e.Company, e.File.Length > 0 ? Path.GetFileName(e.File) : "", e.Where }.Where(p => p.Length > 0);
             var on = !e.Enabled;
-            steps.Add(new(title + (on ? " einschalten" : " ausschalten"), () =>
+            lines.Add(new(true, title, string.Join(" · ", parts), new(title + (on ? " einschalten" : " ausschalten"), () =>
             {
                 using var key = Hive(e.Machine).CreateSubKey(Approved + "\\" + e.Folder);
                 key.SetValue(e.Name, Core.Autostart.Approved(on, DateTime.Now), RegistryValueKind.Binary);
                 return on ? "startet wieder mit Windows" : "startet nicht mehr mit Windows";
-            }, Optional: true, Admin: e.Machine, Ask: false));
+            }, Optional: true, Admin: e.Machine, Ask: false), On: e.Enabled));
         }
-        return new(lines, entries.Count(e => e.Enabled) + " von " + entries.Count + " starten mit Windows. Umschalten wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager. Einträge für alle Benutzer nur mit Adminrechten.", steps);
+        if (orphans.Count > 1)
+            steps.Add(new("Alle " + orphans.Count + " Reste entfernen", () => string.Join("; ", orphans.Select(e => RemoveStep(e, Core.Autostart.Title(e.Name, e.Description)).Run())), Optional: true, Admin: orphans.Any(e => e.Machine)));
+        var active = entries.Where(e => !e.Orphan).ToList();
+        return new(lines, active.Count(e => e.Enabled) + " von " + active.Count + " starten mit Windows. Der Schalter wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager. Einträge für alle Benutzer nur mit Adminrechten."
+            + (orphans.Count == 0 ? "" : orphans.Count == 1 ? " Ein Eintrag ist der Rest eines deinstallierten Programms." : " " + orphans.Count + " Einträge sind Reste deinstallierter Programme.")
+            + (orphans.Count == 0 ? "" : " Entfernen löscht nur den Autostart-Eintrag und legt vorher eine Sicherung an; Programmdateien bleiben unberührt."), steps);
     }
+
+    // Rest entfernen: Run-Wert vorher als .reg-Datei sichern (Doppelklick holt ihn zurück), eine Verknüpfung nur verschieben
+    static Schritt RemoveStep(Starteintrag e, string title) => new(title + " aus dem Autostart entfernen", () =>
+    {
+        var backup = Path.Combine(Werkzeuglauf.Backups, "Autostart");
+        Directory.CreateDirectory(backup);
+        var stamp = DateTime.Now.ToString("yyyy-MM-dd_HHmmss") + "_" + string.Concat(e.Name.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
+        if (e.Folder == "StartupFolder")
+        {
+            File.Move(e.Source, Path.Combine(backup, stamp));
+        }
+        else
+        {
+            using var key = Hive(e.Machine).OpenSubKey(e.Source, true) ?? throw new InvalidOperationException("Eintrag nicht mehr da");
+            var value = key.GetValue(e.Name, "", RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? "";
+            var reg = "Windows Registry Editor Version 5.00\r\n\r\n[" + (e.Machine ? "HKEY_LOCAL_MACHINE\\" : "HKEY_CURRENT_USER\\") + e.Source + "]\r\n"
+                + Core.Autostart.RegLine(e.Name, value, key.GetValueKind(e.Name) == RegistryValueKind.ExpandString) + "\r\n";
+            File.WriteAllText(Path.Combine(backup, stamp + ".reg"), reg, Encoding.Unicode);
+            key.DeleteValue(e.Name);
+        }
+        try { using var approved = Hive(e.Machine).OpenSubKey(Approved + "\\" + e.Folder, true); approved?.DeleteValue(e.Name, false); } catch (Exception) { }
+        return "entfernt, Sicherung in " + backup;
+    }, Optional: true, Admin: e.Machine);
 
     // --- Treiberverlauf -----------------------------------------------------------------------------------------------
 

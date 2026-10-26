@@ -1803,6 +1803,18 @@
         'Benutzer', 'This user'
         'Alle Benutzer', 'All users'
         'Programmdatei fehlt', 'program file missing'
+        'Programm deinstalliert', 'program uninstalled'
+        'keine Programmdateien mehr da', 'no program files left'
+        'Eintrag ohne Befehl, startet nichts', 'entry without a command, starts nothing'
+        'Entfernen', 'Remove'
+        'Eingabegeräte', 'Input devices'
+        'USB-Geräte und Hubs', 'USB devices and hubs'
+        'Speicher und Laufwerke', 'Storage and drives'
+        'Grafik und Bildschirme', 'Graphics and displays'
+        'Kameras', 'Cameras'
+        'Ohne Geräteklasse', 'No device class'
+        'Keine Altlasten', 'No leftovers'
+        'Alle Einträge gehören zu angeschlossener Hardware oder bleiben bewusst stehen', 'All entries belong to connected hardware or are kept on purpose'
         'an', 'on'
         'aus', 'off'
         '1 Eintrag', '1 entry'
@@ -2887,6 +2899,19 @@
         @{ R = '^Temporäre Dateien und alte Downloads löschen \((.+)\)(\??)$'; F = 'Delete temporary files and old downloads ($1)$2' }
         @{ R = '^Shader-Cache löschen \((.+)\) – Spiele ruckeln danach beim ersten Start kurz, während sie neu übersetzen$'; F = 'Delete shader cache ($1) – games stutter briefly on first start afterwards while they recompile' }
         @{ R = '^(.+), läuft seit (.+)$'; F = '$1, running since $2' }
+        @{ R = '^(\d+) von (\d+) starten mit Windows\. Der Schalter wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager\. Einträge für alle Benutzer nur mit Adminrechten\.$'; F = '$1 of $2 start with Windows. The switch takes effect at the next sign-in and can be undone at any time, also in Task Manager. Entries for all users need admin rights.' }
+        @{ R = '^(\d+) von (\d+) starten mit Windows\. Der Schalter wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager\. Einträge für alle Benutzer nur mit Adminrechten\. Ein Eintrag ist der Rest eines deinstallierten Programms\. Entfernen löscht nur den Autostart-Eintrag und legt vorher eine Sicherung an; Programmdateien bleiben unberührt\.$'; F = '$1 of $2 start with Windows. The switch takes effect at the next sign-in and can be undone at any time, also in Task Manager. Entries for all users need admin rights. One entry is left over from an uninstalled program. Remove deletes only the startup entry and makes a backup first; program files stay untouched.' }
+        @{ R = '^(\d+) von (\d+) starten mit Windows\. Der Schalter wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager\. Einträge für alle Benutzer nur mit Adminrechten\. (\d+) Einträge sind Reste deinstallierter Programme\. Entfernen löscht nur den Autostart-Eintrag und legt vorher eine Sicherung an; Programmdateien bleiben unberührt\.$'; F = '$1 of $2 start with Windows. The switch takes effect at the next sign-in and can be undone at any time, also in Task Manager. Entries for all users need admin rights. $3 entries are left over from uninstalled programs. Remove deletes only the startup entry and makes a backup first; program files stay untouched.' }
+        @{ R = '^Ordner (.+) liegt noch da$'; F = 'folder $1 is still there' }
+        @{ R = '^(.+) aus dem Autostart entfernen(\??)$'; F = 'Remove $1 from startup$2' }
+        @{ R = '^Alle (\d+) Reste entfernen(\??)$'; F = 'Remove all $1 leftovers$2' }
+        @{ R = '^entfernt, Sicherung in (.+)$'; F = 'removed, backup in $1' }
+        @{ R = '^(\d+) von (\d+) Geräteeinträgen gehören zu Hardware, die gerade nicht angeschlossen ist\. Nichts zu bereinigen\.$'; F = '$1 of $2 device entries belong to hardware that is not connected right now. Nothing to clean up.' }
+        @{ R = '^(\d+) von (\d+) Geräteeinträgen gehören zu Hardware, die gerade nicht angeschlossen ist\. (\d+) davon lassen sich gefahrlos entfernen: Windows legt sie neu an, sobald das Gerät wieder steckt\. Die übrigen (\d+) \(Bluetooth, Drucker, Netzwerk und andere, die oft nur ausgeschaltet sind\) bleiben unangetastet\.$'; F = '$1 of $2 device entries belong to hardware that is not connected right now. $3 of them can be removed safely: Windows recreates them as soon as the device is plugged in again. The other $4 (Bluetooth, printers, network and others that are often just switched off) stay untouched.' }
+        @{ R = '^(\d+) von (\d+) Geräteeinträgen gehören zu Hardware, die gerade nicht angeschlossen ist\. (\d+) davon lassen sich gefahrlos entfernen: Windows legt sie neu an, sobald das Gerät wieder steckt\.$'; F = '$1 of $2 device entries belong to hardware that is not connected right now. $3 of them can be removed safely: Windows recreates them as soon as the device is plugged in again.' }
+        @{ R = '^(\d+) Einträge$'; F = '$1 entries' }
+        @{ R = '^1 Eintrag$'; F = '1 entry' }
+        @{ R = '^(.+) und (\d+) weitere$'; F = '{T:1} and $2 more' }
         @{ R = '^(\d+) von (\d+) starten mit Windows\. Umschalten wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager\. Einträge für alle Benutzer nur mit Adminrechten\.$'; F = '$1 of $2 start with Windows. Switching takes effect at the next sign-in and can be undone at any time, also in Task Manager. Entries for all users need admin rights.' }
         @{ R = '^(.+) einschalten$'; F = 'Turn on $1' }
         @{ R = '^(.+) ausschalten$'; F = 'Turn off $1' }

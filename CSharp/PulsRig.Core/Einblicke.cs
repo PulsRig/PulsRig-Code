@@ -159,6 +159,19 @@ namespace PulsRig.Core
             return text.Split(' ')[0];
         }
 
+        // verwaist: der Eintrag startet nichts (leerer Befehl) oder nennt einen festen Pfad, an dem keine Datei mehr liegt
+        public static bool IsOrphan(string? file, Func<string, bool> exists) =>
+            string.IsNullOrWhiteSpace(file) || Regex.IsMatch(file, @"^([A-Za-z]:\\|\\\\)") && !exists(file!);
+
+        // eine Zeile für eine .reg-Datei, die einen entfernten Wert zurückbringt (REG_SZ als Text, REG_EXPAND_SZ als hex(2))
+        public static string RegLine(string name, string value, bool expand)
+        {
+            static string Quote(string t) => "\"" + t.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+            if (!expand) return Quote(name) + "=" + Quote(value);
+            var bytes = System.Text.Encoding.Unicode.GetBytes(value + "\0");
+            return Quote(name) + "=hex(2):" + string.Join(",", bytes.Select(b => b.ToString("x2")));
+        }
+
         // der Name, unter dem man ein Programm kennt: Beschreibung der Programmdatei, sonst der Name des Eintrags
         public static string Title(string name, string? description)
         {

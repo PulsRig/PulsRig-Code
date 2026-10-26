@@ -12,6 +12,8 @@
     <UseWPF>true</UseWPF>
     <!-- PerMonitorV2: scharf auf 4K und bei gemischter Skalierung -->
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Symbol der Exe und des Fensters: Taskleiste und Alt+Tab zeigen sonst ein leeres Fenster -->
+    <ApplicationIcon>..\..\PulsRig.ico</ApplicationIcon>
     <!-- nur für das Fenster der Grafiklast (PulsRig-Last.cs) -->
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
@@ -36,6 +38,7 @@
 
   <ItemGroup>
     <Resource Include="Schriften\*.ttf" />
+    <Resource Include="..\..\PulsRig.ico" Link="PulsRig.ico" />
     <!-- die englischen Wörter (Texte.cs) -->
     <Resource Include="Englisch.ps1" />
     <None Include="Schriften\*.txt" CopyToOutputDirectory="PreserveNewest" />

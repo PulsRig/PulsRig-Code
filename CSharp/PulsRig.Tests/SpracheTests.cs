@@ -14,7 +14,7 @@ public class SpracheTests
         var en = English();
         // so viele, wie PowerShell aus derselben Datei liest (Paare, davon einige doppelt, und Muster)
         Assert.InRange(en.Count, 1900, 2100);
-        Assert.Equal(709, en.PatternCount);
+        Assert.Equal(722, en.PatternCount);
         Assert.Equal("Tools", en.T("Werkzeuge"));
         Assert.Equal("No admin rights", en.T("Ohne Adminrechte"));
         Assert.Equal("No answer from 1.1.1.1", en.T("Keine Antwort von 1.1.1.1"));

@@ -371,6 +371,19 @@ sealed class WerkzeugePage : UserControl, IPage
             Content = new TextBlock { Text = label, FontSize = 12, FontWeight = FontWeights.SemiBold, Foreground = Ui.Res("Text"), TextWrapping = TextWrapping.Wrap, MaxWidth = 420 } };
     }
 
+    // kleiner Umschalter wie der Boost-Schalter der Startseite: an = Verlauf, aus = dunkel mit Knopf links
+    static Button Switch(bool on, bool enabled, string name)
+    {
+        var knob = new Ellipse { Width = 16, Height = 16, Fill = Brushes.White, Opacity = on ? 1 : 0.7 };
+        Canvas.SetTop(knob, 3);
+        Canvas.SetLeft(knob, on ? 19 : 3);
+        var b = new Button { Style = (Style)Application.Current.FindResource("Flach"), Width = 38, Height = 22, Tag = "11", Margin = new Thickness(12, 0, 0, 0),
+            Background = on ? (Brush)Application.Current.FindResource("PulsQuer") : Ui.Brush("#2A2036"), BorderThickness = new Thickness(0),
+            IsEnabled = enabled, Opacity = enabled ? 1 : 0.5, Content = new Canvas { Width = 38, Height = 22, Children = { knob } }, ToolTip = name };
+        System.Windows.Automation.AutomationProperties.SetName(b, name);
+        return b;
+    }
+
     static Border Counter(string text, string color)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal };
@@ -422,6 +435,30 @@ sealed class WerkzeugePage : UserControl, IPage
                     Child = new TextBlock { Text = parts[1], FontSize = 12, FontWeight = FontWeights.SemiBold, Foreground = Ui.Brush(color), MaxWidth = 220, TextTrimming = TextTrimming.CharacterEllipsis } };
                 Grid.SetColumn(state, 2);
                 row.Children.Add(state);
+            }
+            // die Aktion steht an der Zeile selbst: ein Schalter (wirkt sofort) oder ein Knopf (fragt vorher)
+            if (line.Step is { } step)
+            {
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                FrameworkElement control;
+                if (line.On is { } on)
+                {
+                    var sw = Switch(on, !busy, step.Text);
+                    sw.Click += (_, _) => Run(t, key, step.Text + "?", new[] { step });
+                    control = sw;
+                }
+                else
+                {
+                    var b = Small(line.Button.Length > 0 ? line.Button : step.Text, false, !busy);
+                    b.Margin = new Thickness(0);
+                    b.Height = 30;
+                    b.Click += (_, _) => Run(t, key, step.Text + "?", new[] { step });
+                    control = b;
+                }
+                control.VerticalAlignment = VerticalAlignment.Center;
+                Grid.SetColumn(control, 3);
+                Grid.SetRowSpan(control, 2);
+                row.Children.Add(control);
             }
             if (line.Detail.Length > 0)
             {

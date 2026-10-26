@@ -98,6 +98,19 @@ namespace PulsRig.Core
             string[] keep = { "Bluetooth", "Net", "Printer", "PrintQueue" };
             return !keep.Contains(deviceClass ?? "", StringComparer.OrdinalIgnoreCase);
         }
+
+        // ein Name für die Geräteklasse, unter dem man sich etwas vorstellen kann
+        public static string Group(string? deviceClass) => (deviceClass ?? "").ToLowerInvariant() switch
+        {
+            "hidclass" or "keyboard" or "mouse" => "Eingabegeräte",
+            "usb" => "USB-Geräte und Hubs",
+            "diskdrive" or "wpd" or "volume" or "cdrom" => "Speicher und Laufwerke",
+            "media" or "audioendpoint" => "Audio",
+            "display" or "monitor" => "Grafik und Bildschirme",
+            "camera" or "image" => "Kameras",
+            "" => "Ohne Geräteklasse",
+            _ => deviceClass!,
+        };
     }
 
     public static class Anzeige
