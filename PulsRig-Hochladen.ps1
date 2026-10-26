@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    Bringt den letzten Bau zu GitHub: die Setup-Datei als Release, danach version.json und README.md.
+    Bringt den letzten Bau zu GitHub: Setup-Datei und ZIP als Release, danach version.json und README.md.
 
 .DESCRIPTION
     Erwartet, dass PulsRig-Paket.ps1 gelaufen ist (dist\PulsRig-Setup-….exe, dist\version.json, dist\README.md).
@@ -147,6 +147,7 @@ function New-ReleaseNotes($Earlier, [string]$Version, [datetime]$Built) {
         '- AVG/Avast (CyberCapture) halten das Setup oder die Deinstallation manchmal zur Prüfung an. Das ist kein Virenfund: ein paar Stunden warten oder im Virenschutz „Weitere Optionen“ → Datei ausführen/als vertrauenswürdig markieren.'
         '- Eine ältere Fassung muss nicht entfernt werden: Das Setup spielt die neue darüber, die Einstellungen bleiben erhalten.'
         '- Installierte Fassungen zeigen eine neuere selbst oben rechts an und installieren sie auf Knopfdruck.'
+        '- Ohne Installation: PulsRig-' + ($Version -replace '\s+', '-') + '.zip entpacken (nicht unter „Programme“) und PulsRig.exe starten. Die Daten bleiben dann im Ordner Treiber daneben.'
         ''
         "<details><summary>Alles, was in $Version neu ist</summary>"
         ''
@@ -191,6 +192,11 @@ if (-not (Test-Path -LiteralPath $setup)) { throw "Die Setup-Datei fehlt: $setup
 if ([Math]::Abs(((Get-Item -LiteralPath $setup).LastWriteTime - (Get-Item -LiteralPath $versionFile).LastWriteTime).TotalMinutes) -gt 5) {
     throw 'Setup-Datei und version.json stammen nicht aus demselben Bau - PulsRig-Paket.ps1 noch einmal laufen lassen.'
 }
+# das ZIP zum Starten ohne Installation kommt mit ins Release, wenn es aus demselben Bau stammt
+$zip = Join-Path $dist "PulsRig-$versionName.zip"
+$assets = @($setup)
+if ((Test-Path -LiteralPath $zip) -and [Math]::Abs(((Get-Item -LiteralPath $zip).LastWriteTime - (Get-Item -LiteralPath $versionFile).LastWriteTime).TotalMinutes) -le 5) { $assets += $zip }
+else { Write-Host "Das ZIP fehlt oder stammt aus einem anderen Bau - es kommt nicht ins Release: $zip" -ForegroundColor Yellow }
 $built = [datetime]::ParseExact("$($note.Gebaut)".Substring(0, 16), 'dd.MM.yyyy HH:mm', [cultureinfo]::InvariantCulture)
 # je Bau ein eigenes Release: dieselbe Version wird während einer Testphase mehrfach gebaut
 $tag = ('v{0}-{1:yyyyMMdd-HHmm}' -f $versionName, $built).ToLower()
@@ -198,7 +204,7 @@ $title = "PulsRig $($note.Version), Bau vom $($built.ToString('dd.MM.yyyy HH:mm'
 
 Write-Host "Projekt:      $Projekt"
 Write-Host "Release:      $title  (Tag $tag)"
-Write-Host ("Setup-Datei:  {0}  ({1:N0} KB)" -f (Split-Path -Leaf $setup), ((Get-Item -LiteralPath $setup).Length / 1KB))
+foreach ($file in $assets) { Write-Host ("Datei:        {0}  ({1:N0} KB)" -f (Split-Path -Leaf $file), ((Get-Item -LiteralPath $file).Length / 1KB)) }
 Write-Host "Danach:       version.json und README.md"
 if (-not $Ja) {
     $answer = Read-Host 'Hochladen? (j/n)'
@@ -207,14 +213,14 @@ if (-not $Ja) {
 
 # ein Lauf, der nach dem Release abbrach, darf wiederholt werden
 Invoke-Gh release view $tag --repo $Projekt | Out-Null
-if ($LASTEXITCODE -eq 0) { Write-Host 'Das Release gibt es schon - die Setup-Datei wird ersetzt.'; Invoke-Gh release upload $tag $setup --repo $Projekt --clobber }
+if ($LASTEXITCODE -eq 0) { Write-Host 'Das Release gibt es schon - die Dateien werden ersetzt.'; Invoke-Gh release upload $tag @assets --repo $Projekt --clobber }
 else {
     # der Text geht als Datei an gh: Anführungszeichen und Zeilenwechsel überstehen die Übergabe als Argument nicht
     # oben die Punkte der letzten 7 Tage nach Bau, die ganze Liste aufklappbar darunter
     $notes = New-ReleaseNotes (Get-EarlierReleases $tag) $note.Version $built
     $notesFile = Join-Path ([IO.Path]::GetTempPath()) "PulsRig-Release-$PID.md"
     [IO.File]::WriteAllText($notesFile, $notes, (New-Object Text.UTF8Encoding $false))
-    try { Invoke-Gh release create $tag $setup --repo $Projekt --title $title --notes-file $notesFile --latest }
+    try { Invoke-Gh release create $tag @assets --repo $Projekt --title $title --notes-file $notesFile --latest }
     finally { [IO.File]::Delete($notesFile) }
 }
 if ($LASTEXITCODE -ne 0) { throw 'Das Release ließ sich nicht anlegen - version.json bleibt unverändert.' }
