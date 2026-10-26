@@ -348,7 +348,7 @@ $script:BentoIntents = [ordered]@{
     'Etwas reparieren'  = @{ Tone = 'Beere'; Glyph = 0xE90F; Span = 2; Sub = 'Kein Ton, kein Netz, falsches Bild, Gerät mit Warnzeichen oder der PC wacht nachts auf.'; Tools = 'FixAudio', 'FixNetwork', 'FixResolution', 'FixDevices', 'Standby' }
     'Aufräumen'         = @{ Tone = 'Gruen'; Glyph = 0xE74D; Span = 1; Sub = 'Speicherplatz, Autostart und alte Geräteeinträge.'; Tools = 'CleanDisk', 'Autostart', 'CleanDevices' }
     'Treiber verwalten' = @{ Tone = 'Lila'; Glyph = 0xE74E; Span = 1; Sub = 'Sichern, zurückholen, vor Windows Update schützen, Neuinstallation und Verlauf.'; Tools = 'DriverBackup', 'GpuShield', 'Reinstall', 'RescueStick', 'History', 'IncompatibleDrivers' }
-    'Fürs Spielen'      = @{ Tone = 'Bernst'; Glyph = 0xE7FC; Span = 1; Sub = 'Spielkomponenten, Controller und Systeminfos.'; Tools = 'GameRuntimes', 'InputTest', 'Power', 'SystemInfo' }
+    'Fürs Spielen'      = @{ Tone = 'Bernst'; Glyph = 0xE7FC; Span = 1; Sub = 'Spielkomponenten, Controller und Systeminfos.'; Tools = 'GameRuntimes', 'InputTest', 'Power', 'Upgrade', 'SystemInfo' }
 }
 
 $bentoIntentTileXaml = @'
@@ -459,7 +459,7 @@ function Get-BentoArgb([string]$Hex, [byte]$Alpha) {
 
 # Ohne Adminrechte zeigen diese Werkzeuge nur, was sie tun würden (gleiche Regel wie die klassische Seite)
 function Test-BentoDryRun([string]$Name) {
-    -not $script:IsAdmin -and $script:NoAdminTools -notcontains $Name -and $Name -notin 'GameRuntimes', 'SystemInfo', 'History', 'Autostart', 'Standby', 'Power', 'DriverBackup', 'GpuShield', 'Reinstall', 'RescueStick', 'InputTest'
+    -not $script:IsAdmin -and $script:NoAdminTools -notcontains $Name -and $Name -notin 'GameRuntimes', 'SystemInfo', 'History', 'Autostart', 'Standby', 'Power', 'Upgrade', 'DriverBackup', 'GpuShield', 'Reinstall', 'RescueStick', 'InputTest'
 }
 
 function Set-BentoTools {

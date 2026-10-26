@@ -135,24 +135,26 @@ function Show-Table($Rows) {
         ForEach-Object { Write-Host $_.Trim("`r", "`n") }
 }
 
+# Die Auswertung (Texte, Titel, Seiten von Katalog, NVIDIA und AMD) steckt in PulsRig.Core.dll; Import-PulsRigCore
+# steht in Treiber-Werkzeuge.ps1, das immer mitgeladen wird.
 function Limit-Text([string]$Text, [int]$MaxLength) {
-    if ($Text.Length -le $MaxLength) { $Text } else { $Text.Substring(0, $MaxLength - 3) + '...' }
+    Import-PulsRigCore
+    [PulsRig.Core.ScanText]::LimitText($Text, $MaxLength)
 }
 
 function Format-Date($Value) {
-    # Intel-Chipsatz-INFs tragen absichtlich den 18.07.1968 – solche Platzhalter gelten als kein Datum
-    if ($Value -and ([datetime]$Value).Year -ge 1990) { ([datetime]$Value).ToString('dd.MM.yyyy') } else { '-' }
+    Import-PulsRigCore
+    [PulsRig.Core.ScanText]::FormatDate($(if ($Value) { [datetime]$Value } else { $null }))
 }
 
 function Format-DriverText($Version, $Date) {
-    $text = Format-Date $Date
-    if ($text -eq '-') { "$Version" } else { '{0} vom {1}' -f $Version, $text }
+    Import-PulsRigCore
+    [PulsRig.Core.ScanText]::FormatDriverText("$Version", $(if ($Date) { [datetime]$Date } else { $null }))
 }
 
 function Get-SafeName([string]$Text, [int]$MaxLength = 80) {
-    $name = ($Text -replace '[\\/:*?"<>|\[\]]', '_') -replace '\s+', ' '
-    if ($name.Length -gt $MaxLength) { $name = $name.Substring(0, $MaxLength) }
-    $name.Trim(' ', '.')
+    Import-PulsRigCore
+    [PulsRig.Core.ScanText]::SafeName($Text, $MaxLength)
 }
 
 function Get-RegistryValue([string]$Path, [string]$Name) {
@@ -184,20 +186,8 @@ function Get-ForwardArguments($Bound) {
 function Get-UpdateErrorText($ErrorRecord) {
     $exception = $ErrorRecord.Exception.GetBaseException()
     if ($exception -isnot [Runtime.InteropServices.COMException]) { return $exception.Message.Trim() }
-    $code = '0x{0:X8}' -f $exception.HResult
-    $known = @{
-        '0x8024402C' = 'Keine Verbindung zu Windows Update (Internet, Proxy oder DNS prüfen).'
-        '0x80072EE7' = 'Der Update-Server wurde nicht gefunden (Internetverbindung prüfen).'
-        '0x80072EFD' = 'Keine Verbindung zum Update-Server (Firewall oder Proxy prüfen).'
-        '0x80072EE2' = 'Zeitüberschreitung bei der Verbindung zum Update-Server.'
-        '0x8024001E' = 'Der Windows-Update-Dienst wurde während des Vorgangs beendet.'
-        '0x80070422' = 'Der Dienst "Windows Update" ist deaktiviert.'
-        '0x80240044' = 'Für diesen Schritt sind Adminrechte nötig.'
-        '0x8024500C' = 'Windows Update ist auf diesem PC per Richtlinie gesperrt.'
-        '0x80070005' = 'Zugriff verweigert.'
-    }
-    if ($known.ContainsKey($code)) { '{0} ({1})' -f $known[$code], $code }
-    else { '{0} ({1})' -f $exception.Message.Trim(), $code }
+    Import-PulsRigCore
+    [PulsRig.Core.ScanText]::UpdateError($exception.HResult, $exception.Message)
 }
 
 # --- 1. Hardware-Scan ---------------------------------------------------------
@@ -276,79 +266,22 @@ function Show-InstalledDrivers($Installed) {
 # "PCI-Gerät". Erkannt wird es am Hersteller in der Gerätekennung (Intel, AMD) und am allgemeinen Namen - Grafik,
 # Netzwerk und Ton heißen anders und fallen nicht darunter.
 function Test-ChipsetDevice([string]$Name, [int]$Code, [string]$DeviceId) {
-    if ($Code -ne 28) { return $false }
-    if ($DeviceId -notmatch '(?i)^(PCI\\VEN_(8086|1022|1002)|ACPI\\(AMDI?|INT[C3L]?)[0-9A-F]+)') { return $false }
-    $Name -match '(?i)SM[- ]?Bus|^PCI[- ](Gerät|Device)$|Kommunikationscontroller|Communications Controller|Basissystemgerät|Base System Device|Verschlüsselungs|Encryption|Datensammlungs|Datenerfassungs|Data Acquisition|Unbekanntes Gerät|Unknown device'
+    Import-PulsRigCore
+    [PulsRig.Core.ScanGeraete]::IsChipsetDevice($Name, $Code, $DeviceId)
 }
 
 # Wo es den Chipsatz-Treiber gibt: beim Hersteller des Mainboards, bei Fertig-PCs und Notebooks beim Hersteller des
 # Geräts. Deren Seiten sind je Modell verschieden - verlinkt wird deshalb eine Suche nach Modell und Treiber.
 function Get-BoardDriverSearch([string]$SystemMaker, [string]$SystemModel, [string]$BoardMaker, [string]$BoardModel) {
-    $empty = '(?i)To Be Filled|System manufacturer|System Product Name|Default string|^\s*$'
-    $maker = $BoardMaker; $model = $BoardModel
-    if ($SystemMaker -notmatch $empty -and $SystemModel -notmatch $empty) { $maker = $SystemMaker; $model = $SystemModel }
-    if ($model -match $empty) { return $null }
-    if ($maker -match $empty) { $maker = '' }
-    # Firmenzusätze kürzen: "ASUSTeK COMPUTER INC." -> "ASUSTeK", "Micro-Star International Co., Ltd." -> "MSI"
-    $maker = $maker -replace '(?i)Micro-Star International.*', 'MSI' -replace '(?i)Gigabyte Technology.*', 'Gigabyte' -replace '(?i)[, ]+(COMPUTER INC\.?|Co\.,? ?Ltd\.?|Corporation|Corp\.?|Inc\.?)\s*$', ''
-    $name = ("$maker $model" -replace '\s+', ' ').Trim()
-    @{ Name = $name; Url = 'https://www.bing.com/search?q=' + [Uri]::EscapeDataString("$name Chipsatz Treiber Download") }
+    Import-PulsRigCore
+    $search = [PulsRig.Core.ScanGeraete]::BoardDriverSearch($SystemMaker, $SystemModel, $BoardMaker, $BoardModel)
+    if ($search) { @{ Name = $search.Name; Url = $search.Url } }
 }
 
-# Fehlercodes des Geräte-Managers: Bedeutung und wo die Abhilfe liegt.
-#   Driver = Treiber erneuern, Reboot = Neustart genügt, Firmware = BIOS oder Hardware, Disabled, Info = kein Fehler
-$script:DeviceErrors = @{
-    1  = @('falsch konfiguriert', 'Driver')
-    3  = @('Treiber beschädigt oder zu wenig Speicher', 'Driver')
-    9  = @('Gerätekennung ungültig', 'Firmware')
-    10 = @('Gerät kann nicht gestartet werden', 'Driver')
-    12 = @('nicht genug freie Ressourcen (Konflikt)', 'Firmware')
-    14 = @('Neustart erforderlich', 'Reboot')
-    16 = @('Ressourcen nicht vollständig erkannt', 'Firmware')
-    18 = @('Treiber muss neu installiert werden', 'Driver')
-    19 = @('Registrierungseinträge des Geräts beschädigt', 'Driver')
-    21 = @('Gerät wird gerade entfernt', 'Reboot')
-    22 = @('deaktiviert', 'Disabled')
-    24 = @('Gerät fehlt oder ist fehlerhaft', 'Driver')
-    28 = @('kein Treiber installiert', 'Driver')
-    29 = @('im BIOS deaktiviert', 'Firmware')
-    31 = @('Treiber kann nicht geladen werden', 'Driver')
-    32 = @('Treiberdienst deaktiviert', 'Driver')
-    33 = @('benötigte Ressourcen nicht ermittelbar', 'Firmware')
-    34 = @('muss von Hand konfiguriert werden', 'Firmware')
-    35 = @('BIOS liefert zu wenig Angaben zum Gerät', 'Firmware')
-    36 = @('Interrupt-Konflikt', 'Firmware')
-    37 = @('Treiber konnte nicht initialisiert werden', 'Driver')
-    38 = @('alte Treiberinstanz noch im Speicher', 'Reboot')
-    39 = @('Treiber fehlt oder ist beschädigt', 'Driver')
-    40 = @('Registrierungseintrag des Treiberdienstes fehlerhaft', 'Driver')
-    41 = @('Treiber geladen, Gerät aber nicht gefunden', 'Driver')
-    42 = @('doppeltes Gerät erkannt', 'Reboot')
-    43 = @('Gerät hat einen Fehler gemeldet', 'Driver')
-    44 = @('von einem Programm oder Dienst angehalten', 'Reboot')
-    45 = @('nicht angeschlossen', 'Info')
-    46 = @('Windows fährt gerade herunter', 'Reboot')
-    47 = @('zum sicheren Entfernen vorbereitet', 'Reboot')
-    48 = @('Treiber von Windows wegen bekannter Probleme blockiert', 'Driver')
-    49 = @('Registrierung zu groß', 'Info')
-    50 = @('Einstellungen des Geräts nicht anwendbar', 'Driver')
-    51 = @('wartet auf ein anderes Gerät', 'Reboot')
-    52 = @('Treibersignatur ungültig', 'Driver')
-    53 = @('für den Kernel-Debugger reserviert', 'Info')
-    54 = @('Gerät ausgefallen, wird zurückgesetzt', 'Reboot')
-}
-
+# Fehlercodes des Geräte-Managers: Bedeutung und wo die Abhilfe liegt (Tabelle in PulsRig.Core, Geraetefehler)
 function Get-DeviceError([int]$Code) {
-    $entry = $script:DeviceErrors[$Code]
-    if (-not $entry) { $entry = @('unbekannter Fehler', 'Driver') }
-    $advice = @{
-        Driver   = 'Treiber erneuern'
-        Reboot   = 'PC neu starten'
-        Firmware = 'BIOS und Hardware prüfen'
-        Disabled = 'im Geräte-Manager aktivieren'
-        Info     = '-'
-    }
-    [pscustomobject]@{ Text = $entry[0]; Fix = $entry[1]; Advice = $advice[$entry[1]] }
+    Import-PulsRigCore
+    [PulsRig.Core.Geraetefehler]::Get($Code)
 }
 
 function Show-ProblemDevices {
@@ -462,7 +395,8 @@ function Find-DriverUpdates($Session) {
 # AMD und alle anderen Geräte bleiben unberührt. Neue Angebote versteckt der nächste Scan oder der Wochenscan.
 # Schlüssel einer Grafikkarte: "PCI\VEN_xxxx&DEV_xxxx" aus ihrer Geräte-ID.
 function Get-GpuShieldKey([string]$HardwareId) {
-    if ($HardwareId -match '^(PCI\\VEN_[0-9A-Fa-f]{4}&DEV_[0-9A-Fa-f]{4})') { $Matches[1].ToUpper() } else { '' }
+    Import-PulsRigCore
+    [PulsRig.Core.ScanGeraete]::GpuShieldKey($HardwareId)
 }
 
 function Get-ShieldGpus {
@@ -497,41 +431,25 @@ function Set-GpuShield($Session, [string[]]$Keys, [bool]$On) {
 # Windows Update nennt Treiber in der Form "Hersteller - Art - Version" (manchmal mit einem Datum dazwischen), die Art
 # in Kürzeln wie "LCD" oder "MEDIA". Für die Anzeige: Kürzel übersetzt, Datum weggelassen (es steht in der Zeile darunter).
 function Format-UpdateTitle([string]$Title) {
-    $parts = @($Title -split '\s+-\s+' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
-    if ($parts.Count -lt 3) { return $Title }
-    $kinds = @{ LCD = 'Monitor'; Monitor = 'Monitor'; Display = 'Grafik'; Net = 'Netzwerk'; MEDIA = 'Audio'; AudioProcessingObject = 'Audio'; Image = 'Scanner oder Kamera'
-        Camera = 'Kamera'; Printer = 'Drucker'; Keyboard = 'Tastatur'; Mouse = 'Maus'; HIDClass = 'Eingabegerät'; USB = 'USB'; Bluetooth = 'Bluetooth'
-        System = 'Systemgerät'; Firmware = 'Firmware'; SoftwareComponent = 'Zusatzsoftware'; Extension = 'Erweiterung'; SCSIAdapter = 'Laufwerkscontroller'
-        HDC = 'Laufwerkscontroller'; Ports = 'Anschluss'; Biometric = 'Fingerabdruck'; Battery = 'Akku'; Other = 'Gerät'; 'Other hardware' = 'Gerät' }
-    $kind = if ($kinds.ContainsKey($parts[1])) { $kinds[$parts[1]] } else { $parts[1] }
-    $rest = @($parts | Select-Object -Skip 2 | Where-Object { $_ -notmatch '^\d{1,2}/\d{1,2}/\d{4}(\s.*)?$' })
-    (@($parts[0], $kind) + $rest) -join ' – '
+    Import-PulsRigCore
+    [PulsRig.Core.ScanText]::FormatUpdateTitle($Title)
 }
 
 # Name des Geräts zu einer Hardware-Kennung aus Windows Update. Die Kennung dort ist oft nur ein Teil der vollen
 # ("vid_04f9&pid_04bb&netscn"), deshalb zählt auch, wenn eine Kennung des Geräts sie enthält.
 function Find-DeviceName([string]$HardwareId, $Devices) {
-    if (-not $HardwareId -or $HardwareId.Length -lt 6) { return '' }
-    $id = $HardwareId.ToUpper()
-    foreach ($exact in $true, $false) {
-        foreach ($device in @($Devices)) {
-            foreach ($known in @($device.HardwareID)) {
-                $text = "$known".ToUpper()
-                if ($(if ($exact) { $text -eq $id } else { $text.Contains($id) }) -and $device.Name) { return "$($device.Name)" }
-            }
-        }
-    }
-    ''
+    Import-PulsRigCore
+    $list = @($Devices)
+    $ids = New-Object 'System.Collections.Generic.List[string[]]'
+    foreach ($device in $list) { $ids.Add([string[]]@($device.HardwareID | ForEach-Object { "$_" })) }
+    [PulsRig.Core.Zuordnung]::DeviceName($HardwareId, $ids, [string[]]@($list | ForEach-Object { "$($_.Name)" }))
 }
 
 function Find-InstalledDriver([string]$HardwareId, $Installed) {
-    if (-not $HardwareId) { return $null }
-    $id = $HardwareId.ToUpper()
-    $candidates = @($Installed | Where-Object { $_.HardWareID })
-    $exact = $candidates | Where-Object { $_.HardWareID.ToUpper() -eq $id } | Select-Object -First 1
-    if ($exact) { return $exact }
-    # WMI nennt nur die genaueste Hardware-ID, Treiber zielen oft auf die allgemeinere ohne SUBSYS/REV
-    $candidates | Where-Object { $_.HardWareID.ToUpper().StartsWith("$id&") } | Select-Object -First 1
+    Import-PulsRigCore
+    $list = @($Installed)
+    $index = [PulsRig.Core.Zuordnung]::InstalledDriver($HardwareId, [string[]]@($list | ForEach-Object { "$($_.HardWareID)" }))
+    if ($index -ge 0) { $list[$index] }
 }
 
 function Test-IsFirmware($Update) {
@@ -539,12 +457,8 @@ function Test-IsFirmware($Update) {
 }
 
 function Test-Excluded([string]$Title, [string[]]$Patterns) {
-    foreach ($pattern in $Patterns) {
-        if (-not $pattern) { continue }
-        $wildcard = if ($pattern -match '[*?]') { $pattern } else { "*$pattern*" }
-        if ($Title -like $wildcard) { return $true }
-    }
-    $false
+    Import-PulsRigCore
+    [PulsRig.Core.Zuordnung]::IsExcluded($Title, $Patterns)
 }
 
 function Show-Updates($Items, $Installed) {
@@ -569,10 +483,8 @@ function Show-Updates($Items, $Installed) {
 
 # Windows meldet z.B. 32.0.16.1742, NVIDIA nennt dieselbe Version 617.42 (die letzten fünf Ziffern)
 function ConvertTo-NvidiaVersion([string]$WindowsVersion) {
-    $digits = $WindowsVersion -replace '\D', ''
-    if ($digits.Length -lt 5) { return $null }
-    $tail = $digits.Substring($digits.Length - 5)
-    '{0}.{1}' -f $tail.Substring(0, 3), $tail.Substring(3)
+    Import-PulsRigCore
+    [PulsRig.Core.Hersteller]::NvidiaVersion($WindowsVersion)
 }
 
 function Get-NvidiaUpdate {
@@ -636,39 +548,20 @@ function Get-AmdChipsetUpdate {
     $cpu = Get-CimInstance Win32_Processor | Select-Object -First 1
     if ("$($cpu.Manufacturer) $($cpu.Name)" -notmatch 'AMD') { return }
     $board = Get-CimInstance Win32_BaseBoard | Select-Object -First 1
-    # der Chipsatz steht im Namen des Mainboards (AB350 Pro4, B650 AORUS ELITE, ROG STRIX X570-E ...)
-    $sockets = [ordered]@{
-        am5 = 'X870E', 'X870', 'B850', 'B840', 'X670E', 'X670', 'B650E', 'B650', 'A620'
-        am4 = 'X570', 'B550', 'A520', 'X470', 'B450', 'X370', 'B350', 'A320'
-    }
-    $socket = ''; $chipset = ''
-    foreach ($key in $sockets.Keys) {
-        foreach ($name in $sockets[$key]) {
-            if (-not $chipset -and "$($board.Product)" -match "(?i)(?<![0-9])$name(?![0-9])") { $socket = $key; $chipset = $name }
-        }
-    }
-    if (-not $chipset) {
-        # unbekanntes Mainboard: der Sockel genügt, das Paket ist dasselbe
-        if ("$($cpu.SocketDesignation)" -match 'AM5') { $socket = 'am5'; $chipset = 'B650' }
-        elseif ("$($cpu.SocketDesignation)" -match 'AM4') { $socket = 'am4'; $chipset = 'B550' }
-        else { return }
-    }
-    $page = "https://www.amd.com/de/support/downloads/drivers.html/chipsets/$socket/$($chipset.ToLower()).html"
+    Import-PulsRigCore
+    # der Chipsatz steht im Namen des Mainboards, sonst genügt der Sockel
+    $found = [PulsRig.Core.Hersteller]::AmdChipset("$($board.Product)", "$($cpu.SocketDesignation)")
+    if (-not $found) { return }
+    $chipset = $found.Chipset
+    $page = $found.Url
 
     [Net.ServicePointManager]::SecurityProtocol =
         [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     # gelesen wird die englische Seite (feste Beschriftungen), gezeigt wird dem Nutzer die deutsche
     $response = Invoke-WebRequest -UseBasicParsing -Uri ($page -replace '/de/support/', '/en/support/') -TimeoutSec 30
-    if ("$($response.Content)" -notmatch 'AMD_Chipset_Software_([0-9]+(?:\.[0-9]+){2,3})\.exe') {
-        throw 'Die Seite von AMD nennt keine Version - vermutlich wurde sie umgebaut.'
-    }
-    $latest = $Matches[1]
-    $released = ''; $size = ''
-    $block = [regex]::Match("$($response.Content)", '(?s)Revision Number</strong>\s*<p>\s*' + [regex]::Escape($latest) + '.{0,600}')
-    if ($block.Success) {
-        if ($block.Value -match '(?s)File Size</strong>\s*<p>\s*([^<]+?)\s*</p>') { $size = $Matches[1] }
-        if ($block.Value -match '(?s)Release Date</strong>\s*<p>\s*([0-9]{4})-([0-9]{2})-([0-9]{2})') { $released = '{2}.{1}.{0}' -f $Matches[1], $Matches[2], $Matches[3] }
-    }
+    $latest = [PulsRig.Core.Hersteller]::AmdChipsetLatest("$($response.Content)")
+    if (-not $latest) { throw 'Die Seite von AMD nennt keine Version - vermutlich wurde sie umgebaut.' }
+    $size, $released = [PulsRig.Core.Hersteller]::AmdChipsetDetails("$($response.Content)", $latest)
 
     # installiert: das Paket trägt sich unter beiden Namen ein, ältere Einträge bleiben stehen - es zählt der höchste
     $installed = $null; $installedText = ''
@@ -697,12 +590,8 @@ function Get-AmdChipsetUpdate {
 # Namen (RX 5000 bis 9000, Vega); für ältere Karten und Prozessorgrafik gibt es kein festes Muster - dann $null und es
 # bleibt beim Hinweis auf AMDs Software. Nur Hinweis, nichts wird geladen.
 function Get-RadeonPage([string]$GpuName) {
-    $name = ("$GpuName" -replace '\((TM|R)\)', '' -replace '\s+', ' ').Trim().ToLower()
-    $base = 'https://www.amd.com/de/support/downloads/drivers.html/graphics/radeon-rx/'
-    if ($name -match 'radeon rx ([5-9])(\d{3})( xtx| xt| gre)?(?![\w])') {
-        return '{0}radeon-rx-{1}000-series/amd-radeon-rx-{1}{2}{3}.html' -f $base, $Matches[1], $Matches[2], ("$($Matches[3])" -replace ' ', '-')
-    }
-    if ($name -match 'radeon rx vega (56|64)') { return "${base}radeon-rx-vega-series/radeon-rx-vega-$($Matches[1]).html" }
+    Import-PulsRigCore
+    [PulsRig.Core.Hersteller]::RadeonPage($GpuName)
 }
 
 function Get-RadeonUpdate {
@@ -714,13 +603,9 @@ function Get-RadeonUpdate {
     [Net.ServicePointManager]::SecurityProtocol =
         [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     $response = Invoke-WebRequest -UseBasicParsing -Uri ($page -replace '/de/support/', '/en/support/') -TimeoutSec 30
-    # das volle Paket heißt z.B. whql-amd-software-adrenalin-edition-26.10.1-win11-b.exe
-    $versions = @([regex]::Matches("$($response.Content)", 'adrenalin-edition-([0-9]+(?:\.[0-9]+){1,3})-') | ForEach-Object { $_.Groups[1].Value } |
-            Sort-Object { [version]$_ } -Descending)
-    if ($versions.Count -eq 0) { throw 'Die Seite von AMD nennt keine Version - vermutlich wurde sie umgebaut.' }
-    $latest = $versions[0]
-    $released = ''
-    if ("$($response.Content)" -match '(?s)Release Date</strong>\s*<p>\s*([0-9]{4})-([0-9]{2})-([0-9]{2})') { $released = '{2}.{1}.{0}' -f $Matches[1], $Matches[2], $Matches[3] }
+    $latest = [PulsRig.Core.Hersteller]::RadeonLatest("$($response.Content)")
+    if (-not $latest) { throw 'Die Seite von AMD nennt keine Version - vermutlich wurde sie umgebaut.' }
+    $released = [PulsRig.Core.Hersteller]::ReleaseDate("$($response.Content)")
 
     # installiert: Windows nennt nur die interne Treiberversion, die Adrenalin-Fassung steht im Schlüssel des Treibers
     $installed = ''
@@ -734,7 +619,7 @@ function Get-RadeonUpdate {
     try { $isNewer = $installed -and ([version]$latest -gt [version]$installed) } catch { }
 
     [pscustomobject]@{
-        Gpu       = ("$($gpu.Name)" -replace '\((TM|R)\)', '' -replace '\s+', ' ').Trim()
+        Gpu       = [PulsRig.Core.Hersteller]::GpuName("$($gpu.Name)")
         Installed = $installed
         Latest    = $latest
         Released  = $released
@@ -748,16 +633,13 @@ function Get-RadeonUpdate {
 # Macht aus der Hardware-ID eines Geräts den Suchbegriff für den Katalog, z.B.
 # PCI\VEN_1022&DEV_790B&SUBSYS_FFFF1849&REV_59 -> VEN_1022&DEV_790B
 function Get-CatalogQuery([string]$HardwareId) {
-    $parts = $HardwareId -split '\\', 2
-    if ($parts.Count -lt 2 -or $parts[0] -in 'ROOT', 'SWD') { return $null }
-    # ACPI-Geräte stehen in Treiberpaketen in der Kurzform, z.B. ACPI\AMDI0030
-    if ($parts[0] -eq 'ACPI' -and $parts[1] -match '^VEN_(\w+)&DEV_(\w+)') { return $Matches[1] + $Matches[2] }
-    $query = @($parts[1] -split '&' | Where-Object { $_ -notmatch '^(SUBSYS_|REV_|MI_|FUNC_|Col\d)' }) -join '&'
-    if ($query.Length -ge 8) { $query }
+    Import-PulsRigCore
+    [PulsRig.Core.Katalog]::Query($HardwareId)
 }
 
 function Get-CatalogUrl([string]$Query) {
-    'https://www.catalog.update.microsoft.com/Search.aspx?q=' + [uri]::EscapeDataString($Query) + '&scol=DateComputed&sdir=desc'
+    Import-PulsRigCore
+    [PulsRig.Core.Katalog]::Url($Query)
 }
 
 # Liest die erste Trefferseite (neueste zuerst) aus der Katalog-Webseite
@@ -767,45 +649,27 @@ function Search-DriverCatalog([string]$Query) {
         [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     $response = Invoke-WebRequest -UseBasicParsing -Uri (Get-CatalogUrl $Query) -TimeoutSec 20 `
         -Headers @{ 'Accept-Language' = 'en-US' }
-
-    foreach ($row in [regex]::Matches($response.Content, '(?s)<tr id="([0-9a-f\-]{36})_R\d+".*?</tr>')) {
-        $cells = @{}
-        foreach ($cell in [regex]::Matches($row.Value, '(?s)<td[^>]*id="[^"]*_C(\d)_R\d+"[^>]*>(.*?)</td>')) {
-            $text = $cell.Groups[2].Value -replace '(?s)<span class="noDisplay".*?</span>', '' -replace '<[^>]+>', ''
-            $cells[$cell.Groups[1].Value] = ([Net.WebUtility]::HtmlDecode($text) -replace '\s+', ' ').Trim()
-        }
-        $version = $null
-        $date = [datetime]::MinValue
-        try { $version = [version]$cells['5'] } catch { continue }   # alte Einträge ohne Versionsspalte
-        $formats = [string[]]@('M/d/yyyy', 'd.M.yyyy')
-        if (-not [datetime]::TryParseExact($cells['4'], $formats, [cultureinfo]::InvariantCulture, 'None', [ref]$date)) { continue }
-        $bytes = 0
-        if ($row.Value -match '_originalSize">\s*(\d+)') { $bytes = [long]$Matches[1] }
-        [pscustomobject]@{
-            Id       = $row.Groups[1].Value   # Kennung des Eintrags: mit ihr nennt der Katalog die Datei zum Laden
-            Title    = $cells['1']
-            Products = $cells['2']
-            Date     = $date
-            Version  = $version
-            Size     = $cells['6']
-            Bytes    = $bytes
-        }
-    }
+    Import-PulsRigCore
+    [PulsRig.Core.Katalog]::ParseRows("$($response.Content)")
 }
 
 # Wählt den Katalogeintrag, der sicher zur selben Treiberlinie gehört und neuer ist - sonst nichts
 function Select-CatalogCandidate($Driver, $Rows, [string]$OsName) {
-    $installed = $null
-    try { $installed = [version]$Driver.DriverVersion } catch { return $null }
-    $vendor = ($Driver.DriverProviderName -split '[\s,]+')[0]
-    $Rows | Where-Object {
-        $_.Products -like "*$OsName*" -and
-        $_.Title -like "$vendor*" -and
-        # andere Hauptversion = anderes Treibermodell fürs gleiche Gerät, das wäre kein verlässlicher Vergleich
-        $_.Version.Major -eq $installed.Major -and
-        $_.Version -gt $installed -and
-        (-not $Driver.ActualDate -or $_.Date -gt $Driver.ActualDate.Date)
-    } | Sort-Object Version, Date -Descending | Select-Object -First 1
+    Import-PulsRigCore
+    [PulsRig.Core.KatalogAuswahl]::Candidate("$($Driver.DriverVersion)", "$($Driver.DriverProviderName)",
+        $(if ($Driver.ActualDate) { [datetime]$Driver.ActualDate } else { $null }), (ConvertTo-CatalogRows $Rows), $OsName)
+}
+
+# Treffer als PulsRig.Core.KatalogTreffer - auch solche aus dem Zwischenspeicher oder aus den Tests
+function ConvertTo-CatalogRows($Rows) {
+    Import-PulsRigCore
+    $list = New-Object 'System.Collections.Generic.List[PulsRig.Core.KatalogTreffer]'
+    foreach ($row in @($Rows | Where-Object { $_ })) {
+        if ($row -is [PulsRig.Core.KatalogTreffer]) { $list.Add($row); continue }
+        $list.Add((New-Object PulsRig.Core.KatalogTreffer -Property @{ Id = "$($row.Id)"; Title = "$($row.Title)"; Products = "$($row.Products)"
+                    Date = [datetime]$row.Date; Version = $(if ($row.Version) { [version]"$($row.Version)" } else { $null }); Size = "$($row.Size)"; Bytes = [long]$row.Bytes }))
+    }
+    , $list
 }
 
 # --- Treiber für Geräte ohne Treiber aus dem Microsoft-Katalog -----------------
@@ -818,11 +682,8 @@ function Select-CatalogCandidate($Driver, $Rows, [string]$OsName) {
 function Select-MissingDriverRow($Rows, [string]$OsName, [string]$OsVersion) {
     # Firmware scheidet aus: sie wird nie nebenbei eingespielt. Reine Zusätze (Erweiterung, Zusatzsoftware) kommen
     # erst nach den eigentlichen Treibern - einem Gerät ohne Treiber helfen sie allein nicht.
-    @($Rows | Where-Object {
-            $_.Id -and $_.Products -like "*$OsName*" -and "$($_.Title)" -notmatch '(?i)firmware|\bBIOS\b' -and
-            -not ($OsVersion -match '^\d\dH\d$' -and "$($_.Products)" -match 'version (\d\dH\d) and later' -and $Matches[1] -gt $OsVersion)
-        } | Sort-Object @{ Expression = { "$($_.Title)" -match '(?i)Extension|SoftwareComponent' } }, @{ Expression = 'Version'; Descending = $true }, @{ Expression = 'Date'; Descending = $true } |
-            Select-Object -First 1)[0]
+    Import-PulsRigCore
+    [PulsRig.Core.KatalogAuswahl]::MissingDriver((ConvertTo-CatalogRows $Rows), $OsName, $OsVersion)
 }
 
 function Find-MissingDriver([string]$HardwareId) {
@@ -915,10 +776,10 @@ function Find-CatalogHints($Installed) {
             foreach ($property in $saved.PSObject.Properties) {
                 $stamp = [datetime]::ParseExact("$($property.Value.Time)", 'yyyy-MM-dd HH:mm', [cultureinfo]::InvariantCulture)
                 if ($stamp -gt (Get-Date) -or ((Get-Date) - $stamp).TotalHours -ge 24) { continue }
-                $cache[$property.Name] = @{ Time = "$($property.Value.Time)"; Rows = @($property.Value.Rows | Where-Object { $_ } | ForEach-Object {
-                            [pscustomobject]@{ Title = "$($_.Title)"; Products = "$($_.Products)"; Size = "$($_.Size)"; Bytes = [long]$_.Bytes
-                                Date = [datetime]::ParseExact("$($_.Date)", 'yyyy-MM-dd', [cultureinfo]::InvariantCulture); Version = [version]"$($_.Version)" }
-                        })
+                $cache[$property.Name] = @{ Time = "$($property.Value.Time)"; Rows = (ConvertTo-CatalogRows @($property.Value.Rows | Where-Object { $_ } | ForEach-Object {
+                                [pscustomobject]@{ Title = "$($_.Title)"; Products = "$($_.Products)"; Size = "$($_.Size)"; Bytes = [long]$_.Bytes
+                                    Date = [datetime]::ParseExact("$($_.Date)", 'yyyy-MM-dd', [cultureinfo]::InvariantCulture); Version = [version]"$($_.Version)" }
+                            }))
                 }
             }
         }

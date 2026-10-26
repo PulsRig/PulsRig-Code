@@ -1,0 +1,191 @@
+<UserControl x:Class="PulsRig.App.HomePage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Startseite der Reihe Q: 6 Spalten × 3 Reihen, Abstand 12 -->
+    <Grid x:Name="Mosaic">
+        <Grid.Resources>
+            <Style TargetType="ColumnDefinition"><Setter Property="Width" Value="*"/></Style>
+        </Grid.Resources>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/><ColumnDefinition Width="12"/>
+            <ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/><ColumnDefinition Width="12"/>
+            <ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition/><RowDefinition Height="12"/><RowDefinition/><RowDefinition Height="12"/><RowDefinition/>
+        </Grid.RowDefinitions>
+
+        <!-- SCAN-Bereich: Spalten 1–3, Reihen 1–2 -->
+        <Border x:Name="ScanTile" Grid.Column="0" Grid.ColumnSpan="5" Grid.Row="0" Grid.RowSpan="3" CornerRadius="24"
+                BorderThickness="1" Padding="22,20" ClipToBounds="True">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Offset="0" Color="#0B0710"/><GradientStop Offset="1" Color="#09060D"/>
+                </LinearGradientBrush>
+            </Border.Background>
+            <Border.BorderBrush>
+                <LinearGradientBrush StartPoint="0.25,0" EndPoint="0.75,1">
+                    <GradientStop Offset="0" Color="#706D43C9"/><GradientStop Offset="0.35" Color="#1A1224"/>
+                    <GradientStop Offset="0.7" Color="#1A1224"/><GradientStop Offset="1" Color="#55A8326F"/>
+                </LinearGradientBrush>
+            </Border.BorderBrush>
+            <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
+                        <TextBlock Text="SYSTEM-PULS" FontFamily="{DynamicResource Mono}" FontSize="10" Foreground="{StaticResource Leise}" HorizontalAlignment="Right"/>
+                        <TextBlock Style="{StaticResource ZahlGross}" FontSize="24" HorizontalAlignment="Right" Foreground="{StaticResource PulsQuer}">
+                            <Run x:Name="PulseValue"/><Run Text=" bpm" FontSize="11" Foreground="{StaticResource Leise}"/>
+                        </TextBlock>
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock x:Name="HomeKicker" FontSize="12.5" Foreground="{StaticResource Leise}"/>
+                        <TextBlock x:Name="HomeHead" FontSize="22" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </DockPanel>
+                <Viewbox Grid.Row="1" Stretch="Uniform" StretchDirection="DownOnly" TextOptions.TextFormattingMode="Ideal">
+                    <Grid Width="240" Height="240" RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform><ScaleTransform ScaleX="0.88" ScaleY="0.88"/></Grid.RenderTransform>
+                        <Ellipse x:Name="Breath" Width="170" Height="170" RenderTransformOrigin="0.5,0.5" Opacity="0.5">
+                            <Ellipse.RenderTransform><ScaleTransform/></Ellipse.RenderTransform>
+                            <Ellipse.Fill>
+                                <RadialGradientBrush>
+                                    <GradientStop Offset="0" Color="#406D43C9"/><GradientStop Offset="0.7" Color="#006D43C9"/>
+                                </RadialGradientBrush>
+                            </Ellipse.Fill>
+                        </Ellipse>
+                        <Canvas x:Name="Ring" Width="240" Height="240"/>
+                        <Canvas x:Name="ScanFx" Width="240" Height="240" IsHitTestVisible="False"/>
+                        <!-- Schatten auf einem eigenen Kreis hinter dem Knopf: auf dem Knopf selbst würde er die Schrift weich zeichnen -->
+                        <Ellipse x:Name="ScanShadow" Width="152" Height="152" Fill="#0A0610" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
+                            <Ellipse.RenderTransform><ScaleTransform/></Ellipse.RenderTransform>
+                            <Ellipse.Effect><DropShadowEffect BlurRadius="50" ShadowDepth="16" Direction="270" Color="Black" Opacity="0.5"/></Ellipse.Effect>
+                        </Ellipse>
+                        <Button x:Name="ScanButton" Style="{StaticResource Flach}" Width="152" Height="152" Tag="76" BorderThickness="1"
+                                BorderBrush="#2F2147" RenderTransformOrigin="0.5,0.5" Click="Scan_Click" AutomationProperties.Name="Scan starten">
+                            <Button.RenderTransform><ScaleTransform/></Button.RenderTransform>
+                            <Button.Background>
+                                <RadialGradientBrush GradientOrigin="0.35,0.3" Center="0.35,0.3" RadiusX="0.7" RadiusY="0.7">
+                                    <GradientStop Offset="0" Color="#1F1331"/><GradientStop Offset="1" Color="#0A0610"/>
+                                </RadialGradientBrush>
+                            </Button.Background>
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Path Data="M1 9h12l3-7 5 14 4-10 2 3h16" Stroke="#6D43C9" StrokeThickness="2" Width="44" Height="18"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center">
+                                    <Path.LayoutTransform><ScaleTransform ScaleX="0.82" ScaleY="0.82"/></Path.LayoutTransform>
+                                </Path>
+                                <TextBlock x:Name="ScanLabel" Text="SCAN" FontSize="28" FontWeight="SemiBold" Foreground="White" Margin="0,6,0,0"
+                                           HorizontalAlignment="Center" TextOptions.TextFormattingMode="Ideal"/>
+                                <TextBlock x:Name="ScanSub" FontSize="11" Foreground="{StaticResource Leise}" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Viewbox>
+            </Grid>
+        </Border>
+
+        <!-- Grafikkarte: Spalten 4–5, Reihe 1 -->
+        <Border x:Name="GpuTile" Grid.Column="6" Grid.ColumnSpan="3" Grid.Row="0" Style="{StaticResource Kachel}" Cursor="Hand"
+                MouseLeftButtonUp="Hw_Click">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Ellipse x:Name="GpuLiveDot" Width="6" Height="6" Fill="#6D43C9" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="live" FontSize="10.5" Foreground="{StaticResource Leise}"/>
+                    </StackPanel>
+                    <TextBlock Text="Grafikkarte" Style="{StaticResource KachelKopf}" Foreground="#6D43C9"/>
+                </DockPanel>
+                <TextBlock x:Name="GpuValue" DockPanel.Dock="Top" Style="{StaticResource ZahlGross}" FontSize="30" Margin="0,2,0,0"/>
+                <Grid x:Name="GpuChart" VerticalAlignment="Bottom" Height="40">
+                </Grid>
+            </DockPanel>
+        </Border>
+
+        <!-- Gaming-Check: Spalte 6, Reihe 1 -->
+        <Border x:Name="GameTile" Grid.Column="10" Grid.Row="0" Style="{StaticResource Kachel}" Padding="0" Cursor="Hand"
+                MouseLeftButtonUp="Game_Click">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <Grid Width="76" Height="76">
+                    <Ellipse Width="62" Height="62" Stroke="#26A8326F" StrokeThickness="7"/>
+                    <Path x:Name="GameArc" Stroke="{StaticResource Puls}" StrokeThickness="7" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                    <TextBlock x:Name="GameValue" Style="{StaticResource ZahlGross}" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Grid>
+                <TextBlock Text="Gaming-Check" FontSize="11.5" Foreground="{StaticResource Rose}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Stabil: Spalte 4, Reihe 2 -->
+        <Border x:Name="StabTile" Grid.Column="6" Grid.Row="2" Style="{StaticResource Kachel}" Padding="16">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Stabil" Style="{StaticResource KachelKopf}" Foreground="{StaticResource Gruen}"/>
+                <TextBlock DockPanel.Dock="Top" Margin="0,2,0,0">
+                    <Run x:Name="StabDays" FontSize="28" FontWeight="SemiBold"/><Run Text=" Tage" FontSize="12" Foreground="{StaticResource Leise}"/>
+                </TextBlock>
+                <UniformGrid x:Name="StabGrid" Columns="10" VerticalAlignment="Bottom"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Laufwerke: Spalten 5–6, Reihe 2 -->
+        <Border x:Name="DrivesTile" Grid.Column="8" Grid.ColumnSpan="3" Grid.Row="2" Style="{StaticResource Kachel}" Cursor="Hand"
+                MouseLeftButtonUp="Drives_Click">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top">
+                    <TextBlock x:Name="DrivesHint" DockPanel.Dock="Right" FontSize="11" Foreground="{StaticResource Rose}"/>
+                    <TextBlock Text="Laufwerke" Style="{StaticResource KachelKopf}" Foreground="{StaticResource LilaHell}"/>
+                </DockPanel>
+                <UniformGrid x:Name="DrivesList" Columns="1" Margin="0,12,0,0"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Was sich geändert hat: Spalten 1–2, Reihe 3 -->
+        <Border x:Name="ChangesTile" Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="4" Style="{StaticResource Kachel}" Cursor="Hand"
+                MouseLeftButtonUp="Drv_Click">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Was sich geändert hat" Style="{StaticResource KachelKopf}" Foreground="{StaticResource Indigo}"/>
+                <StackPanel x:Name="ChangesList" Margin="0,8,0,0"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Treiber: Spalte 3, Reihe 3 -->
+        <Border x:Name="DrvTile" Grid.Column="4" Grid.Row="4" Style="{StaticResource Kachel}" Padding="16" Cursor="Hand"
+                MouseLeftButtonUp="Drv_Click">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Treiber" Style="{StaticResource KachelKopf}" Foreground="{StaticResource Rose}"/>
+                <TextBlock x:Name="DrvValue" DockPanel.Dock="Top" FontSize="28" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                <TextBlock x:Name="DrvSub" FontSize="11.5" Foreground="#AE8C9E" VerticalAlignment="Bottom" TextWrapping="Wrap"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Boost: Spalte 4, Reihe 3 -->
+        <Border x:Name="BoostTile" Grid.Column="6" Grid.Row="4" Style="{StaticResource Kachel}" Padding="16" BorderBrush="#2E8C6BD6">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Flach}" Foreground="{StaticResource Lila}" ToolTip="Boost öffnen"
+                            Click="Boost_Click">
+                        <TextBlock Text="›" FontSize="15"/>
+                    </Button>
+                    <TextBlock Text="Boost" Style="{StaticResource KachelKopf}" Foreground="{StaticResource LilaHell}" VerticalAlignment="Center"/>
+                </DockPanel>
+                <TextBlock x:Name="BoostText" DockPanel.Dock="Top" FontSize="24" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                <TextBlock x:Name="BoostNote" DockPanel.Dock="Top" FontSize="11" Foreground="{StaticResource Leise}" TextTrimming="CharacterEllipsis"/>
+                <Button x:Name="BoostSwitch" Style="{StaticResource Flach}" Width="46" Height="26" Tag="13" VerticalAlignment="Bottom"
+                        HorizontalAlignment="Left" Click="BoostSwitch_Click" AutomationProperties.Name="Boost umschalten">
+                    <Canvas Width="46" Height="26">
+                        <Ellipse x:Name="BoostKnob" Width="20" Height="20" Fill="White" Canvas.Top="3" Canvas.Left="3"/>
+                    </Canvas>
+                </Button>
+            </DockPanel>
+        </Border>
+
+        <!-- Werkzeuge: Spalten 5–6, Reihe 3 -->
+        <Border x:Name="ToolsTile" Grid.Column="8" Grid.ColumnSpan="3" Grid.Row="4" Style="{StaticResource Kachel}" Cursor="Hand"
+                Background="{StaticResource Karte}" BorderBrush="{StaticResource KarteRand}" MouseLeftButtonUp="Tools_Click">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Werkzeuge" Style="{StaticResource KachelKopf}" Foreground="{StaticResource Halbleise}"/>
+                <TextBlock x:Name="ToolHead" DockPanel.Dock="Top" FontSize="15" FontWeight="SemiBold" Margin="0,6,0,0"/>
+                <TextBlock x:Name="ToolSub" DockPanel.Dock="Top" FontSize="12" Foreground="{StaticResource Leise}"/>
+                <TextBlock Text="Alle Werkzeuge →" FontSize="11.5" Foreground="{StaticResource Lila}" VerticalAlignment="Bottom"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

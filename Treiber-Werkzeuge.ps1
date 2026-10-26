@@ -89,86 +89,33 @@ function New-SafetyPoint {
 # 90 MB Arbeitsspeicher belegen und nicht wieder hergeben. Dieselben Angaben liefert Windows auch direkt - das
 # kostet nichts. Die Funktionen hier geben sie mit denselben Namen und Wörtern zurück wie die Befehle.
 
-# Windows liefert Art, Anschluss und Zustand als Zahl - es sei denn, eines der Module ist doch geladen (etwa nach der
-# Netzwerk-Reparatur): dann stehen dort schon Wörter. Beides wird zum selben Wort.
-function ConvertTo-CimWord($Value, [hashtable]$Map, [string]$Default) {
-    $number = 0
-    if ([int]::TryParse("$Value", [ref]$number)) { if ($Map.ContainsKey($number)) { $Map[$number] } else { $Default } }
-    elseif ("$Value") { "$Value" }
-    else { $Default }
-}
-
-# Manche Laufwerke (etwa ältere Festplatten von WD) meldet Windows mit der Bauart "Unspecified". Dann helfen zwei Fragen
-# direkt an das Laufwerk: hat es eine Suchzeit (Lesekopf, der sich bewegen muss), ist es eine Festplatte; beantwortet es
-# das nicht (so die WD10EARS beim Nutzer), entscheidet TRIM: das können nur SSDs. Beides geht ohne Adminrechte;
-# antwortet das Laufwerk auf keine der Fragen, bleibt es bei "Unspecified".
-function Resolve-DiskMedia([string]$Media, $Number) {
-    if ($Media -ne 'Unspecified') { return $Media }
-    try {
-        if (-not ('PulsRigDisk.Probe' -as [type])) {
-            Add-Type -Language CSharp -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-
-namespace PulsRigDisk
-{
-    public static class Probe
-    {
-        [StructLayout(LayoutKind.Sequential)]
-        struct PropertyQuery { public int PropertyId; public int QueryType; public int Extra; }
-
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        static extern IntPtr CreateFile(string name, uint access, uint share, IntPtr security, uint disposition, uint flags, IntPtr template);
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern bool DeviceIoControl(IntPtr device, uint code, ref PropertyQuery input, int inputSize, byte[] output, int outputSize, out int returned, IntPtr overlapped);
-        [DllImport("kernel32.dll")]
-        static extern bool CloseHandle(IntPtr handle);
-
-        // Ja/Nein-Eigenschaft eines Laufwerks (7 = Suchzeit, 8 = TRIM): 1 = ja, 0 = nein, -1 = keine Antwort
-        public static int Flag(int number, int property)
-        {
-            // Zugriff 0 genügt für die Abfrage der Eigenschaften und braucht keine Adminrechte
-            IntPtr device = CreateFile(@"\\.\PhysicalDrive" + number, 0, 3, IntPtr.Zero, 3, 0, IntPtr.Zero);
-            if (device == new IntPtr(-1)) return -1;
-            try
-            {
-                PropertyQuery query = new PropertyQuery();
-                query.PropertyId = property;
-                byte[] output = new byte[16];
-                int returned;
-                if (!DeviceIoControl(device, 0x2D1400, ref query, Marshal.SizeOf(typeof(PropertyQuery)), output, output.Length, out returned, IntPtr.Zero) || returned < 9) return -1;
-                return output[8] != 0 ? 1 : 0;
-            }
-            finally { CloseHandle(device); }
+# Die Umwandlung der Rohwerte steckt in PulsRig.Core.dll (C#, Ordner CSharp). Sie liegt neben dem Programm; in der
+# Werkstatt kommt sie aus dem Ordner, in den "dotnet build" sie legt.
+function Import-PulsRigCore {
+    if ('PulsRig.Core.Laufwerke' -as [type]) { return }
+    $dirs = @($global:DD_ProgramDir, $script:Root, $PSScriptRoot, [IO.Path]::GetDirectoryName([Diagnostics.Process]::GetCurrentProcess().MainModule.FileName)) | Where-Object { $_ }
+    foreach ($dir in $dirs) {
+        foreach ($file in (Join-Path $dir 'PulsRig.Core.dll'), (Join-Path $dir 'CSharp\PulsRig.Core\bin\Release\net48\PulsRig.Core.dll'), (Join-Path $dir 'CSharp\PulsRig.Core\bin\Debug\net48\PulsRig.Core.dll')) {
+            if (Test-Path -LiteralPath $file) { Add-Type -LiteralPath $file; return }
         }
     }
+    throw 'PulsRig.Core.dll fehlt - im Ordner CSharp einmal "dotnet build" ausführen.'
 }
-"@
-        }
-        switch ([PulsRigDisk.Probe]::Flag([int]"$Number", 7)) { 1 { return 'HDD' } 0 { return 'SSD' } }
-        switch ([PulsRigDisk.Probe]::Flag([int]"$Number", 8)) { 1 { return 'SSD' } 0 { return 'HDD' } }
-    }
-    catch { }
-    $Media
-}
+
 function Get-DiskList([switch]$Counters) {
-    $media = @{ 3 = 'HDD'; 4 = 'SSD'; 5 = 'SCM' }
-    $bus = @{ 1 = 'SCSI'; 2 = 'ATAPI'; 3 = 'ATA'; 4 = '1394'; 5 = 'SSA'; 6 = 'Fibre Channel'; 7 = 'USB'; 8 = 'RAID'; 9 = 'iSCSI'; 10 = 'SAS'
-        11 = 'SATA'; 12 = 'SD'; 13 = 'MMC'; 15 = 'File Backed Virtual'; 16 = 'Storage Spaces'; 17 = 'NVMe' }
-    $health = @{ 0 = 'Healthy'; 1 = 'Warning'; 2 = 'Unhealthy' }
+    Import-PulsRigCore
     foreach ($disk in @(Get-CimInstance -Namespace 'root/Microsoft/Windows/Storage' -ClassName MSFT_PhysicalDisk -ErrorAction Stop)) {
         $counter = $null
         # Temperatur, Betriebsstunden und Abnutzung gibt Windows nur mit Adminrechten heraus
         if ($Counters) { try { $counter = Get-CimAssociatedInstance -InputObject $disk -ResultClassName MSFT_StorageReliabilityCounter -ErrorAction Stop | Select-Object -First 1 } catch { } }
-        $status = @($disk.OperationalStatus | ForEach-Object { ConvertTo-CimWord $_ @{ 2 = 'OK' } "$_" }) -join ', '
         [pscustomobject]@{
             DeviceId          = "$($disk.DeviceId)"
             FriendlyName      = "$($disk.FriendlyName)"
-            MediaType         = (Resolve-DiskMedia (ConvertTo-CimWord $disk.MediaType $media 'Unspecified') $disk.DeviceId)
-            BusType           = (ConvertTo-CimWord $disk.BusType $bus 'Unknown')
+            MediaType         = [PulsRig.Core.Laufwerke]::ResolveMedia([PulsRig.Core.Laufwerke]::MediaType($disk.MediaType), $disk.DeviceId)
+            BusType           = [PulsRig.Core.Laufwerke]::BusType($disk.BusType)
             Size              = [double]$disk.Size
-            HealthStatus      = (ConvertTo-CimWord $disk.HealthStatus $health 'Unknown')
-            OperationalStatus = $status
+            HealthStatus      = [PulsRig.Core.Laufwerke]::Health($disk.HealthStatus)
+            OperationalStatus = [PulsRig.Core.Laufwerke]::OperationalStatus($disk.OperationalStatus)
             FirmwareVersion   = "$($disk.FirmwareVersion)"
             SerialNumber      = "$($disk.SerialNumber)"
             Counter           = $counter
@@ -176,27 +123,21 @@ function Get-DiskList([switch]$Counters) {
     }
 }
 
-# Buchstabe eines Laufwerks als Text; Windows liefert ein Zeichen, bei Partitionen ohne Buchstaben das Zeichen 0
-function ConvertTo-DriveLetter($Value) {
-    $code = 0
-    try { $code = [int][char]$Value } catch { }
-    if ($code -ge 65 -and $code -le 122) { "$([char]$code)".ToUpper() } else { '' }
-}
-
 function Get-PartitionList {
+    Import-PulsRigCore
     foreach ($partition in @(Get-CimInstance -Namespace 'root/Microsoft/Windows/Storage' -ClassName MSFT_Partition -ErrorAction Stop)) {
-        [pscustomobject]@{ DriveLetter = (ConvertTo-DriveLetter $partition.DriveLetter); DiskNumber = "$($partition.DiskNumber)" }
+        [pscustomobject]@{ DriveLetter = [PulsRig.Core.Laufwerke]::DriveLetter($partition.DriveLetter); DiskNumber = "$($partition.DiskNumber)" }
     }
 }
 
 function Get-VolumeList {
-    $health = @{ 0 = 'Healthy'; 1 = 'Warning'; 2 = 'Unhealthy' }
+    Import-PulsRigCore
     foreach ($volume in @(Get-CimInstance -Namespace 'root/Microsoft/Windows/Storage' -ClassName MSFT_Volume -ErrorAction Stop)) {
         [pscustomobject]@{
-            DriveLetter     = (ConvertTo-DriveLetter $volume.DriveLetter)
+            DriveLetter     = [PulsRig.Core.Laufwerke]::DriveLetter($volume.DriveLetter)
             FileSystemLabel = "$($volume.FileSystemLabel)"
             FileSystem      = "$($volume.FileSystem)"
-            HealthStatus    = (ConvertTo-CimWord $volume.HealthStatus $health 'Unknown')
+            HealthStatus    = [PulsRig.Core.Laufwerke]::Health($volume.HealthStatus)
             Size            = [double]$volume.Size
             SizeRemaining   = [double]$volume.SizeRemaining
         }
@@ -205,26 +146,26 @@ function Get-VolumeList {
 
 # Die eingebauten Netzwerkadapter (mit Anschluss, nicht versteckt) wie bei "Get-NetAdapter -Physical"
 function Get-NetAdapterList {
+    Import-PulsRigCore
     $adapters = @()
     try { $adapters = @(Get-CimInstance -Namespace 'root/StandardCimv2' -ClassName MSFT_NetAdapter -ErrorAction Stop | Where-Object { $_.ConnectorPresent -and -not $_.Hidden }) } catch { }
     foreach ($adapter in $adapters) {
-        $speed = [double]$adapter.Speed
-        $mac = "$($adapter.PermanentAddress)" -replace '[^0-9A-Fa-f]', ''
         [pscustomobject]@{
             Name                 = "$($adapter.Name)"
             InterfaceDescription = "$($adapter.InterfaceDescription)"
             ifIndex              = [int]$adapter.InterfaceIndex
-            Status               = $(if ("$($adapter.InterfaceAdminStatus)" -in '2', 'Down') { 'Disabled' } elseif ("$($adapter.MediaConnectState)" -in '1', 'Connected') { 'Up' } elseif ("$($adapter.MediaConnectState)" -in '2', 'Disconnected') { 'Disconnected' } else { 'Not Present' })
-            LinkSpeed            = $(if ($speed -ge 1e9) { '{0:0.#} Gbps' -f ($speed / 1e9) } elseif ($speed -ge 1e6) { '{0:0.#} Mbps' -f ($speed / 1e6) } elseif ($speed -gt 0) { '{0:0.#} Kbps' -f ($speed / 1e3) } else { '' })
-            MacAddress           = $(if ($mac.Length -eq 12) { ($mac -replace '(..)(?=.)', '$1-').ToUpper() } else { '' })
+            Status               = [PulsRig.Core.Netzwerk]::Status($adapter.InterfaceAdminStatus, $adapter.MediaConnectState)
+            LinkSpeed            = [PulsRig.Core.Netzwerk]::LinkSpeed([double]$adapter.Speed)
+            MacAddress           = [PulsRig.Core.Netzwerk]::MacAddress($adapter.PermanentAddress)
         }
     }
 }
 
 function Get-NetIPv4List([int]$InterfaceIndex) {
     try {
+        Import-PulsRigCore
         @(Get-CimInstance -Namespace 'root/StandardCimv2' -ClassName MSFT_NetIPAddress -ErrorAction Stop |
-                Where-Object { "$($_.AddressFamily)" -in '2', 'IPv4' -and [int]$_.InterfaceIndex -eq $InterfaceIndex } | ForEach-Object { "$($_.IPAddress)" })
+                Where-Object { [PulsRig.Core.Netzwerk]::IsIPv4($_.AddressFamily) -and [int]$_.InterfaceIndex -eq $InterfaceIndex } | ForEach-Object { "$($_.IPAddress)" })
     }
     catch { @() }
 }
@@ -237,7 +178,8 @@ function Test-FileSigner([string]$Path, [string]$SignerPattern) {
 # Lädt eine Datei nur von erlaubten Adressen und behält sie nur mit passender Signatur
 function Save-SignedDownload([string]$Url, [string]$File, [string]$SignerPattern, [string[]]$AllowedHosts) {
     $uri = [uri]$Url
-    if ($uri.Scheme -ne 'https' -or -not ($AllowedHosts | Where-Object { $uri.Host -like $_ })) {
+    Import-PulsRigCore
+    if (-not [PulsRig.Core.Downloads]::IsAllowed($Url, [string[]]@($AllowedHosts))) {
         throw "Unerwartete Adresse: $Url"
     }
     # immer frisch laden: eine liegengebliebene Datei mit irgendeiner gültigen Signatur wäre kein Beweis, dass es die richtige ist
@@ -255,241 +197,14 @@ function Save-SignedDownload([string]$Url, [string]$File, [string]$SignerPattern
     }
 }
 
-# Zugriff auf Lautstärke und Bildschirmmodi gibt es nur über die Windows-API
-function Initialize-Interop {
-    if ('TreiberScan.Audio' -as [type]) { return }
-    Add-Type -Language CSharp -TypeDefinition @'
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-
-namespace TreiberScan
-{
-    [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
-    internal class MMDeviceEnumeratorComObject { }
-
-    [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    internal interface IMMDeviceEnumerator
-    {
-        [PreserveSig] int EnumAudioEndpoints(int dataFlow, int stateMask, out IntPtr devices);
-        [PreserveSig] int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice endpoint);
-    }
-
-    [ComImport, Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    internal interface IMMDevice
-    {
-        [PreserveSig] int Activate(ref Guid iid, int clsCtx, IntPtr activationParams, [MarshalAs(UnmanagedType.IUnknown)] out object instance);
-    }
-
-    [ComImport, Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    internal interface IAudioEndpointVolume
-    {
-        [PreserveSig] int RegisterControlChangeNotify(IntPtr notify);
-        [PreserveSig] int UnregisterControlChangeNotify(IntPtr notify);
-        [PreserveSig] int GetChannelCount(out uint count);
-        [PreserveSig] int SetMasterVolumeLevel(float levelDb, ref Guid context);
-        [PreserveSig] int SetMasterVolumeLevelScalar(float level, ref Guid context);
-        [PreserveSig] int GetMasterVolumeLevel(out float levelDb);
-        [PreserveSig] int GetMasterVolumeLevelScalar(out float level);
-        [PreserveSig] int SetChannelVolumeLevel(uint channel, float levelDb, ref Guid context);
-        [PreserveSig] int SetChannelVolumeLevelScalar(uint channel, float level, ref Guid context);
-        [PreserveSig] int GetChannelVolumeLevel(uint channel, out float levelDb);
-        [PreserveSig] int GetChannelVolumeLevelScalar(uint channel, out float level);
-        [PreserveSig] int SetMute([MarshalAs(UnmanagedType.Bool)] bool mute, ref Guid context);
-        [PreserveSig] int GetMute([MarshalAs(UnmanagedType.Bool)] out bool mute);
-    }
-
-    // Standard-Wiedergabegerät: Stummschaltung und Lautstärke (0..1)
-    public static class Audio
-    {
-        private static IAudioEndpointVolume Endpoint()
-        {
-            IMMDeviceEnumerator enumerator = (IMMDeviceEnumerator)(new MMDeviceEnumeratorComObject());
-            IMMDevice device;
-            Marshal.ThrowExceptionForHR(enumerator.GetDefaultAudioEndpoint(0, 1, out device));
-            Guid iid = typeof(IAudioEndpointVolume).GUID;
-            object instance;
-            Marshal.ThrowExceptionForHR(device.Activate(ref iid, 23, IntPtr.Zero, out instance));
-            return (IAudioEndpointVolume)instance;
-        }
-
-        public static bool GetMute()
-        {
-            bool mute;
-            Marshal.ThrowExceptionForHR(Endpoint().GetMute(out mute));
-            return mute;
-        }
-
-        public static void SetMute(bool mute)
-        {
-            Guid context = Guid.Empty;
-            Marshal.ThrowExceptionForHR(Endpoint().SetMute(mute, ref context));
-        }
-
-        public static float GetVolume()
-        {
-            float level;
-            Marshal.ThrowExceptionForHR(Endpoint().GetMasterVolumeLevelScalar(out level));
-            return level;
-        }
-
-        public static void SetVolume(float level)
-        {
-            Guid context = Guid.Empty;
-            Marshal.ThrowExceptionForHR(Endpoint().SetMasterVolumeLevelScalar(level, ref context));
-        }
-    }
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    internal struct DisplayDevice
-    {
-        public int cb;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string DeviceName;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] public string DeviceString;
-        public int StateFlags;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] public string DeviceID;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] public string DeviceKey;
-    }
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    internal struct DevMode
-    {
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName;
-        public short dmSpecVersion;
-        public short dmDriverVersion;
-        public short dmSize;
-        public short dmDriverExtra;
-        public int dmFields;
-        public int dmPositionX;
-        public int dmPositionY;
-        public int dmDisplayOrientation;
-        public int dmDisplayFixedOutput;
-        public short dmColor;
-        public short dmDuplex;
-        public short dmYResolution;
-        public short dmTTOption;
-        public short dmCollate;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmFormName;
-        public short dmLogPixels;
-        public int dmBitsPerPel;
-        public int dmPelsWidth;
-        public int dmPelsHeight;
-        public int dmDisplayFlags;
-        public int dmDisplayFrequency;
-        public int dmICMMethod;
-        public int dmICMIntent;
-        public int dmMediaType;
-        public int dmDitherType;
-        public int dmReserved1;
-        public int dmReserved2;
-        public int dmPanningWidth;
-        public int dmPanningHeight;
-    }
-
-    public class DisplayMode
-    {
-        public int Width;
-        public int Height;
-        public int Frequency;
-    }
-
-    public class DisplayInfo
-    {
-        public string Device;
-        public string Adapter;
-        public string MonitorId;
-        public bool Primary;
-        public DisplayMode Current;
-        public List<DisplayMode> Modes = new List<DisplayMode>();
-    }
-
-    public static class Display
-    {
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern bool EnumDisplayDevices(string device, uint index, ref DisplayDevice info, uint flags);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern bool EnumDisplaySettings(string device, int mode, ref DevMode devMode);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern int ChangeDisplaySettingsEx(string device, ref DevMode devMode, IntPtr hwnd, uint flags, IntPtr param);
-
-        private static DevMode NewMode()
-        {
-            DevMode mode = new DevMode();
-            mode.dmSize = (short)Marshal.SizeOf(typeof(DevMode));
-            return mode;
-        }
-
-        private static DisplayMode Convert(DevMode mode)
-        {
-            DisplayMode result = new DisplayMode();
-            result.Width = mode.dmPelsWidth;
-            result.Height = mode.dmPelsHeight;
-            result.Frequency = mode.dmDisplayFrequency;
-            return result;
-        }
-
-        // Alle Bildschirme, die zum Desktop gehören, mit aktuellem Modus und Modusliste des Treibers
-        public static List<DisplayInfo> GetDisplays()
-        {
-            List<DisplayInfo> result = new List<DisplayInfo>();
-            for (uint i = 0; ; i++)
-            {
-                DisplayDevice adapter = new DisplayDevice();
-                adapter.cb = Marshal.SizeOf(typeof(DisplayDevice));
-                if (!EnumDisplayDevices(null, i, ref adapter, 0)) break;
-                if ((adapter.StateFlags & 1) == 0) continue;
-
-                DisplayInfo info = new DisplayInfo();
-                info.Device = adapter.DeviceName;
-                info.Adapter = adapter.DeviceString;
-                info.Primary = (adapter.StateFlags & 4) != 0;
-
-                DisplayDevice monitor = new DisplayDevice();
-                monitor.cb = Marshal.SizeOf(typeof(DisplayDevice));
-                if (EnumDisplayDevices(adapter.DeviceName, 0, ref monitor, 0)) info.MonitorId = monitor.DeviceID;
-
-                DevMode current = NewMode();
-                if (EnumDisplaySettings(adapter.DeviceName, -1, ref current)) info.Current = Convert(current);
-
-                for (int n = 0; ; n++)
-                {
-                    DevMode mode = NewMode();
-                    if (!EnumDisplaySettings(adapter.DeviceName, n, ref mode)) break;
-                    if (mode.dmBitsPerPel == 32) info.Modes.Add(Convert(mode));
-                }
-                result.Add(info);
-            }
-            return result;
-        }
-
-        // Stellt einen Modus aus der Liste des Treibers ein. testOnly prüft nur, ob er angenommen würde.
-        // Rückgabe: 0 = in Ordnung, -100 = Modus steht nicht in der Liste, sonst Fehlercode von Windows
-        public static int SetMode(string device, int width, int height, int frequency, bool testOnly)
-        {
-            for (int n = 0; ; n++)
-            {
-                DevMode mode = NewMode();
-                if (!EnumDisplaySettings(device, n, ref mode)) return -100;
-                if (mode.dmBitsPerPel == 32 && mode.dmPelsWidth == width && mode.dmPelsHeight == height && mode.dmDisplayFrequency == frequency)
-                {
-                    return ChangeDisplaySettingsEx(device, ref mode, IntPtr.Zero, testOnly ? 2u : 1u, IntPtr.Zero);
-                }
-            }
-        }
-    }
-}
-'@
-}
-
 # --- Sichern & Wiederherstellen -----------------------------------------------
 
 function Invoke-RestoreTool {
+    Import-PulsRigCore
     $path = $BackupPath
     if (-not $path) {
         $backups = @(Get-ChildItem -LiteralPath $OutDir -Directory -ErrorAction SilentlyContinue |
-                Where-Object { $_.Name -like 'Backup_*' -or $_.Name -like 'Offline-Paket_*' -or $_.Name -like 'Auto-Sicherung_*' } |
+                Where-Object { [PulsRig.Core.Sicherung]::IsBackupFolder($_.Name) } |
                 Sort-Object LastWriteTime -Descending)
         if ($backups.Count -eq 0) {
             Write-Host 'Keine Sicherung gefunden. Zuerst "Treiber sichern" ausführen oder mit -BackupPath einen Ordner angeben.' -ForegroundColor Yellow
@@ -500,8 +215,7 @@ function Invoke-RestoreTool {
         }
         $index = 0
         if ($backups.Count -gt 1 -and -not $Yes -and -not $DryRun) {
-            $answer = "$(Read-Host 'Nummer der Sicherung (Eingabetaste = neueste)')".Trim()
-            if ($answer -match '^\d+$' -and [int]$answer -ge 1 -and [int]$answer -le $backups.Count) { $index = [int]$answer - 1 }
+            $index = [PulsRig.Core.Sicherung]::PickIndex("$(Read-Host 'Nummer der Sicherung (Eingabetaste = neueste)')", $backups.Count)
         }
         $path = $backups[$index].FullName
     }
@@ -533,13 +247,14 @@ function Invoke-RestoreTool {
 # Sichert vor einer Installation genau die Treiberpakete, die dabei ersetzt werden.
 # Sehr große Pakete (Grafiktreiber) bleiben außen vor - ältere Fassungen davon gibt es beim Hersteller.
 function Backup-ReplacedDrivers($Items, $Installed, [string]$OutDir, [long]$MaxBytes = 300MB) {
-    $packages = @($Items | ForEach-Object { Find-InstalledDriver $_.Update.DriverHardwareID $Installed } |
-            Where-Object { $_ -and $_.InfName -like 'oem*.inf' } | ForEach-Object { $_.InfName.ToLower() } | Sort-Object -Unique)
+    Import-PulsRigCore
+    $packages = @([PulsRig.Core.Sicherung]::PackagesToBackup([string[]]@($Items | ForEach-Object { Find-InstalledDriver $_.Update.DriverHardwareID $Installed } |
+                    Where-Object { $_ } | ForEach-Object { "$($_.InfName)" })))
     if ($packages.Count -eq 0) { return }
 
     $originals = @{}
     Get-DriverPackages | ForEach-Object { $originals[$_.Published.ToLower()] = $_.Original }
-    $target = Join-Path $OutDir ('Auto-Sicherung_{0:yyyy-MM-dd_HHmm}' -f (Get-Date))
+    $target = Join-Path $OutDir ([PulsRig.Core.Sicherung]::AutoFolderName((Get-Date)))
     $saved = 0
     foreach ($package in $packages) {
         $original = $originals[$package]
@@ -554,7 +269,7 @@ function Backup-ReplacedDrivers($Items, $Installed, [string]$OutDir, [long]$MaxB
             Write-Host ("  Nicht gesichert ({0:N0} MB, zu groß für die automatische Sicherung): {1}" -f ($bytes / 1MB), $original) -ForegroundColor DarkGray
             continue
         }
-        $folder = Join-Path $target ($original -replace '\.inf$', '')
+        $folder = Join-Path $target ([PulsRig.Core.Sicherung]::FolderName($original))
         New-Item -ItemType Directory -Path $folder -Force | Out-Null
         & pnputil.exe /export-driver $package $folder | Out-Null
         if ($LASTEXITCODE -eq 0) { $saved++ }
@@ -608,16 +323,16 @@ function Invoke-FixAudioTool {
     }
 
     try {
-        Initialize-Interop
-        $muted = [TreiberScan.Audio]::GetMute()
-        $level = [TreiberScan.Audio]::GetVolume()
+        Import-PulsRigCore
+        $muted = [PulsRig.Core.Audio]::GetMute()
+        $level = [PulsRig.Core.Audio]::GetVolume()
         Write-Check 'Standardgerät nicht stumm' (-not $muted) $(if ($muted) { 'ist stummgeschaltet' })
         Write-Check 'Lautstärke' ($level -ge 0.05) ('{0:N0} %' -f ($level * 100))
         if ($muted) {
-            $steps.Add(@{ Text = 'Stummschaltung des Standardgeräts aufheben'; Action = { [TreiberScan.Audio]::SetMute($false) } })
+            $steps.Add(@{ Text = 'Stummschaltung des Standardgeräts aufheben'; Action = { [PulsRig.Core.Audio]::SetMute($false) } })
         }
         if ($level -lt 0.05) {
-            $steps.Add(@{ Text = 'Lautstärke auf 30 % stellen'; Action = { [TreiberScan.Audio]::SetVolume(0.3) } })
+            $steps.Add(@{ Text = 'Lautstärke auf 30 % stellen'; Action = { [PulsRig.Core.Audio]::SetVolume(0.3) } })
         }
     }
     catch {
@@ -661,11 +376,13 @@ function Invoke-FixDevicesTool {
     }
     Show-ProblemDevices
 
-    $disabled = @($problems | Where-Object { (Get-DeviceError $_.ConfigManagerErrorCode).Fix -eq 'Disabled' })
-    $needReboot = @($problems | Where-Object { (Get-DeviceError $_.ConfigManagerErrorCode).Fix -eq 'Reboot' })
-    $needFirmware = @($problems | Where-Object { (Get-DeviceError $_.ConfigManagerErrorCode).Fix -eq 'Firmware' })
+    Import-PulsRigCore
+    $fix = { [PulsRig.Core.Geraetefehler]::Get([int]$_.ConfigManagerErrorCode).Fix }
+    $disabled = @($problems | Where-Object { (& $fix) -eq 'Disabled' })
+    $needReboot = @($problems | Where-Object { (& $fix) -eq 'Reboot' })
+    $needFirmware = @($problems | Where-Object { (& $fix) -eq 'Firmware' })
     # nur Fehler, die am Treiber liegen, lassen sich von hier aus beheben
-    $broken = @($problems | Where-Object { (Get-DeviceError $_.ConfigManagerErrorCode).Fix -eq 'Driver' })
+    $broken = @($problems | Where-Object { (& $fix) -eq 'Driver' })
     if ($needReboot.Count -gt 0) {
         Write-Host "$($needReboot.Count) Gerät(e) brauchen nur einen Neustart des PCs (bei USB-Geräten: ab- und wieder anstecken)."
     }
@@ -765,12 +482,8 @@ function Invoke-FixDevicesTool {
 # Einträge nicht mehr angeschlossener Hardware. Bewusst eng gefasst: Bluetooth-Kopplungen,
 # Drucker und (virtuelle) Netzwerkadapter sind oft nur gerade aus und bleiben unangetastet.
 function Select-CleanableDevices($Devices) {
-    $Devices | Where-Object {
-        -not $_.Present -and
-        $_.InstanceId -match '^(USB|USBSTOR|HID|SCSI|STORAGE|DISPLAY|HDAUDIO|SWD\\WPDBUSENUM)\\' -and
-        $_.InstanceId -notmatch 'BTH|\{0000[0-9A-F]{4}-0000-1000-8000-00805F9B34FB\}' -and
-        $_.Class -notin 'Bluetooth', 'Net', 'Printer', 'PrintQueue'
-    }
+    Import-PulsRigCore
+    $Devices | Where-Object { [PulsRig.Core.Geraete]::IsCleanable([bool]$_.Present, "$($_.InstanceId)", "$($_.Class)") }
 }
 
 function Invoke-CleanDevicesTool {
@@ -818,32 +531,26 @@ function Invoke-CleanDevicesTool {
 # --- Netzwerkfehler beheben ---------------------------------------------------
 
 function Test-TcpPort([string]$Address, [int]$Port, [int]$TimeoutMs = 3000) {
-    $client = New-Object Net.Sockets.TcpClient
-    try {
-        $pending = $client.BeginConnect($Address, $Port, $null, $null)
-        if (-not $pending.AsyncWaitHandle.WaitOne($TimeoutMs)) { return $false }
-        $client.EndConnect($pending)
-        $true
-    }
-    catch { $false }
-    finally { $client.Close() }
+    Import-PulsRigCore
+    [PulsRig.Core.Netzwerk]::TcpPort($Address, $Port, $TimeoutMs)
 }
 
 # Die Prüfung fragt Windows direkt (siehe Get-NetAdapterList): die Netzwerk-Befehle von Windows würden Module laden,
 # die zusammen rund 90 MB belegen. Nur der Neustart eines Adapters in der Reparatur braucht noch einen davon.
 function Get-NetworkState {
+    Import-PulsRigCore
     $space = 'root/StandardCimv2'
     $adapters = @(Get-NetAdapterList)
     $up = @($adapters | Where-Object { $_.Status -eq 'Up' })
     # Schnittstellen mit Standardgateway, ihre Adressen und ob sie die Adresse automatisch beziehen
     $routed = @(); $addresses = @(); $dhcp = $false; $dnsServer = $null
     try {
-        $routed = @(Get-CimInstance -Namespace $space -ClassName MSFT_NetRoute -ErrorAction Stop | Where-Object { "$($_.DestinationPrefix)" -eq '0.0.0.0/0' } | ForEach-Object { [int]$_.InterfaceIndex } | Select-Object -Unique)
-        $addresses = @($routed | ForEach-Object { Get-NetIPv4List $_ } | Where-Object { $_ -and $_ -notlike '169.254.*' })
+        $routed = @(Get-CimInstance -Namespace $space -ClassName MSFT_NetRoute -ErrorAction Stop | Where-Object { [PulsRig.Core.Netzwerk]::IsDefaultRoute($_.DestinationPrefix) } | ForEach-Object { [int]$_.InterfaceIndex } | Select-Object -Unique)
+        $addresses = @($routed | ForEach-Object { Get-NetIPv4List $_ } | Where-Object { [PulsRig.Core.Netzwerk]::IsUsableAddress("$_") })
         $dhcp = [bool](Get-CimInstance -Namespace $space -ClassName MSFT_NetIPInterface -ErrorAction Stop |
-                Where-Object { "$($_.AddressFamily)" -in '2', 'IPv4' -and $routed -contains [int]$_.InterfaceIndex -and "$($_.Dhcp)" -in '1', 'Enabled' })
+                Where-Object { [PulsRig.Core.Netzwerk]::IsIPv4($_.AddressFamily) -and $routed -contains [int]$_.InterfaceIndex -and [PulsRig.Core.Netzwerk]::IsDhcp($_.Dhcp) })
         $dnsServer = @(Get-CimInstance -Namespace $space -ClassName MSFT_DNSClientServerAddress -ErrorAction Stop |
-                Where-Object { "$($_.AddressFamily)" -in '2', 'IPv4' } | ForEach-Object { $_.ServerAddresses } | Where-Object { $_ }) | Select-Object -First 1
+                Where-Object { [PulsRig.Core.Netzwerk]::IsIPv4($_.AddressFamily) } | ForEach-Object { $_.ServerAddresses } | Where-Object { $_ }) | Select-Object -First 1
     }
     catch { }
 
@@ -851,12 +558,13 @@ function Get-NetworkState {
     $dns = $false
     if ($dnsServer) {
         # direkt beim eingestellten Server fragen, damit kein Zwischenspeicher antwortet; "Name:" steht nur bei einer Antwort da
-        try { $dns = [bool](@(& nslookup.exe '-type=A' '-timeout=4' 'www.microsoft.com' "$dnsServer" 2>$null) -match '^Name:\s') } catch { }
+        try { $dns = [PulsRig.Core.Netzwerk]::IsDnsAnswer([string[]]@(& nslookup.exe '-type=A' '-timeout=4' 'www.microsoft.com' "$dnsServer" 2>$null)) } catch { }
     }
     $web = $false
     try {
         $ProgressPreference = 'SilentlyContinue'
-        $web = (Invoke-WebRequest -UseBasicParsing -Uri 'http://www.msftconnecttest.com/connecttest.txt' -TimeoutSec 8).Content -match 'Microsoft Connect Test'
+        $web = (Invoke-WebRequest -UseBasicParsing -Uri 'http://www.msftconnecttest.com/connecttest.txt' -TimeoutSec 8).Content
+        $web = [PulsRig.Core.Netzwerk]::IsConnectTest("$web")
     }
     catch { }
 
@@ -944,7 +652,7 @@ function Invoke-FixNetworkTool {
 # --- Schlechte Bildauflösung beheben ------------------------------------------
 
 function Get-DisplayStatus {
-    Initialize-Interop
+    Import-PulsRigCore
     $names = @{}
     $native = @{}
     try {
@@ -958,7 +666,7 @@ function Get-DisplayStatus {
     }
     catch { }
 
-    foreach ($display in [TreiberScan.Display]::GetDisplays()) {
+    foreach ($display in [PulsRig.Core.Display]::GetDisplays()) {
         $code = ("$($display.MonitorId)" -split '\\')[1]
         $best = $null
         if ($code -and $native.ContainsKey($code)) { $best = $native[$code] }
@@ -986,12 +694,10 @@ function Get-DisplayStatus {
 
 # Bildwiederholrate für die empfohlene Auflösung: die aktuelle, sonst 60 Hz, sonst die höchste
 function Select-RefreshRate($Display) {
-    $rates = @($Display.Modes | Where-Object { $_.Width -eq $Display.Native.Width -and $_.Height -eq $Display.Native.Height } |
-            ForEach-Object { $_.Frequency } | Sort-Object -Unique)
-    if ($rates.Count -eq 0) { return $null }
-    if ($Display.Current -and $rates -contains $Display.Current.Frequency) { return $Display.Current.Frequency }
-    if ($rates -contains 60) { return 60 }
-    $rates[-1]
+    Import-PulsRigCore
+    $rates = [int[]]@($Display.Modes | Where-Object { $_.Width -eq $Display.Native.Width -and $_.Height -eq $Display.Native.Height } | ForEach-Object { $_.Frequency })
+    $rate = [PulsRig.Core.Anzeige]::SelectRefreshRate($rates, $(if ($Display.Current) { [int]$Display.Current.Frequency } else { 0 }))
+    if ($rate -gt 0) { $rate } else { $null }
 }
 
 function Invoke-FixResolutionTool {
@@ -1045,9 +751,9 @@ function Invoke-FixResolutionTool {
         if (-not (Confirm-Action "$($display.Name) auf $target stellen?")) { continue }
         Invoke-Step "Stelle $($display.Name) auf $target" {
             # erst nur prüfen lassen, ob der Treiber den Modus annimmt
-            $test = [TreiberScan.Display]::SetMode($display.Device, $display.Native.Width, $display.Native.Height, $rate, $true)
+            $test = [PulsRig.Core.Display]::SetMode($display.Device, $display.Native.Width, $display.Native.Height, $rate, $true)
             if ($test -ne 0) { throw "der Treiber lehnt den Modus ab (Code $test)" }
-            $result = [TreiberScan.Display]::SetMode($display.Device, $display.Native.Width, $display.Native.Height, $rate, $false)
+            $result = [PulsRig.Core.Display]::SetMode($display.Device, $display.Native.Width, $display.Native.Height, $rate, $false)
             if ($result -ne 0) { throw "Windows meldet Code $result" }
         }
     }
@@ -1078,25 +784,20 @@ $script:VcRuntimes = @(
 )
 
 function Get-RuntimeStatus {
+    Import-PulsRigCore
     $installed = @(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
         'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue |
-            Where-Object { $_.DisplayName -match 'Visual C\+\+' -and $_.DisplayName -notmatch 'Minimum|Additional|Debug' })
+            Where-Object { [PulsRig.Core.Laufzeiten]::IsRuntimeEntry("$($_.DisplayName)") })
 
+    $names = @($installed | ForEach-Object { "$($_.DisplayName)" })
+    $versions = @($installed | ForEach-Object { "$($_.DisplayVersion)" })
     foreach ($runtime in $script:VcRuntimes) {
         foreach ($arch in 'x64', 'x86') {
-            $entries = @($installed | Where-Object {
-                    $_.DisplayName -match $runtime.Pattern -and (($_.DisplayName -match 'x64') -eq ($arch -eq 'x64')) })
-            $version = $null
-            foreach ($entry in $entries) {
-                try { if (-not $version -or [version]$entry.DisplayVersion -gt $version) { $version = [version]$entry.DisplayVersion } } catch { }
-            }
-            $status = 'vorhanden'
-            if ($entries.Count -eq 0) { $status = 'fehlt' }
-            elseif ($runtime.Latest -and $version -and $version -lt [version]$runtime.Latest) { $status = 'veraltet' }
+            $found = [PulsRig.Core.Laufzeiten]::Evaluate([string[]]$names, [string[]]$versions, $runtime.Pattern, $arch -eq 'x64', "$($runtime.Latest)")
             [pscustomobject]@{
                 Name    = "$($runtime.Name) ($arch)"
-                Status  = $status
-                Version = if ($version) { "$version" } else { '' }
+                Status  = $found.Status
+                Version = $found.Version
                 Url     = $runtime[$arch]
                 File    = 'vcredist_{0}_{1}.exe' -f ($runtime.Name -replace '\D', ''), $arch
             }
@@ -1236,56 +937,19 @@ function Get-RuntimeFiles {
 # Das ist eine Prüfung der Datei, nicht des laufenden Treibers - was ein Treiber erst zur Laufzeit falsch
 # macht, findet sie nicht.
 function Get-HvciIssues([string]$Path) {
-    $stream = $null
-    try {
-        $stream = [IO.File]::Open($Path, 'Open', 'Read', 'ReadWrite')
-        $reader = New-Object IO.BinaryReader $stream
-        if ($stream.Length -lt 0x100 -or $reader.ReadUInt16() -ne 0x5A4D) { return }
-        $stream.Position = 0x3C
-        $pe = $reader.ReadInt32()
-        if ($pe -le 0 -or $pe + 0x108 -gt $stream.Length) { return }
-        $stream.Position = $pe
-        if ($reader.ReadUInt32() -ne 0x4550) { return }
-        $stream.Position = $pe + 6
-        $sections = $reader.ReadUInt16()
-        $stream.Position = $pe + 20
-        $optionalSize = $reader.ReadUInt16()
-        $stream.Position = $pe + 24 + 32
-        if ($reader.ReadUInt32() -lt 0x1000) { 'Abschnitte nicht seitenweise ausgerichtet' }
-        for ($i = 0; $i -lt $sections; $i++) {
-            $stream.Position = $pe + 24 + $optionalSize + 40 * $i
-            $name = [Text.Encoding]::ASCII.GetString($reader.ReadBytes(8)).Trim([char]0)
-            $stream.Position += 28
-            $flags = $reader.ReadUInt32()
-            # Abschnitte, die Windows nach dem Start verwirft (meist INIT), zählen nicht: viele mit Windows
-            # gelieferte Treiber haben sie so, und Windows beanstandet sie nicht
-            $discardable = [bool]($flags -band 0x02000000)
-            if (($flags -band 0x20000000) -and ($flags -band 0x80000000) -and -not $discardable) {
-                "Abschnitt $name ist zugleich beschreibbar und ausführbar"
-            }
-        }
-    }
-    finally {
-        if ($stream) { $stream.Dispose() }
-    }
+    Import-PulsRigCore
+    [PulsRig.Core.Treiber]::HvciIssues($Path)
 }
 
 function Resolve-DriverPath([string]$PathName) {
-    $path = $PathName.Trim('"') -replace '^\\\?\?\\', ''
-    if ($path -match '^\\SystemRoot\\') { return Join-Path $env:windir $path.Substring(12) }
-    if ($path -match '^System32\\') { return Join-Path $env:windir $path }
-    $path
+    Import-PulsRigCore
+    [PulsRig.Core.Treiber]::ResolveDriverPath($PathName, $env:windir)
 }
 
 # oemNN.inf -> ursprünglicher Name, aus der (übersetzten) Ausgabe von pnputil nach Position gelesen
 function Get-DriverPackages {
-    $blocks = ((& pnputil.exe /enum-drivers) -join "`n") -split '(?:\r?\n){2,}'
-    foreach ($block in $blocks) {
-        $values = @($block -split '\r?\n' | Where-Object { $_ -match ':' } | ForEach-Object { ($_ -split ':', 2)[1].Trim() })
-        if ($values.Count -ge 3 -and $values[0] -match '^oem\d+\.inf$') {
-            [pscustomobject]@{ Published = $values[0]; Original = $values[1]; Provider = $values[2] }
-        }
-    }
+    Import-PulsRigCore
+    [PulsRig.Core.Sicherung]::ParsePackages([string[]]@(& pnputil.exe /enum-drivers))
 }
 
 function Find-IncompatibleDrivers {
@@ -1382,8 +1046,9 @@ function Invoke-IncompatibleDriversTool {
 # Ungefähre Größe des Offline-Pakets in Bytes: die Ordner der Drittanbieter-Treiber im DriverStore.
 # Liegen dort mehrere Fassungen eines Treibers, zählen alle mit - die Schätzung liegt eher zu hoch.
 function Get-OfflinePackageSize {
+    Import-PulsRigCore
     $repository = Join-Path $env:windir 'System32\DriverStore\FileRepository'
-    $names = @(& pnputil.exe /enum-drivers | ForEach-Object { if ($_ -match '^\s*Original\s?name\s*:\s*(\S+\.inf)\s*$') { $Matches[1] } } | Select-Object -Unique)
+    $names = [PulsRig.Core.OfflinePaket]::OriginalNames([string[]]@(& pnputil.exe /enum-drivers))
     $size = 0
     foreach ($name in $names) {
         foreach ($folder in @(Get-ChildItem -LiteralPath $repository -Directory -Filter "$($name)_*" -ErrorAction SilentlyContinue)) {
@@ -1404,6 +1069,7 @@ function New-OfflinePackage([string]$TargetRoot, [string]$Package = '*') {
         return
     }
 
+    Import-PulsRigCore
     New-Item -ItemType Directory -Path $drivers -Force | Out-Null
     Write-Host 'Exportiere Treiber (kann einige Minuten dauern) ...'
     & pnputil.exe /export-driver $Package $drivers | Out-Null
@@ -1412,37 +1078,13 @@ function New-OfflinePackage([string]$TargetRoot, [string]$Package = '*') {
         # ein halbes Paket hilft niemandem und belegt nur Platz
         Remove-Item -LiteralPath $target -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
         # 112: Datenträger voll
-        if ($code -eq 112) { Write-Host 'Der Export ist abgebrochen: Auf dem Ziellaufwerk ist kein Platz mehr.' -ForegroundColor Red }
-        else { Write-Host "Der Export ist fehlgeschlagen (pnputil-Code $code)." -ForegroundColor Red }
+        Write-Host ([PulsRig.Core.OfflinePaket]::ExportError($code)) -ForegroundColor Red
         $script:ExitCode = 1
         return
     }
 
-    $starter = @(
-        '@echo off'
-        'rem Spielt alle Treiber aus dem Ordner "Treiber" ein. Fordert dafuer Adminrechte an.'
-        'fltmc >nul 2>&1'
-        'if errorlevel 1 ('
-        '    powershell.exe -NoProfile -Command "Start-Process -FilePath ''%~f0'' -Verb RunAs"'
-        '    exit /b'
-        ')'
-        'pnputil.exe /add-driver "%~dp0Treiber\*.inf" /subdirs /install'
-        'echo.'
-        'echo Fertig. Bitte den PC neu starten.'
-        'pause'
-    )
-    Set-Content -LiteralPath (Join-Path $target 'Treiber-installieren.bat') -Value $starter -Encoding ASCII
-    $readme = @(
-        "Offline-Treiberpaket vom $(Get-Date -Format 'dd.MM.yyyy HH:mm')"
-        ''
-        '1. Diesen Ordner auf einen USB-Stick kopieren.'
-        '2. Nach der Neuinstallation von Windows "Treiber-installieren.bat" doppelt anklicken'
-        '   und die Abfrage der Adminrechte bestätigen.'
-        '3. Den PC neu starten.'
-        ''
-        'Die Treiber passen zu genau diesem PC. Welche enthalten sind, steht in Hardware-Bericht.csv.'
-    )
-    Set-Content -LiteralPath (Join-Path $target 'LIESMICH.txt') -Value $readme -Encoding UTF8
+    Set-Content -LiteralPath (Join-Path $target 'Treiber-installieren.bat') -Value ([PulsRig.Core.OfflinePaket]::Starter()) -Encoding ASCII
+    Set-Content -LiteralPath (Join-Path $target 'LIESMICH.txt') -Value ([PulsRig.Core.OfflinePaket]::Readme((Get-Date))) -Encoding UTF8
     [void](Export-HardwareReport @(Get-InstalledDrivers) $target)
 
     $files = @(Get-ChildItem -LiteralPath $drivers -Recurse -File)
@@ -1455,6 +1097,7 @@ function New-OfflinePackage([string]$TargetRoot, [string]$Package = '*') {
 # --- Systeminformationen ------------------------------------------------------
 
 function Get-SystemInfoLines {
+    Import-PulsRigCore
     $system = Get-CimInstance Win32_ComputerSystem
     $board = Get-CimInstance Win32_BaseBoard
     $bios = Get-CimInstance Win32_BIOS
@@ -1467,7 +1110,7 @@ function Get-SystemInfoLines {
     '  Installiert am {0}, läuft seit {1}' -f (Format-Date $os.InstallDate), $os.LastBootUpTime.ToString('dd.MM.yyyy HH:mm')
     ''
     'GERÄT'
-    if ($system.Manufacturer -notmatch 'To Be Filled|System manufacturer|Default string') {
+    if (-not [PulsRig.Core.Systeminfo]::IsPlaceholder("$($system.Manufacturer)")) {
         '  System:     {0} {1}' -f $system.Manufacturer, $system.Model
     }
     '  Mainboard:  {0} {1}' -f $board.Manufacturer, $board.Product
@@ -1491,7 +1134,7 @@ function Get-SystemInfoLines {
         if ($_.DriverDesc -and $_.'HardwareInformation.qwMemorySize') { $memory[$_.DriverDesc] = [long]$_.'HardwareInformation.qwMemorySize' }
     }
     foreach ($gpu in @(Get-CimInstance Win32_VideoController)) {
-        $bytes = if ($memory.ContainsKey($gpu.Name)) { $memory[$gpu.Name] } else { [long]$gpu.AdapterRAM }
+        $bytes = [PulsRig.Core.Systeminfo]::GpuMemory([long]$memory[$gpu.Name], [long]$gpu.AdapterRAM)
         '  {0}, {1:N0} GB, Treiber {2}' -f $gpu.Name, ($bytes / 1GB), $gpu.DriverVersion
     }
     try {
@@ -1505,8 +1148,8 @@ function Get-SystemInfoLines {
     'DATENTRÄGER'
     try {
         foreach ($disk in @(Get-DiskList | Sort-Object { [int]$_.DeviceId })) {
-            $type = switch ("$($disk.MediaType)") { 'SSD' { 'SSD' } 'HDD' { 'Festplatte' } default { 'Laufwerk' } }
-            $health = if ("$($disk.HealthStatus)" -eq 'Healthy') { 'in Ordnung' } else { "$($disk.HealthStatus)" }
+            $type = [PulsRig.Core.Systeminfo]::DiskType("$($disk.MediaType)", 'Laufwerk')
+            $health = [PulsRig.Core.Systeminfo]::Health("$($disk.HealthStatus)")
             '  {0}: {1:N0} GB, {2} über {3}, Zustand {4}' -f $disk.FriendlyName, ($disk.Size / 1GB), $type, $disk.BusType, $health
         }
     }
@@ -1526,7 +1169,7 @@ function Get-SystemInfoLines {
     'TREIBER'
     $installed = @(Get-InstalledDrivers)
     '  {0} Geräte mit Treiber, {1} davon von Drittherstellern' -f $installed.Count,
-        @($installed | Where-Object { $_.DriverProviderName -and $_.DriverProviderName -notlike 'Microsoft*' }).Count
+        @($installed | Where-Object { [PulsRig.Core.Systeminfo]::IsThirdParty("$($_.DriverProviderName)") }).Count
     '  Geräte mit Fehlern: {0}' -f @(Get-ProblemDevices).Count
 }
 
@@ -1545,6 +1188,7 @@ function Invoke-SystemInfoTool {
 # Dieselben Angaben, geordnet nach Bereichen - für die Ansicht mit Reitern im Fenster.
 # Jede Zeile nennt ihren Bereich (Category) und ist Überschrift (head) oder Schlüssel mit Wert (pair).
 function Get-SystemInfoData {
+    Import-PulsRigCore
     $rows = New-Object System.Collections.Generic.List[object]
     $category = ''
     function Head([string]$Text) { $rows.Add([pscustomobject]@{ Category = $category; Kind = 'head'; Title = $Text; Value = '' }) }
@@ -1571,9 +1215,7 @@ function Get-SystemInfoData {
     $gpuInfo = @{}
     Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0*' -ErrorAction SilentlyContinue | ForEach-Object {
         if ($_.DriverDesc) {
-            $date = $null
-            try { $date = [datetime]::ParseExact("$($_.DriverDate)", 'M-d-yyyy', [cultureinfo]::InvariantCulture) } catch { }
-            $gpuInfo[$_.DriverDesc] = @{ Memory = [long]$_.'HardwareInformation.qwMemorySize'; Date = $date }
+            $gpuInfo[$_.DriverDesc] = @{ Memory = [long]$_.'HardwareInformation.qwMemorySize'; Date = [PulsRig.Core.Systeminfo]::DriverDate("$($_.DriverDate)") }
         }
     }
     $freeBytes = [double]$os.FreePhysicalMemory * 1KB
@@ -1583,7 +1225,7 @@ function Get-SystemInfoData {
     Pair 'Windows' ('{0}, Version {1}' -f $os.Caption, $release.DisplayVersion)
     Pair 'Prozessor' $cpu.Name
     foreach ($gpu in $gpus) {
-        $bytes = if ($gpuInfo[$gpu.Name].Memory) { $gpuInfo[$gpu.Name].Memory } else { [long]$gpu.AdapterRAM }
+        $bytes = [PulsRig.Core.Systeminfo]::GpuMemory([long]$gpuInfo[$gpu.Name].Memory, [long]$gpu.AdapterRAM)
         Pair 'Grafikkarte' ('{0} ({1:N0} GB)' -f $gpu.Name, ($bytes / 1GB))
     }
     Pair 'Arbeitsspeicher' ('{0:N1} GB frei von {1:N1} GB' -f ($freeBytes / 1GB), ($totalBytes / 1GB))
@@ -1601,7 +1243,7 @@ function Get-SystemInfoData {
     $category = 'Windows'
     Head 'Computer'
 
-    if ($system.Manufacturer -notmatch 'To Be Filled|System manufacturer|Default string') {
+    if (-not [PulsRig.Core.Systeminfo]::IsPlaceholder("$($system.Manufacturer)")) {
         Pair 'Hersteller und Modell' ('{0} {1}' -f $system.Manufacturer, $system.Model)
     }
     Head 'Betriebssystem'
@@ -1645,7 +1287,7 @@ function Get-SystemInfoData {
     $category = 'Grafik'
     foreach ($gpu in $gpus) {
         $info = $gpuInfo[$gpu.Name]
-        $bytes = if ($info.Memory) { $info.Memory } else { [long]$gpu.AdapterRAM }
+        $bytes = [PulsRig.Core.Systeminfo]::GpuMemory([long]$info.Memory, [long]$gpu.AdapterRAM)
         Head $gpu.Name
         Pair 'Speicher' ('{0:N0} GB' -f ($bytes / 1GB))
         Pair 'Treiberversion' $gpu.DriverVersion
@@ -1664,9 +1306,9 @@ function Get-SystemInfoData {
         foreach ($disk in @(Get-DiskList | Sort-Object { [int]$_.DeviceId })) {
             Head $disk.FriendlyName
             Pair 'Größe' ('{0:N0} GB' -f ($disk.Size / 1GB))
-            Pair 'Art' $(switch ("$($disk.MediaType)") { 'SSD' { 'SSD' } 'HDD' { 'Festplatte' } default { 'unbekannt' } })
+            Pair 'Art' ([PulsRig.Core.Systeminfo]::DiskType("$($disk.MediaType)", 'unbekannt'))
             Pair 'Anschluss' $disk.BusType
-            Pair 'Zustand' $(if ("$($disk.HealthStatus)" -eq 'Healthy') { 'in Ordnung' } else { "$($disk.HealthStatus)" })
+            Pair 'Zustand' ([PulsRig.Core.Systeminfo]::Health("$($disk.HealthStatus)"))
         }
     }
     catch { }
@@ -1707,7 +1349,7 @@ function Get-SystemInfoData {
     Head 'Treiber'
     $drivers = @(Get-CimInstance Win32_PnPSignedDriver -Property DeviceName, DriverVersion, DriverProviderName | Where-Object { $_.DeviceName -and $_.DriverVersion })
     Pair 'Geräte mit Treiber' $drivers.Count
-    Pair 'davon von Drittherstellern' @($drivers | Where-Object { $_.DriverProviderName -and $_.DriverProviderName -notlike 'Microsoft*' }).Count
+    Pair 'davon von Drittherstellern' @($drivers | Where-Object { [PulsRig.Core.Systeminfo]::IsThirdParty("$($_.DriverProviderName)") }).Count
     Pair 'Geräte mit Fehlern' @(Get-ProblemDevices).Count
 
     $rows
@@ -1715,6 +1357,7 @@ function Get-SystemInfoData {
 
 # Was Windows Update an Treibern eingespielt hat, und wann welches Treiberpaket ins System kam
 function Get-DriverHistory {
+    Import-PulsRigCore
     $updates = @()
     try {
         $searcher = (New-Object -ComObject Microsoft.Update.Session).CreateUpdateSearcher()
@@ -1723,15 +1366,13 @@ function Get-DriverHistory {
             foreach ($entry in $searcher.QueryHistory(0, [Math]::Min($total, 400))) {
                 $title = "$($entry.Title)"
                 if (-not $title) { continue }
-                # Treiber heißen bei Windows Update "Hersteller - Klasse - Version"
-                $isDriver = $title -match ' - [^-]+ - \d+(\.\d+){2,}\s*$' -or $title -match 'driver|treiber|firmware'
-                if (-not $isDriver) { continue }
+                if (-not [PulsRig.Core.Verlauf]::IsDriverUpdate($title)) { continue }
                 $date = ([datetime]$entry.Date).ToLocalTime()
                 $updates += [pscustomobject]@{
                     Title    = $title
                     Date     = $date
                     DateText = $date.ToString('dd.MM.yyyy HH:mm')
-                    Result   = switch ([int]$entry.ResultCode) { 2 { 'installiert' } 3 { 'mit Hinweisen' } 4 { 'fehlgeschlagen' } 5 { 'abgebrochen' } default { 'unvollständig' } }
+                    Result   = [PulsRig.Core.Verlauf]::Result([int]$entry.ResultCode)
                     Removed  = [int]$entry.Operation -eq 2
                 }
             }
@@ -1754,7 +1395,7 @@ function Get-DriverHistory {
             DateText = $added.ToString('dd.MM.yyyy')
             Provider = "$($first.DriverProviderName)"
             Version  = "$($first.DriverVersion)"
-            Devices  = if ($names.Count -gt 2) { '{0}, {1} und {2} weitere' -f $names[0], $names[1], ($names.Count - 2) } else { $names -join ', ' }
+            Devices  = [PulsRig.Core.Verlauf]::Devices([string[]]$names)
         }
     }
     @{ Updates = @($updates | Sort-Object Date -Descending); Packages = @($packages | Sort-Object Added -Descending) }
@@ -1815,9 +1456,28 @@ $script:BoostServiceKeep = 'NVIDIA|\bNv|\bAMD\b|Radeon|Intel|Audio|Realtek|Rtk|N
 
 # Pfad der Programmdatei eines Dienstes aus seiner Befehlszeile
 function Resolve-ServicePath([string]$PathName) {
-    if ($PathName -match '^\s*"([^"]+)"') { return $Matches[1] }
-    if ($PathName -match '^\s*(.+?\.exe)') { return $Matches[1] }
-    $PathName
+    Import-PulsRigCore
+    [PulsRig.Core.Treiber]::ResolveServicePath($PathName)
+}
+
+# Plan für den automatischen Boost aus den Einstellungen ($Plan = Boost-Teil der Einstellungsdatei oder $null).
+# Die Datei liegt im Benutzerordner, darum gilt sie nicht ungeprüft: angehalten werden nur Dienste aus der eigenen
+# Liste oder Dienste anderer Hersteller (Programmdatei außerhalb von Windows), Programme werden nie geschlossen.
+function New-AutoBoostPlan($Plan) {
+    # eine leere Auswahl heißt "keine Dienste" (aus der Einstellungsdatei kommt sie als leere Liste, nicht als $null)
+    Import-PulsRigCore
+    $wanted = @(if ($Plan -and $Plan.PSObject.Properties['Services'] -and $null -ne $Plan.Services) { @($Plan.Services) } else { $script:BoostServices }) |
+        Where-Object { [PulsRig.Core.Boost]::IsSafeName("$_") }
+    $allowed = @(foreach ($name in $wanted) {
+            $pathName = ''
+            if ($script:BoostServices -notcontains $name) {
+                try { $pathName = "$((Get-CimInstance Win32_Service -Filter ("Name='{0}'" -f $name) -ErrorAction Stop).PathName)" } catch { }
+            }
+            if ([PulsRig.Core.Boost]::IsAllowed("$name", [string[]]$script:BoostServices, $pathName, $env:WINDIR)) { $name }
+        })
+    # Programme schließt der automatische Boost nie: darin kann Ungespeichertes stecken
+    @{ Apps = @(); Services = $allowed; Clipboard = $false
+        PowerPlan = $(if ($Plan) { [bool]$Plan.PowerPlan } else { $true }); GameMode = $(if ($Plan) { [bool]$Plan.GameMode } else { $true }) }
 }
 
 # Auswahl für den Konfigurator im Fenster: Programme der eigenen Sitzung und laufende Dienste
@@ -2060,32 +1720,25 @@ function Invoke-GameBoostTool {
 
 # alle Dateien eines Ordners, die älter als $Days Tage sind - ohne Verknüpfungen zu folgen
 function Get-CleanableFiles([string]$Path, [int]$Days) {
-    if (-not $Path -or -not (Test-Path -LiteralPath $Path)) { return }
-    $limit = (Get-Date).AddDays(-$Days)
-    $stack = New-Object Collections.Stack
-    $stack.Push((New-Object IO.DirectoryInfo $Path))
-    while ($stack.Count -gt 0) {
-        $folder = $stack.Pop()
-        try { $entries = $folder.GetFileSystemInfos() } catch { continue }   # kein Zugriff: auslassen
-        foreach ($entry in $entries) {
-            if ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) { continue }
-            if ($entry -is [IO.DirectoryInfo]) { $stack.Push($entry) }
-            elseif ($entry.LastWriteTime -lt $limit) { $entry }
-        }
-    }
+    # auch Papierkorb, Treibersicherungen und Speicherabbilder lässt Core aus, falls sie einmal in einem Ziel liegen
+    Import-PulsRigCore
+    [PulsRig.Core.Aufraeumen]::CleanableFiles($Path, $Days)
 }
 
 # Was es aufzuräumen gibt: Name, Ordner, Mindestalter, ob Adminrechte nötig sind
-function Get-CleanTargets {
+function Get-CleanTargetList {
     $windows = $env:WINDIR
-    $targets = @(
+    @(
         @{ Name = 'Temporäre Dateien'; Paths = @([IO.Path]::GetTempPath()); Days = 2; Admin = $false }
         @{ Name = 'Temporäre Dateien von Windows'; Paths = @((Join-Path $windows 'Temp')); Days = 2; Admin = $true }
         @{ Name = 'Alte Downloads von Windows Update'; Paths = @((Join-Path $windows 'SoftwareDistribution\Download')); Days = 7; Admin = $true }
         @{ Name = 'Fehlerberichte von Windows'; Paths = @((Join-Path $env:ProgramData 'Microsoft\Windows\WER\ReportArchive'), (Join-Path $env:ProgramData 'Microsoft\Windows\WER\ReportQueue'), (Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\WER\ReportArchive')); Days = 7; Admin = $true }
         @{ Name = 'Von PulsRig geladene Installer'; Paths = @((Join-Path $OutDir 'Laufzeiten')); Days = 7; Admin = $false; Extra = 'Installer' }
     )
-    foreach ($target in $targets) {
+}
+
+function Get-CleanTargets {
+    foreach ($target in @(Get-CleanTargetList)) {
         $files = @(foreach ($path in $target.Paths) { Get-CleanableFiles $path $target.Days })
         # die Installer von NVIDIA liegen direkt im Zielordner: nur sie, nie Sicherungen oder Berichte
         if ($target.Extra -eq 'Installer' -and (Test-Path -LiteralPath $OutDir)) {

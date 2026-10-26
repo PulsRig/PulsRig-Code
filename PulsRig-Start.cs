@@ -1,28 +1,20 @@
-﻿// PulsRig.exe - die Hülle um das Programm. Sie trägt alle Dateien des Programms in sich und startet PulsRig.ps1 in
-// einer eingebauten PowerShell, statt dass powershell.exe das tut. Nach außen läuft damit "PulsRig" (Task-Manager,
-// Taskleiste, Verknüpfungen) und im Programmordner liegt nur diese eine Datei; innen arbeitet derselbe Code wie bisher.
+﻿// PulsRig.exe - die Hülle um das Programm. Nach außen läuft damit "PulsRig" (Task-Manager, Taskleiste,
+// Verknüpfungen); das Fenster und die Arbeit ohne Fenster erledigt die App im Unterordner App (PulsRig.App.exe, C#).
+// Die bisherige Oberfläche in PowerShell (PulsRig.ps1) ist seit dem 26.10.2026 abgelöst und steckt nicht mehr darin.
 //
 // Gebaut wird sie von PulsRig-Paket.ps1 mit dem Compiler, den Windows mitbringt (csc.exe von .NET Framework 4).
 //
-// Drei Arten, sie zu starten:
-//   PulsRig.exe                 das Programm mit Fenster (PulsRig.ps1)
+// Arten, sie zu starten:
+//   PulsRig.exe                 das Programm mit Fenster: App\PulsRig.App.exe (-Demo wird weitergereicht)
 //   PulsRig.exe -Helfer         der Helfer neben der Uhr (siehe PulsRigHelper unten) - ohne PowerShell, klein im Speicher
 //   PulsRig.exe -Boost Ein|Aus [-Spiel Name]   und   PulsRig.exe -Wochenscan
-//                               Arbeit ohne Fenster für den Helfer (PulsRig-Hintergrund.ps1)
-//
-// PulsRig.ps1 startet sich in zwei Fällen selbst neu (Adminrechte, Obergrenze der Speicherverwaltung) und ruft dafür
-// das Programm auf, in dem es gerade läuft - mit den Angaben, die powershell.exe braucht. Die Hülle nimmt deshalb
-// dieselben Angaben an, überliest die für powershell.exe gedachten (-NoProfile, -ExecutionPolicy, -WindowStyle,
-// -File) und reicht nur die Schalter des Programms weiter.
+//                               Arbeit ohne Fenster für den Helfer, ebenfalls in App\PulsRig.App.exe
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Management.Automation;
-using System.Management.Automation.Runspaces;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
@@ -48,89 +40,50 @@ static class PulsRigStart
         string root = Path.GetDirectoryName(self.Location);
 
         string mode = "app";
-        var switches = new Dictionary<string, object>();
+        string work = "";
+        bool demo = false;
         for (int i = 0; i < args.Length; i++)
         {
             switch (args[i].TrimStart('-').ToLowerInvariant())
             {
-                case "executionpolicy": case "windowstyle": case "file": i++; break;   // samt ihrem Wert überlesen
-                case "noelevate": switches["NoElevate"] = true; break;
-                case "demo": switches["Demo"] = true; break;
-                case "real": switches["Real"] = true; break;
-                case "scan": switches["StartScan"] = true; break;
-                case "snapshot": if (i + 1 < args.Length) switches["Snapshot"] = args[++i]; break;
+                case "demo": demo = true; break;
                 case "helfer": mode = "helper"; break;
-                case "boost": mode = "background"; switches["Aufgabe"] = "Boost"; if (i + 1 < args.Length) switches["Wert"] = args[++i]; break;
-                case "spiel": if (i + 1 < args.Length) switches["Spiel"] = args[++i]; break;
-                case "wochenscan": mode = "background"; switches["Aufgabe"] = "Wochenscan"; break;
+                case "boost": mode = "background"; work = "-Boost \"" + (i + 1 < args.Length ? args[++i] : "Ein") + "\"" + work; break;
+                case "spiel": if (i + 1 < args.Length) work += " -Spiel \"" + args[++i] + "\""; break;
+                case "wochenscan": mode = "background"; work = "-Wochenscan" + work; break;
             }
         }
         if (mode == "helper") return PulsRigHelper.Run(self.Location);
 
-        // Die Dateien des Programms stecken als Ressourcen in dieser Datei (PulsRig-Paket.ps1 bettet sie ein).
-        // Fehlen sie - eine Hülle, die jemand von Hand gebaut hat -, starten die Skripte aus dem Ordner daneben.
-        var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (string name in self.GetManifestResourceNames())
-        {
-            using (Stream stream = self.GetManifestResourceStream(name))
-            using (var reader = new StreamReader(stream, Encoding.UTF8, true))
-                files[name] = reader.ReadToEnd();
-        }
-        string scriptName = mode == "background" ? "PulsRig-Hintergrund.ps1" : "PulsRig.ps1";
-        bool embedded = files.ContainsKey(scriptName);
-        string script = Path.Combine(root, scriptName);
-        if (!embedded && !File.Exists(script))
-        {
-            if (mode == "app") MessageBoxW(IntPtr.Zero, scriptName + " fehlt im Ordner des Programms:\n" + root, "PulsRig", 0x10);
-            return 2;
-        }
-
+        // Fenster, Boost und Wochenscan erledigt die App (App\PulsRig.App.exe, C#). Sie liegt im selben geschützten
+        // Ordner und erbt die Rechte; bei der Arbeit ohne Fenster ist ihr Ergebnis das dieses Aufrufs.
+        string app = Path.Combine(Path.Combine(root, "App"), "PulsRig.App.exe");
         try
         {
-            InitialSessionState state = InitialSessionState.CreateDefault();
-            state.ExecutionPolicy = Microsoft.PowerShell.ExecutionPolicy.Bypass;   // gilt nur für diesen Prozess
-            state.ApartmentState = ApartmentState.STA;                            // die Oberfläche (WPF) verlangt das
-            state.ThreadOptions = PSThreadOptions.UseCurrentThread;
-            using (Runspace space = RunspaceFactory.CreateRunspace(state))
+            if (!File.Exists(app)) throw new FileNotFoundException("Die App fehlt im Ordner des Programms – bitte PulsRig neu installieren.", app);
+            if (mode == "app")
             {
-                space.Open();
-                using (PowerShell shell = PowerShell.Create())
-                {
-                    shell.Runspace = space;
-                    space.SessionStateProxy.SetVariable("PulsRigRoot", root);
-                    if (embedded)
-                    {
-                        space.SessionStateProxy.SetVariable("PulsRigEmbedded", files);
-                        shell.AddScript(files[scriptName]);
-                    }
-                    else shell.AddCommand(script);
-                    foreach (KeyValuePair<string, object> entry in switches) shell.AddParameter(entry.Key, entry.Value);
-                    Collection<PSObject> output = shell.Invoke();
-                    // Fehler, die das Programm nicht selbst gefangen hat, enden hier - sonst bliebe ein Start ohne Fenster stumm
-                    if (shell.InvocationStateInfo.State == PSInvocationState.Failed && shell.InvocationStateInfo.Reason != null)
-                        throw shell.InvocationStateInfo.Reason;
-                    // die Arbeit ohne Fenster meldet ihr Ergebnis als Zahl zurück (Wochenscan: neuere Treiber)
-                    if (mode == "background" && output.Count > 0)
-                    {
-                        int code;
-                        if (int.TryParse(Convert.ToString(output[output.Count - 1]), out code)) return code;
-                    }
-                }
+                Process.Start(new ProcessStartInfo(app) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(app), Arguments = demo ? "-Demo" : "" });
+                return 0;
             }
-            return 0;
+            var start = new ProcessStartInfo(app, work.Trim()) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = Path.GetDirectoryName(app) };
+            using (Process process = Process.Start(start))
+            {
+                process.WaitForExit();
+                return process.ExitCode;
+            }
         }
         catch (Exception problem)
         {
-            Exception inner = problem.InnerException ?? problem;
             try
             {
                 string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PulsRig");
                 Directory.CreateDirectory(folder);
                 File.AppendAllText(Path.Combine(folder, "PulsRig-Fehler.log"),
-                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  " + (mode == "app" ? "Start" : "Hintergrund") + ": " + inner + Environment.NewLine, new UTF8Encoding(true));
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  " + (mode == "app" ? "Start" : "Hintergrund") + ": " + problem + Environment.NewLine, new UTF8Encoding(true));
             }
             catch { }
-            if (mode == "app") MessageBoxW(IntPtr.Zero, "PulsRig konnte nicht starten:\n\n" + inner.Message, "PulsRig", 0x10);
+            if (mode == "app") MessageBoxW(IntPtr.Zero, "PulsRig konnte nicht starten:\n\n" + problem.Message, "PulsRig", 0x10);
             return -1;
         }
     }

@@ -6,6 +6,7 @@
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSCommandPath
+$script:Root = $root   # dort sucht Import-PulsRigCore die DLL (CSharp\...\bin)
 $script:Passed = 0
 $script:Failures = @()
 
@@ -25,8 +26,10 @@ function Test-Equal([string]$Name, $Actual, $Expected) {
     else { $script:Failures += "$Name`n      erwartet: $Expected`n      erhalten: $Actual" }
 }
 
-Import-Functions 'Treiber-Scan.ps1' 'ConvertTo-NvidiaVersion', 'Get-CatalogQuery', 'Select-CatalogCandidate', 'Test-ChipsetDevice', 'Get-BoardDriverSearch', 'Select-MissingDriverRow', 'Format-UpdateTitle', 'Find-DeviceName', 'Get-RadeonPage', 'Get-GpuShieldKey'
-Import-Functions 'PulsRig-Hardware.ps1' 'Get-MemoryRated', 'Get-MemoryProfile', 'Get-MemoryChannelKey', 'Get-MemoryChannels', 'Get-MemoryPlacement', 'Get-MemoryLayout'
+# die Rechenfunktionen der Skripte stecken in PulsRig.Core.dll; Import-PulsRigCore findet sie über $script:Root
+Import-Functions 'Treiber-Werkzeuge.ps1' 'Import-PulsRigCore'
+Import-Functions 'Treiber-Scan.ps1' 'ConvertTo-NvidiaVersion', 'Get-CatalogQuery', 'Select-CatalogCandidate', 'ConvertTo-CatalogRows', 'Test-ChipsetDevice', 'Get-BoardDriverSearch', 'Select-MissingDriverRow', 'Format-UpdateTitle', 'Find-DeviceName', 'Get-RadeonPage', 'Get-GpuShieldKey'
+Import-Functions 'PulsRig-Hardware.ps1' 'ConvertTo-MemoryModules', 'ConvertTo-MemorySlots', 'Get-MemoryRated', 'Get-MemoryProfile', 'Get-MemoryChannelKey', 'Get-MemoryChannels', 'Get-MemoryPlacement', 'Get-MemoryLayout'
 
 # --- NVIDIA-Version ---
 Test-Equal 'NVIDIA: 32.0.16.1742 ist 617.42' (ConvertTo-NvidiaVersion '32.0.16.1742') '617.42'
@@ -191,6 +194,99 @@ Test-Equal 'Treibersuche: Adresse ist https und kodiert' $search.Url 'https://ww
 Test-Equal 'Treibersuche: Fertig-PC nimmt das Gerät' (Get-BoardDriverSearch 'LENOVO' '82RG' 'LENOVO' 'LNVNB161216').Name 'LENOVO 82RG'
 Test-Equal 'Treibersuche: MSI gekürzt' (Get-BoardDriverSearch 'Micro-Star International Co., Ltd.' 'MS-7D43' 'Micro-Star International Co., Ltd.' 'PRO B660M-A DDR4 (MS-7D43)').Name 'MSI MS-7D43'
 Test-Equal 'Treibersuche: ohne Modell keine Suche' ([bool](Get-BoardDriverSearch 'To Be Filled By O.E.M.' 'To Be Filled By O.E.M.' '' '')) $false
+
+# --- Tabu: der automatische Boost ---
+# Die Einstellungsdatei liegt im Benutzerordner und könnte verändert sein: angehalten werden dürfen nur Dienste aus
+# der eigenen Liste oder Dienste anderer Hersteller, Programme werden nie geschlossen.
+$script:BoostServices = 'WSearch', 'SysMain', 'Spooler'
+Import-Functions 'Treiber-Werkzeuge.ps1' 'New-AutoBoostPlan', 'Get-CleanableFiles', 'Get-CleanTargetList', 'Get-CleanTargets'
+$script:FakeServices = @{ 'Steuer' = 'C:\Program Files\Steuer\steuer.exe'; 'WinDefend' = "$env:WINDIR\System32\svchost.exe -k secsvcs"; 'Leer' = '' }
+function script:Get-CimInstance($Class, $Filter) {
+    if ($Filter -match "Name='(.+)'" -and $script:FakeServices.ContainsKey($Matches[1])) { [pscustomobject]@{ PathName = $script:FakeServices[$Matches[1]] } }
+}
+$boost = New-AutoBoostPlan $null
+Test-Equal 'Boost: ohne Einstellungen die eigene Liste' ($boost.Services -join ',') 'WSearch,SysMain,Spooler'
+Test-Equal 'Boost: ohne Einstellungen keine Programme' @($boost.Apps).Count 0
+$boost = New-AutoBoostPlan ([pscustomobject]@{ Services = @(); Apps = @('chrome', 'word'); PowerPlan = $true; GameMode = $true })
+Test-Equal 'Boost: leere Auswahl hält nichts an' @($boost.Services).Count 0
+Test-Equal 'Boost: Programme aus der Datei werden nie geschlossen' @($boost.Apps).Count 0
+Test-Equal 'Boost: Zwischenablage bleibt' $boost.Clipboard $false
+$boost = New-AutoBoostPlan ([pscustomobject]@{ Services = @('SysMain', 'Steuer', 'WinDefend', 'Leer', 'Unbekannt', "x' OR Name like '%", 'a;b'); PowerPlan = $false; GameMode = $false })
+Test-Equal 'Boost: nur eigene Liste und fremde Hersteller' ($boost.Services -join ',') 'SysMain,Steuer'
+Test-Equal 'Boost: abgewählter Energieplan bleibt abgewählt' $boost.PowerPlan $false
+
+# --- Tabu: Speicherplatz freigeben ---
+# Papierkorb, Treibersicherungen und Speicherabbilder sind nie ein Ziel, und Verknüpfungen werden nicht betreten.
+$OutDir = Join-Path ([IO.Path]::GetTempPath()) "PulsRig-Test-$PID"
+$outside = Join-Path ([IO.Path]::GetTempPath()) "PulsRig-Test-$PID-fremd"
+try {
+    foreach ($folder in "$OutDir\Laufzeiten", "$OutDir\Backup_2026-10-01", "$OutDir\Auto-Sicherung_1", $outside) { [void](New-Item -ItemType Directory -Path $folder -Force) }
+    $old = (Get-Date).AddDays(-30)
+    foreach ($file in "$OutDir\Laufzeiten\alt.exe", "$OutDir\nvidia-alt.exe", "$OutDir\Backup_2026-10-01\setup.exe", "$OutDir\Auto-Sicherung_1\x.exe", "$outside\wichtig.txt") {
+        Set-Content -LiteralPath $file -Value 'x'; (Get-Item -LiteralPath $file).LastWriteTime = $old
+    }
+    Set-Content -LiteralPath "$OutDir\Laufzeiten\neu.exe" -Value 'x'
+    [void](New-Item -ItemType Junction -Path "$OutDir\Laufzeiten\Sprung" -Target $outside)
+
+    $found = @(Get-CleanableFiles "$OutDir\Laufzeiten" 7 | ForEach-Object { $_.Name })
+    Test-Equal 'Aufräumen: alte Datei gefunden, neue bleibt' ($found -join ',') 'alt.exe'
+    Test-Equal 'Aufräumen: Junction wird nicht betreten' ($found -contains 'wichtig.txt') $false
+
+    $allPaths = @(Get-CleanTargetList | ForEach-Object { $_.Paths })
+    Test-Equal 'Aufräumen: kein Papierkorb, keine Abbilder, kein Treiberspeicher' (@($allPaths | Where-Object { $_ -match 'Recycle|Minidump|MEMORY\.DMP|\.dmp$|DriverStore|LiveKernelReports|Backup_|Sicherung' }).Count) 0
+
+    function script:Get-CleanTargetList { @(@{ Name = 'Installer'; Paths = @("$OutDir\Laufzeiten"); Days = 7; Admin = $false; Extra = 'Installer' }) }
+    $files = @((Get-CleanTargets).Files | ForEach-Object { $_.FullName.Substring($OutDir.Length + 1) } | Sort-Object)
+    Test-Equal 'Aufräumen: Installer ja, Treibersicherungen nie' ($files -join ',') 'Laufzeiten\alt.exe,nvidia-alt.exe'
+    Test-Equal 'Aufräumen: Ordner hinter der Junction unberührt' (Test-Path -LiteralPath "$outside\wichtig.txt") $true
+}
+finally {
+    if (Test-Path -LiteralPath "$OutDir\Laufzeiten\Sprung") { [IO.Directory]::Delete("$OutDir\Laufzeiten\Sprung") }
+    Remove-Item -LiteralPath $OutDir, $outside -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# --- Werkzeuge über PulsRig.Core ---
+Import-Functions 'Treiber-Werkzeuge.ps1' 'Save-SignedDownload', 'Select-CleanableDevices', 'Select-RefreshRate', 'Resolve-DriverPath'
+$blocked = ''
+try { Save-SignedDownload 'https://nvidia.com.boese.de/a.exe' (Join-Path ([IO.Path]::GetTempPath()) 'nie.exe') 'NVIDIA' @('*.nvidia.com') } catch { $blocked = $_.Exception.Message }
+Test-Equal 'Download: fremder Rechner wird abgelehnt, bevor etwas geladen wird' $blocked 'Unerwartete Adresse: https://nvidia.com.boese.de/a.exe'
+$devices = @(
+    [pscustomobject]@{ Present = $false; InstanceId = 'USB\VID_046D&PID_C52B\1'; Class = 'HIDClass' },
+    [pscustomobject]@{ Present = $false; InstanceId = 'USB\VID_0BDA&PID_8153\1'; Class = 'Net' },
+    [pscustomobject]@{ Present = $true; InstanceId = 'USB\VID_1234&PID_0001\1'; Class = 'HIDClass' }
+)
+Test-Equal 'Geräte: nur getrennte, ohne Netzwerkadapter' (@(Select-CleanableDevices $devices).InstanceId -join ',') 'USB\VID_046D&PID_C52B\1'
+$display = [pscustomobject]@{ Native = @{ Width = 2560; Height = 1440 }; Current = @{ Frequency = 75 }
+    Modes = @(@{ Width = 2560; Height = 1440; Frequency = 60 }, @{ Width = 2560; Height = 1440; Frequency = 165 }, @{ Width = 1920; Height = 1080; Frequency = 75 }) }
+Test-Equal 'Auflösung: 75 Hz gibt es nativ nicht, also 60' (Select-RefreshRate $display) 60
+$display.Modes = @()
+Test-Equal 'Auflösung: ohne Modi keine Rate' ($null -eq (Select-RefreshRate $display)) $true
+Test-Equal 'Treiberpfad: SystemRoot' (Resolve-DriverPath '\SystemRoot\System32\drivers\a.sys') (Join-Path $env:windir 'System32\drivers\a.sys')
+
+# --- Laufzeiten auf einem vorgetäuschten PC ---
+$script:VcRuntimes = @(@{ Name = 'Visual C++ 2013'; Pattern = 'Visual C\+\+ 2013 Redistributable'; Latest = '12.0.40664'; x64 = 'https://a/x64.exe'; x86 = 'https://a/x86.exe' })
+Import-Functions 'Treiber-Werkzeuge.ps1' 'Get-RuntimeStatus', 'Test-TcpPort'
+function script:Get-ItemProperty($Path) {
+    if ("$Path" -match 'Uninstall') {
+        [pscustomobject]@{ DisplayName = 'Microsoft Visual C++ 2013 Redistributable (x64) - 12.0.30501'; DisplayVersion = '12.0.30501.0' }
+        [pscustomobject]@{ DisplayName = 'Microsoft Visual C++ 2013 x86 Minimum Runtime - 12.0.40664'; DisplayVersion = '12.0.40664.0' }
+    }
+}
+$runtimes = @(Get-RuntimeStatus)
+Test-Equal 'Laufzeiten: 2013 x64 veraltet' "$($runtimes[0].Status) $($runtimes[0].Version)" 'veraltet 12.0.30501.0'
+Test-Equal 'Laufzeiten: Teilpaket zählt nicht als x86' $runtimes[1].Status 'fehlt'
+Test-Equal 'Laufzeiten: Dateiname des Installers' $runtimes[0].File 'vcredist_2013_x64.exe'
+Remove-Item Function:\Get-ItemProperty
+Test-Equal 'Netz: geschlossener Port' (Test-TcpPort '127.0.0.1' 1 500) $false
+
+# --- Treibersicherung und Gerätefehler ---
+Import-Functions 'Treiber-Werkzeuge.ps1' 'Get-DriverPackages'
+Import-Functions 'Treiber-Scan.ps1' 'Get-DeviceError'
+function script:pnputil.exe { 'Veröffentlichter Name:  oem7.inf', 'Originalname:  rt640x64.inf', 'Anbietername:  Realtek', '', 'Veröffentlichter Name:  machine.inf', 'Originalname:  machine.inf', 'Anbietername:  Microsoft' }
+$packages = @(Get-DriverPackages)
+Test-Equal 'Sicherung: nur oem-Pakete' "$($packages.Count) $($packages[0].Original) $($packages[0].Provider)" '1 rt640x64.inf Realtek'
+Remove-Item Function:\pnputil.exe
+Test-Equal 'Gerätefehler: Code 28' "$((Get-DeviceError 28).Text) / $((Get-DeviceError 28).Advice)" 'kein Treiber installiert / Treiber erneuern'
 
 Write-Host ''
 if ($script:Failures.Count -eq 0) { Write-Host "Alle $($script:Passed) Tests bestanden." -ForegroundColor Green; exit 0 }

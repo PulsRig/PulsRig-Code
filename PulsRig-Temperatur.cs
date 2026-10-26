@@ -25,6 +25,8 @@ public static class PulsRigCpuTemp
     public static string Source = "";
     // none = kein Weg gefunden, noadmin = Treiber da, aber ohne Adminrechte, nodriver = PawnIO fehlt, nolib = Ordner fehlt
     public static string Status = "";
+    // warum LibreHardwareMonitor nicht lief (die Ausnahme beim Öffnen), für das Diagnose-Paket
+    public static string Error = "";
     public static string Sensor = "";
     public static double Power = double.NaN;
 
@@ -81,7 +83,7 @@ public static class PulsRigCpuTemp
             Power = double.NaN;
             if (LibraryPresent() && DriverInstalled() && IsAdmin())
             {
-                try { value = ReadLibrary(); } catch { value = double.NaN; }
+                try { value = ReadLibrary(); } catch (Exception e) { value = double.NaN; Error = (e.InnerException ?? e).GetType().Name + ": " + (e.InnerException ?? e).Message; }
                 if (!double.IsNaN(value)) { Source = "LibreHardwareMonitor"; Status = "ok"; return value; }
             }
             value = ReadCoreTemp();

@@ -629,7 +629,29 @@ function Start-SnapshotTour {
                     Update-PowerLimit
                 }
             },
-            @{ Wait = 700; Do = { Save-Snapshot '28zz-stromverbrauch-fps-ersparnis'; $script:PowerLimit = @{}; Close-Sheet -Quick } },
+            @{ Wait = 700; Do = { Save-Snapshot '28zz-stromverbrauch-fps-ersparnis'; $script:PowerLimit = @{}; Close-Sheet -Quick; Open-UpgradeSheet } },
+            # Aufrüst-Berater mit der Bestandsaufnahme dieses PCs, dann eine laufende und eine fertige Beispielmessung
+            @{ Until = { $script:Sheet -and $script:Sheet.Upgrade }; Timeout = 30000; Do = {
+                    $u = $script:Sheet.Upgrade
+                    Write-Host "Aufrüsten: $($u.Cpu) | $(@($u.Gpus) -join ', ') | RAM $(@($u.Memory.Modules).Count) von $($u.Memory.Slots) Plätzen | Spiele $(@($u.Games).Count)"
+                }
+            },
+            @{ Wait = 3000; Do = {
+                    Write-Host "Stärkster Kern: $($sync.Sensors.CpuCoreMax) % | alle Kerne: $($sync.Sensors.CpuLoad) %"
+                    Save-Snapshot '28zza-aufruesten'
+                    Start-UpgradeMeasure
+                }
+            },
+            @{ Wait = 900; Do = {
+                    Save-Snapshot '28zzb-aufruesten-misst'
+                    $script:Upgrade.Run = $null
+                    $script:UpgradeResult = @{ Time = [DateTime]::Now; Count = 60; Vram = 71.0
+                        Core = @{ Mean = 94.0; Busy = 0.82 }; Cpu = @{ Mean = 31.0; Busy = 0.0 }; Gpu = @{ Mean = 62.0; Busy = 0.05 }; Ram = @{ Mean = 68.0; Busy = 0.0 }
+                        Game = @{ Name = 'Counter-Strike 2'; Letter = 'E'; Kind = 'HDD' } }
+                    Update-UpgradePanel
+                }
+            },
+            @{ Wait = 900; Do = { Save-Snapshot '28zzc-aufruesten-ergebnis'; $script:UpgradeResult = $null; Close-Sheet -Quick } },
             # Was ist los? (Problem zuerst): Spiele ruckeln mit der Liste der Spiele, dann Abstürze und Sonstiges
             @{ Wait = 700; Do = { Open-ProblemSheet } },
             @{ Until = { $null -ne $script:Sheet.Games }; Timeout = 30000; Do = {

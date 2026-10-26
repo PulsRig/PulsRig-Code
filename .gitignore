@@ -17,3 +17,7 @@ Natur-Reset_Planer.pdf
 
 # die Programmdatei baut PulsRig-Paket.ps1 aus PulsRig-Start.cs
 PulsRig.exe
+
+# gebaute Dateien der C#-Projekte
+CSharp/**/bin/
+CSharp/**/obj/

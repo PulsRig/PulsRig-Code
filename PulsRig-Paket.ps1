@@ -23,10 +23,18 @@ if ($main -notmatch "\`$script:Version = '([^']+)'") { throw 'Version in PulsRig
 $version = $Matches[1]
 $versionName = $version -replace '\s+', '-'
 
+# PulsRig.Core.dll: die nach C# übertragenen Teile (Ordner CSharp, Fassung net48 für PowerShell 5.1). Braucht das .NET SDK.
+$solution = Join-Path $root 'CSharp\PulsRig.slnx'
+& dotnet build $solution -c Release -v q -nologo
+if ($LASTEXITCODE -ne 0) { throw 'PulsRig.Core ließ sich nicht bauen.' }
 if (-not $OhneTests) {
+    & dotnet test $solution -c Release --no-build -nologo
+    if ($LASTEXITCODE -ne 0) { throw 'Die C#-Tests sind fehlgeschlagen - es wird nichts gebaut.' }
+    # die PowerShell-Tests laden PulsRig.Core.dll, darum erst nach dem Bauen
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'PulsRig-Tests.ps1')
     if ($LASTEXITCODE -ne 0) { throw 'Die Tests sind fehlgeschlagen - es wird nichts gebaut.' }
 }
+$coreDll = Join-Path $root 'CSharp\PulsRig.Core\bin\Release\net48\PulsRig.Core.dll'
 
 # Programmsymbol: das Logo (Ring im Farbverlauf, Pulslinie) in vier Größen. Entsteht einmal und bleibt dann liegen.
 function New-PulsRigIcon([string]$Path) {
@@ -87,6 +95,7 @@ $files = @(Get-ChildItem -LiteralPath $root -File | Where-Object {
         $_.Name -notin 'PulsRig-Tests.ps1', 'PulsRig-Paket.ps1', 'PulsRig-Fremdsystem.ps1', 'PulsRig-Hochladen.ps1', 'PulsRig-Start.cs'
     })
 foreach ($file in $files) { Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $stage $file.Name) }
+Copy-Item -LiteralPath $coreDll -Destination (Join-Path $stage 'PulsRig.Core.dll')
 # Ordner Sensoren: LibreHardwareMonitor für die Temperatur des Prozessors (PulsRig-Temperatur.cs), samt Lizenzen
 $sensors = Join-Path $root 'Sensoren'
 if (-not (Test-Path -LiteralPath (Join-Path $sensors 'LibreHardwareMonitorLib.dll'))) { throw "Der Ordner Sensoren fehlt: $sensors" }
@@ -118,26 +127,35 @@ if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Confirm:$false
 Compress-Archive -Path $stage -DestinationPath $zip
 Write-Host ("ZIP:   {0}  ({1:N0} KB)" -f $zip, ((Get-Item -LiteralPath $zip).Length / 1KB))
 
-# PulsRig.exe für die Installationsdatei: die Hülle (PulsRig-Start.cs), die alle Skripte, die Oberfläche und das
-# Baudatum in sich trägt - im Programmordner liegen dann nur sie, das Symbol und der Testzettel. Gebaut mit dem
-# Compiler, den Windows mitbringt; die eingebaute PowerShell kommt aus derselben Bibliothek, die dieses Skript nutzt.
+# PulsRig.exe für die Installationsdatei: die Hülle (PulsRig-Start.cs), die die App im Unterordner App startet, und
+# der Helfer neben der Uhr. Im Programmordner liegen dazu App, Sensoren, das Symbol und der Testzettel. Gebaut mit dem
+# Compiler, den Windows mitbringt.
 # (Das ZIP-Paket oben bleibt bei losen Dateien und startet wie bisher über powershell.exe.)
 $program = Join-Path $dist 'PulsRig-Programm'
 if (Test-Path -LiteralPath $program) { Remove-Item -LiteralPath $program -Recurse -Force -Confirm:$false }
 New-Item -ItemType Directory -Path $program -Force | Out-Null
 $csc = Join-Path ([Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory()) 'csc.exe'
 if (-not (Test-Path -LiteralPath $csc)) { throw "Der Compiler von .NET Framework fehlt: $csc" }
-$inside = @(Get-ChildItem -LiteralPath $stage -File | Where-Object { $_.Name -match '\.(ps1|xaml|cs)$|^PulsRig-Bau\.txt$' -and $_.Name -ne 'PulsRig-Installieren.ps1' })
 $exe = Join-Path $program 'PulsRig.exe'
-$resources = @($inside | ForEach-Object { "-resource:$($_.FullName),$($_.Name)" })
 # der Helfer zeichnet beim Spielen auf (PulsRig-Aufzeichnung.cs) und liest dafür die Temperatur des Prozessors
 # (PulsRig-Temperatur.cs); LibreHardwareMonitor wird nur übersetzt mit angegeben und zur Laufzeit aus "Sensoren" geladen
 $library = Join-Path $root 'Sensoren\LibreHardwareMonitorLib.dll'
-& $csc '-nologo' '-target:winexe' '-platform:anycpu' '-optimize+' "-out:$exe" "-win32icon:$icon" "-r:$([psobject].Assembly.Location)" '-r:System.Windows.Forms.dll' '-r:System.Drawing.dll' '-r:System.Web.Extensions.dll' '-r:System.Core.dll' "-r:$library" @resources (Join-Path $root 'PulsRig-Start.cs') (Join-Path $root 'PulsRig-Temperatur.cs') (Join-Path $root 'PulsRig-Aufzeichnung.cs')
+& $csc '-nologo' '-target:winexe' '-platform:anycpu' '-optimize+' "-out:$exe" "-win32icon:$icon" '-r:System.Windows.Forms.dll' '-r:System.Drawing.dll' '-r:System.Web.Extensions.dll' '-r:System.Core.dll' "-r:$library" (Join-Path $root 'PulsRig-Start.cs') (Join-Path $root 'PulsRig-Temperatur.cs') (Join-Path $root 'PulsRig-Aufzeichnung.cs')
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $exe)) { throw 'PulsRig.exe ließ sich nicht bauen.' }
-foreach ($name in 'PulsRig.ico', 'PulsRig-Testzettel.txt') { Copy-Item -LiteralPath (Join-Path $stage $name) -Destination (Join-Path $program $name) }
+foreach ($name in 'PulsRig.ico', 'PulsRig-Testzettel.txt', 'PulsRig.Core.dll') { Copy-Item -LiteralPath (Join-Path $stage $name) -Destination (Join-Path $program $name) }
 Copy-Item -LiteralPath (Join-Path $stage 'Sensoren') -Destination (Join-Path $program 'Sensoren') -Recurse
-Write-Host ("Programmdatei: PulsRig.exe  ({0:N0} KB, {1} Dateien eingebettet)" -f ((Get-Item -LiteralPath $exe).Length / 1KB), $inside.Count)
+Write-Host ("Programmdatei: PulsRig.exe  ({0:N0} KB)" -f ((Get-Item -LiteralPath $exe).Length / 1KB))
+
+# Die App (CSharp\PulsRig.App, Reihe Q) im Unterordner App: PulsRig.exe startet sie; die bisherige Oberfläche in
+# PowerShell ist abgelöst. Eigenständig veröffentlicht samt .NET, damit auf dem PC nichts nachinstalliert werden muss.
+# LibreHardwareMonitor lädt sie aus dem Ordner Sensoren daneben.
+$appDir = Join-Path $program 'App'
+& dotnet publish (Join-Path $root 'CSharp\PulsRig.App\PulsRig.App.csproj') -c Release -r win-x64 --self-contained true -o $appDir -v q -nologo
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $appDir 'PulsRig.App.exe'))) { throw 'Die neue Oberfläche ließ sich nicht veröffentlichen.' }
+# das Baudatum für die Suche nach neuen Fassungen (Neuefassung.cs)
+Copy-Item -LiteralPath (Join-Path $stage 'PulsRig-Bau.txt') -Destination (Join-Path $appDir 'PulsRig-Bau.txt')
+$appBytes = [long]((Get-ChildItem -LiteralPath $appDir -Recurse -File | Measure-Object Length -Sum).Sum)
+Write-Host ("Neue Oberfläche: App\PulsRig.App.exe  ({0:N0} MB)" -f ($appBytes / 1MB))
 
 # Installationsdatei mit Inno Setup
 $compiler = Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup*", "$env:ProgramFiles\Inno Setup*", "$env:LOCALAPPDATA\Programs\Inno Setup*" -Filter ISCC.exe -Recurse -ErrorAction SilentlyContinue |

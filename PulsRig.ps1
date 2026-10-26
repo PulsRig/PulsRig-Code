@@ -42,6 +42,20 @@ function Get-AppText([string]$Name) {
     [IO.File]::ReadAllText((Join-Path $script:Root $Name), [Text.Encoding]::UTF8)
 }
 function Get-AppCode([string]$Name) { [scriptblock]::Create((Get-AppText $Name)) }
+# PulsRig.Core.dll (die nach C# übertragenen Teile, Ordner CSharp) liegt neben dem Programm - auch neben PulsRig.exe,
+# deren Skripte keinen eigenen Ordner haben; in der Werkstatt kommt sie aus dem Ordner, in den "dotnet build" sie legt
+function Get-CoreDll {
+    foreach ($dir in @($script:Root, [IO.Path]::GetDirectoryName([Diagnostics.Process]::GetCurrentProcess().MainModule.FileName))) {
+        foreach ($file in (Join-Path $dir 'PulsRig.Core.dll'), (Join-Path $dir 'CSharp\PulsRig.Core\bin\Release\net48\PulsRig.Core.dll'), (Join-Path $dir 'CSharp\PulsRig.Core\bin\Debug\net48\PulsRig.Core.dll')) {
+            if (Test-Path -LiteralPath $file) { return $file }
+        }
+    }
+    throw 'PulsRig.Core.dll fehlt - im Ordner CSharp einmal "dotnet build" ausführen.'
+}
+# Lädt Core in die Oberfläche (die Abfragen haben ihre eigene Fassung aus Treiber-Werkzeuge.ps1)
+function Import-PulsRigCore {
+    if (-not ('PulsRig.Core.Speicher' -as [type])) { Add-Type -LiteralPath (Get-CoreDll) }
+}
 # Wann diese Fassung gebaut wurde: PulsRig-Paket.ps1 legt dem Paket die Datei PulsRig-Bau.txt bei. Die Versionsnummer
 # allein sagt das nicht - dieselbe Version wird während einer Testphase mehrfach gebaut.
 $script:Build = 'Werkstatt (nicht aus einem Paket)'
@@ -1342,6 +1356,7 @@ $script:Tools = [ordered]@{
     CleanDisk           = @{ Glyph = 0xE74D; Title = 'Speicherplatz freigeben'; Desc = 'Temporäre Dateien, Shader-Cache und alte Treiberpakete löschen' }
     Standby             = @{ Glyph = 0xE708; Title = 'Standby-Detektiv'; Desc = 'Warum der PC aufwacht oder wach bleibt' }
     Power               = @{ Glyph = 0xE945; Title = 'Stromverbrauch'; Desc = 'Watt und Stromkosten im Jahr, geschätzt'; Find = 'Strom Stromkosten Watt Verbrauch Euro kWh FPS Limit Bildrate sparen' }
+    Upgrade             = @{ Glyph = 0xE9F9; Title = 'Aufrüst-Berater'; Desc = 'Im Spiel messen, ob Prozessor oder Grafikkarte bremst'; Find = 'Aufrüsten Upgrade Engpass Bottleneck Prozessor Grafikkarte RAM Steckplätze bremst' }
     InputTest           = @{ Glyph = 0xE7FC; Title = 'Controller und Maus'; Desc = 'Tasten, Stick-Drift, Abfragerate und Doppelklick-Fehler'; Find = 'Controller Gamepad Maus Drift Hz Doppelklick' }
     GameBoost           = @{ Glyph = 0xEC4A; Title = 'Spiel-Beschleunigung'; Desc = 'Energieplan, Dienste und speicherhungrige Programme' }
 }
@@ -1424,7 +1439,7 @@ $script:ToolGroups = [ordered]@{
     'Schnelle Reparaturen' = 'FixAudio', 'FixNetwork', 'FixResolution', 'FixDevices'
     # der Treiberverlauf ist über "Was hat sich geändert?" und Optionen → Schnellzugriff erreichbar
     'Treiber und Komponenten' = 'DriverBackup', 'GpuShield', 'Reinstall', 'RescueStick', 'IncompatibleDrivers', 'CleanDevices', 'GameRuntimes'
-    'System'                  = 'Autostart', 'CleanDisk', 'Standby', 'Power', 'SystemInfo', 'InputTest'
+    'System'                  = 'Autostart', 'CleanDisk', 'Standby', 'Power', 'Upgrade', 'SystemInfo', 'InputTest'
 }
 # Symbolfarben der Reihe nach: Akzent- und Ringfarben des Designs
 $script:ToolColors = '#22D3EE', '#FB923C', '#A855F7', '#F43F5E', '#FDE047'
@@ -1438,6 +1453,7 @@ function Open-Tool([string]$Name) {
         'Autostart' { Open-AutostartSheet }
         'Standby' { Open-StandbySheet }
         'Power' { Open-PowerSheet }
+        'Upgrade' { Open-UpgradeSheet }
         'InputTest' { Open-InputSheet }
         'DriverBackup' { Open-DriverBackupSheet }
         'Reinstall' { Open-ReinstallSheet }
@@ -1515,7 +1531,7 @@ foreach ($group in $script:ToolGroups.Keys) {
         $tile.FindName('Desc').Text = T $(if ($big -and $tool.ShortDesc) { $tool.ShortDesc } else { $tool.Desc })
         if ($big) { $tile.ToolTip = T $tool.Title }
         # ohne Adminrechte zeigen diese Werkzeuge nur, was sie tun würden
-        if (-not $script:IsAdmin -and $script:NoAdminTools -notcontains $name -and $name -notin 'GameRuntimes', 'SystemInfo', 'History', 'Autostart', 'Standby', 'Power', 'DriverBackup', 'GpuShield', 'Reinstall', 'RescueStick', 'InputTest') {
+        if (-not $script:IsAdmin -and $script:NoAdminTools -notcontains $name -and $name -notin 'GameRuntimes', 'SystemInfo', 'History', 'Autostart', 'Standby', 'Power', 'Upgrade', 'DriverBackup', 'GpuShield', 'Reinstall', 'RescueStick', 'InputTest') {
             $tile.FindName('Badge').Visibility = 'Visible'
             # in der schmalen Reihe ist für das Schild kein Platz: der Hinweis steht im Tooltip
             if ($big) { $tile.ToolTip = "$(T $tool.Title) – $(T 'Probelauf ohne Adminrechte')" }
@@ -3037,6 +3053,7 @@ $window.Add_Closing({
 . (Get-AppCode 'PulsRig-Autostart.ps1')
 . (Get-AppCode 'PulsRig-Treiberschutz.ps1')
 . (Get-AppCode 'PulsRig-Strom.ps1')
+. (Get-AppCode 'PulsRig-Aufruesten.ps1')
 . (Get-AppCode 'PulsRig-Neuinstallation.ps1')
 . (Get-AppCode 'PulsRig-Helfer.ps1')
 . (Get-AppCode 'PulsRig-Bento.ps1')   # Nacht-Bento: Weg-Leiste, Zurück-Knopf, Seitenumbau (nur in diesem Skin)

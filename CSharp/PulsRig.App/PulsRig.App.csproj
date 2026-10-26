@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\PulsRig.Core\PulsRig.Core.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <!-- PerMonitorV2: scharf auf 4K und bei gemischter Skalierung -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- nur für das Fenster der Grafiklast (PulsRig-Last.cs) -->
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <!-- Last des Stabilitätstests und Temperatur des Prozessors: dieselben Dateien wie im PowerShell-Programm.
+       LibreHardwareMonitor kommt als Paket in der Fassung für .NET mit (siehe unten). -->
+  <ItemGroup>
+    <Compile Include="..\..\PulsRig-Last.cs" Link="Fremd\PulsRig-Last.cs" />
+    <Compile Include="..\..\PulsRig-Temperatur.cs" Link="Fremd\PulsRig-Temperatur.cs" />
+    <Compile Include="..\..\PulsRig-Benchmark.cs" Link="Fremd\PulsRig-Benchmark.cs" />
+    <Compile Include="..\..\PulsRig-Eingabe.cs" Link="Fremd\PulsRig-Eingabe.cs" />
+    <!-- LibreHardwareMonitor in der Fassung für .NET (NuGet, dieselbe Version wie in Sensoren): die Fassung für
+         .NET Framework im Ordner Sensoren bricht unter .NET 10 beim Öffnen ab (MissingMethodException bei Mutex).
+         Der Ordner Sensoren bleibt für das PowerShell-Programm. -->
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Schriften\*.ttf" />
+    <!-- die englischen Wörter des PowerShell-Programms (Texte.cs) -->
+    <Resource Include="..\..\PulsRig-Englisch.ps1" Link="Englisch.ps1" />
+    <None Include="Schriften\*.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Management" Version="10.0.2" />
+    <PackageReference Include="System.Diagnostics.EventLog" Version="10.0.0" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.0" />
+  </ItemGroup>
+
+</Project>

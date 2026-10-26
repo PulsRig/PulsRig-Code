@@ -89,48 +89,17 @@ catch { }
 }
 '@
 
-# Fehlercodes der Bluescreens: Name in Worten und Art der Ursache.
-# Die Art bestimmt Erklärung und nächsten Schritt (siehe $script:CrashKinds).
-$script:BugChecks = @{
-    0x0A  = @('Ein Treiber griff auf falschen Speicher zu', 'driver')
-    0xD1  = @('Ein Treiber griff auf falschen Speicher zu', 'driver')
-    0x1E  = @('Ein Treiber hat einen Fehler nicht abgefangen', 'driver')
-    0x7E  = @('Ein Treiber hat einen Fehler nicht abgefangen', 'driver')
-    0x3B  = @('Fehler in einem Systemaufruf', 'driver')
-    0xC2  = @('Ein Treiber hat Speicher falsch angefordert', 'driver')
-    0x19  = @('Speicherverwaltung durcheinander', 'driver')
-    0xFC  = @('Ein Treiber wollte geschützten Speicher ausführen', 'driver')
-    0x139 = @('Sicherheitsprüfung im Windows-Kern', 'driver')
-    0x133 = @('Ein Treiber hat das System zu lange blockiert', 'driver')
-    0x9F  = @('Ein Treiber hing beim Standby oder Aufwachen', 'driver')
-    0x1A  = @('Fehler in der Speicherverwaltung', 'memory')
-    0x50  = @('Zugriff auf Speicher, den es nicht gibt', 'memory')
-    0x116 = @('Grafiktreiber reagierte nicht mehr', 'graphics')
-    0x117 = @('Grafiktreiber reagierte nicht mehr', 'graphics')
-    0x119 = @('Fehler im Grafiktreiber', 'graphics')
-    0x10E = @('Fehler im Grafikspeicher', 'graphics')
-    0x124 = @('Die Hardware hat einen schweren Fehler gemeldet', 'hardware')
-    0x101 = @('Ein Prozessorkern hat nicht mehr geantwortet', 'hardware')
-    0x7A  = @('Daten vom Laufwerk ließen sich nicht lesen', 'disk')
-    0x24  = @('Fehler im Dateisystem', 'disk')
-    0x154 = @('Unerwarteter Fehler beim Laufwerkszugriff', 'disk')
-    0xEF  = @('Ein wichtiger Windows-Prozess wurde beendet', 'disk')
-}
-$script:CrashKinds = @{
-    driver   = @{ Text = 'Meist ein Treiber. Treiber aktualisieren hilft oft.'; State = 'Treiber'; Action = 'Treiber suchen'; Do = 'scan' }
-    graphics = @{ Text = 'Grafiktreiber oder Grafikkarte. Eine neuere oder die vorige Treiberfassung hilft oft.'; State = 'Grafik'; Action = 'Treiber suchen'; Do = 'scan' }
-    memory   = @{ Text = 'Oft der Arbeitsspeicher: ein zu scharfes XMP-Profil oder ein defekter Riegel.'; State = 'Speicher'; Action = 'Speicher prüfen'; Do = 'memory' }
-    hardware = @{ Text = 'Hardware: Übertaktung, Spannung, Hitze oder Netzteil.'; State = 'Hardware'; Action = 'Stabilitätstest'; Do = 'stress' }
-    disk     = @{ Text = 'Laufwerk, Kabel oder Anschluss, manchmal beschädigte Windows-Dateien.'; State = 'Laufwerk'; Action = 'Laufwerke prüfen'; Do = 'drives' }
-    unknown  = @{ Text = 'Seltener Fehlercode, meist steckt ein Treiber dahinter.'; State = 'Treiber'; Action = 'Treiber suchen'; Do = 'scan' }
+# Fehlercodes der Bluescreens in Worten und die Art der Ursache mit Erklärung und nächstem Schritt stehen in
+# PulsRig.Core (Abstuerze.cs). Get-BugCheck liefert wie bisher Name, Kind und Hex.
+function Get-BugCheck([uint32]$Code) {
+    Import-PulsRigCore
+    $check = [PulsRig.Core.Abstuerze]::Check($Code)
+    @{ Name = $check.Name; Kind = $check.Kind; Hex = $check.Hex }
 }
 
-function Get-BugCheck([uint32]$Code) {
-    # 0x1000007E und ähnliche sind dieselben Fehler wie 0x7E, nur anders gemeldet
-    $base = if ($Code -band 0x10000000) { $Code -band 0x0FFFFFFF } else { $Code }
-    $known = $script:BugChecks[[int]$base]
-    $hex = '0x{0:X}' -f $base
-    if ($known) { @{ Name = $known[0]; Kind = $known[1]; Hex = $hex } } else { @{ Name = 'Bluescreen'; Kind = 'unknown'; Hex = $hex } }
+function Get-CrashKind([string]$Kind) {
+    Import-PulsRigCore
+    [PulsRig.Core.Abstuerze]::Kind($Kind)
 }
 
 function Format-Times([int]$Count) { if ($Count -eq 1) { '1-mal' } else { "$Count-mal" } }
@@ -212,7 +181,7 @@ function Get-CrashFindings($Data) {
     # Bluescreens, nach Fehlercode zusammengefasst
     foreach ($group in @(@($Data.Blue) | Where-Object { $_ } | Group-Object { (Get-BugCheck $_.Code).Hex })) {
         $check = Get-BugCheck $group.Group[0].Code
-        $kind = $script:CrashKinds[$check.Kind]
+        $kind = Get-CrashKind $check.Kind
         $items += @{ Title = "Bluescreen: $($check.Name)"; Glyph = 0xE783; Tone = 'bad'; State = $kind.State; Action = $kind.Action; Do = $kind.Do
             Sub = "$(Format-Times $group.Count), zuletzt $($group.Group[0].When.Text) Uhr · Code $($check.Hex) · $($kind.Text)"
             Short = "$(Format-Times $group.Count), zuletzt $($group.Group[0].When.Text) Uhr · $($kind.State)" }

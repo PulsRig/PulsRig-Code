@@ -54,20 +54,7 @@ switch ($Aufgabe) {
             return 0
         }
         if (Test-Path -LiteralPath $statePath) { return 0 }   # ist schon an
-        $plan = if ($settings) { $settings.Boost } else { $null }
-        # eine leere Auswahl heißt "keine Dienste" (aus der Einstellungsdatei kommt sie als leere Liste, nicht als $null)
-        $wanted = @(if ($plan -and $plan.PSObject.Properties['Services'] -and $null -ne $plan.Services) { @($plan.Services) } else { $script:BoostServices }) | Where-Object { "$_" -match '^[\w.\- ]{1,80}$' }
-        $allowed = @(foreach ($name in $wanted) {
-                if ($script:BoostServices -contains $name) { $name; continue }
-                try {
-                    $service = Get-CimInstance Win32_Service -Filter ("Name='{0}'" -f $name) -ErrorAction Stop
-                    if ($service -and "$($service.PathName)" -and "$($service.PathName)" -notmatch [regex]::Escape($env:WINDIR)) { $name }
-                }
-                catch { }
-            })
-        # Programme schließt der automatische Boost nie: darin kann Ungespeichertes stecken
-        $global:BoostPlan = @{ Apps = @(); Services = $allowed; Clipboard = $false
-            PowerPlan = $(if ($plan) { [bool]$plan.PowerPlan } else { $true }); GameMode = $(if ($plan) { [bool]$plan.GameMode } else { $true }) }
+        $global:BoostPlan = New-AutoBoostPlan $(if ($settings) { $settings.Boost } else { $null })
         Invoke-GameBoostTool
         # für die Boost-Seite festhalten, für welches Spiel er an ist
         if ($Spiel -and (Test-Path -LiteralPath $statePath)) {

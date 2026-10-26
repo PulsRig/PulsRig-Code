@@ -1,5 +1,13 @@
 ## Neu in 0.7 Beta
 
+**Neue Oberfläche**
+- PulsRig startet jetzt in einer neuen, schnelleren Oberfläche. Die bisherige gibt es nicht mehr; Einstellungen, Sicherungen und Verläufe bleiben erhalten.
+- Neu: „Was hat sich geändert?“ vergleicht Windows-Stand, Programme, Autostart, wichtige Treiber und Energieplan mit gestern, vor 7 oder vor 30 Tagen, dazu die Abstürze seitdem. Zu finden unter Werkzeuge → Treiber verwalten und bei „Was ist los?“.
+- Neu: „Einzelnen Treiber sichern“ kopiert das Treiberpaket eines Geräts in einen eigenen Ordner. „Treiber zurückholen“ bietet ihn danach an.
+- Neues Werkzeug „Aufrüst-Berater“: eine Minute im Spiel messen, ob Prozessor oder Grafikkarte bremst, mit Ergebnis in einem Satz.
+- Die Kacheln bleiben beim Überfahren mit der Maus ruhig, auch auf Seiten mit Live-Werten, und die Optionen zucken beim Klicken nicht mehr.
+- Ist der Helfer neben der Uhr eingeschaltet, startet PulsRig ihn beim Öffnen wieder von selbst.
+
 **Stromverbrauch und Stromkosten**
 - Neues Werkzeug „Stromverbrauch“: zeigt, was der PC gerade zieht und was das im Jahr kostet. Die Grafikkarte misst PulsRig bei NVIDIA direkt, den Prozessor über die freigeschaltete Prozessor-Temperatur, den Rest schätzt es.
 - Strompreis und Nutzung am Tag lassen sich einstellen.

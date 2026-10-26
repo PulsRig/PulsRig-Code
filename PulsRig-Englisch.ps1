@@ -200,6 +200,8 @@
         'Der Reiter mit dem kürzeren Abstand zeigt sie einzeln.', 'The tab with the shorter span shows them one by one.'
         'Seit einer Woche unverändert', 'Unchanged for a week'
         '1 Änderung', '1 change'
+        'Seit wann ist es langsam? PulsRig vergleicht Windows, Programme, Autostart und Treiber mit früheren Tagen', 'Since when has it been slow? PulsRig compares Windows, programs, startup apps and drivers with earlier days'
+        'Windows, Programme, Autostart und Treiber mit gestern, vor 7 oder 30 Tagen vergleichen', 'Compare Windows, programs, startup apps and drivers with yesterday, 7 or 30 days ago'
         '1 Änderung in 7 Tagen', '1 change in 7 days'
         # --- Gaming-Check
         'Gaming-Check', 'Gaming check'
@@ -581,6 +583,61 @@
         'Werte aus dem Akku-Bericht von Windows', 'Values from the Windows battery report'
         'Akku hält nicht mehr lange', 'Battery doesn''t last long anymore'
         'Wie viel der Akku noch fasst, wie oft er geladen wurde und wie lange er laut Windows hält', 'How much the battery still holds, how often it was charged and how long Windows says it lasts'
+        # --- C#: Akku, Aufrüst-Berater, Neuinstallation
+        'AKKU', 'BATTERY'
+        'fasst er noch von neu', 'of its original capacity left'
+        'Kapazität unbekannt', 'Capacity unknown'
+        'Der Bericht ist im Browser offen', 'The report is open in the browser'
+        'Dieser PC läuft am Netz – einen Akku-Bericht gibt es nur bei Notebooks und Tablets.', 'This PC runs on mains power – a battery report only exists on laptops and tablets.'
+        'Lithium-Ionen', 'Lithium-ion'
+        'Lithium-Polymer', 'Lithium polymer'
+        'AUFRÜST-BERATER', 'UPGRADE ADVISOR'
+        'Aufrüst-Berater', 'Upgrade advisor'
+        'Noch nicht gemessen', 'Not measured yet'
+        'Spiel starten, hier „Messen“ und ins Spiel wechseln. PulsRig misst eine Minute lang.', 'Start the game, click "Measure" here and switch to the game. PulsRig measures for one minute.'
+        'PulsRig schließt nichts und stellt nichts um – es misst nur', 'PulsRig closes nothing and changes nothing – it only measures'
+        'Die Grafikkarte bremst', 'The graphics card is the bottleneck'
+        'Sie war fast die ganze Zeit voll ausgelastet. Eine stärkere Grafikkarte bringt am meisten; der Prozessor hätte noch Luft.', 'It was fully loaded almost all the time. A stronger graphics card helps the most; the processor still had headroom.'
+        'Sie war voll ausgelastet, aber auch ein Prozessorkern stand am Anschlag: beide liegen gleichauf, eine neue Grafikkarte allein bringt weniger als gedacht.', 'It was fully loaded, but one processor core was maxed out as well: both are about even, a new graphics card alone brings less than expected.'
+        'Der Prozessor bremst', 'The processor is the bottleneck'
+        'Der Prozessor bremst eher nicht', 'The processor is probably not the bottleneck'
+        'Kein Kern stand dauernd am Anschlag. Die Grafikkarte kann PulsRig ohne NVIDIA nicht messen – dann ist sie der wahrscheinliche Engpass.', 'No core was constantly maxed out. PulsRig cannot measure the graphics card without NVIDIA – then it is the likely bottleneck.'
+        'Nichts stand am Anschlag', 'Nothing was maxed out'
+        'Keine Messwerte', 'No readings'
+        'Die Messschleife hat in dieser Minute nichts geliefert. Bitte erneut messen.', 'The sensor loop delivered nothing during this minute. Please measure again.'
+        'GERADE', 'RIGHT NOW'
+        'IM SPIEL GEMESSEN', 'MEASURED IN GAME'
+        'stärkster Kern', 'strongest core'
+        'Nicht messbar', 'Not measurable'
+        'Nur bei NVIDIA messbar', 'Only measurable on NVIDIA'
+        'Mittel im Spiel', 'Average in game'
+        'Gerade', 'Right now'
+        'DEIN PC', 'YOUR PC'
+        'Prozessor unbekannt', 'Processor unknown'
+        'NVIDIA: Auslastung messbar', 'NVIDIA: load measurable'
+        'Keine NVIDIA-Karte: ihre Auslastung kann PulsRig nicht sicher messen', 'No NVIDIA card: PulsRig cannot reliably measure its load'
+        'zum Aufrüsten möglichst gleiche Riegel nehmen', 'for upgrading, use identical modules if possible'
+        'Laptop-Riegel (SO-DIMM); manche sind fest verlötet', 'laptop modules (SO-DIMM); some are soldered on'
+        '1 Platz frei', '1 slot free'
+        'alle belegt', 'all used'
+        'Lese die Steckplätze …', 'Reading the slots …'
+        'Laufwerk des Spiels', 'Drive of the game'
+        'Wird beim Messen erkannt, wenn ein bekanntes Spiel läuft', 'Detected while measuring if a known game is running'
+        'Beim Messen lief kein Spiel, das Windows als Spiel kennt', 'No game known to Windows was running during the measurement'
+        'Eine Minute im Spiel messen, was bremst, und was sich zum Aufrüsten lohnt', 'Measure for one minute in game what holds the PC back and what is worth upgrading'
+        'Was bremst im Spiel?', 'What slows down games?'
+        'Der Aufrüst-Berater misst eine Minute im Spiel und sagt, welches Bauteil sich zum Aufrüsten lohnt', 'The upgrade advisor measures for one minute in game and tells you which part is worth upgrading'
+        'Vorher Treiber und Programmliste sichern, danach geführt einspielen', 'Back up drivers and the program list before, restore them step by step afterwards'
+        'Installiert …', 'Installing …'
+        'Programme abhaken', 'Tick programs'
+        'Treiber exportieren geht nur mit Adminrechten: PulsRig als Administrator starten.', 'Exporting drivers needs admin rights: start PulsRig as administrator.'
+        'Alle Treiber aus dem Offline-Paket – geht nur mit Adminrechten', 'All drivers from the offline package – needs admin rights'
+        'läuft …', 'running …'
+        'Keine', 'None'
+        'Alle', 'All'
+        'Danach den PC neu starten.', 'Restart the PC afterwards.'
+        'Treiber eingespielt. Bitte den PC danach neu starten.', 'Drivers installed. Please restart the PC afterwards.'
+        'winget fehlt – keine Programmliste', 'winget is missing – no program list'
         'Testversion: Fehler mit dem Diagnose-Paket melden', 'Beta: report bugs with the diagnostics package'
         # --- Was ist los? (Problem zuerst)
         'Was ist los?', 'What''s wrong?'
@@ -811,6 +868,14 @@
         'Im Microsoft-Katalog suchen', 'Search the Microsoft catalog'
         'Einzelheiten anzeigen', 'Show details'
         'Diesen Treiber sichern', 'Back up this driver'
+        'Einzelnen Treiber sichern', 'Back up a single driver'
+        'Das Treiberpaket eines Geräts in einen eigenen Ordner kopieren', 'Copy the driver package of one device into its own folder'
+        'Lese die Treiber …', 'Reading drivers …'
+        'Keine Treiber von Drittherstellern', 'No third-party drivers'
+        'Alle Treiber auf diesem PC kommen von Microsoft und stecken in Windows selbst.', 'All drivers on this PC come from Microsoft and are part of Windows itself.'
+        'gesichert', 'backed up'
+        'Nochmal', 'Again'
+        'Zurückspielen bei Bedarf: den Ordner unter „Treiber zurückholen“ wählen.', 'To restore if needed: choose the folder under “Restore drivers”.'
         'Ignorieren', 'Ignore'
         'Ignoriert', 'Ignored'
         'enthält keinen Treibercode', 'contains no driver code'
@@ -1707,7 +1772,8 @@
         'Startet auf jedem Windows-PC direkt vom Stick', 'Starts on any Windows PC right from the stick'
         'Treiber dieses PCs', 'Drivers of this PC'
         'Offline-Paket – rettet den Netzwerktreiber, wenn nach einer Neuinstallation das Internet fehlt', 'Offline package - rescues the network driver when there is no internet after a reinstall'
-        'Dateien auf dem Stick bleiben, PulsRig legt nur den Ordner „PulsRig“ an.', 'Files on the stick stay, PulsRig only creates the "PulsRig" folder.'
+        'Den Notfall-Stick richtet nur das installierte PulsRig ein.', 'Only the installed PulsRig can set up the rescue stick.'
+        'Dateien auf dem Stick bleiben, PulsRig legt nur den Ordner „PulsRig“ an.','Files on the stick stay, PulsRig only creates the "PulsRig" folder.'
         '1 · PulsRig', '1 · PulsRig'
         'ohne Installation', 'without installation'
         '2 · Treiber', '2 · Drivers'
@@ -1782,6 +1848,342 @@
         'OKTOBER', 'OCTOBER'
         'NOVEMBER', 'NOVEMBER'
         'DEZEMBER', 'DECEMBER'
+        # --- neue Oberfläche (PulsRig.App, Reihe Q)
+        'Tage', 'days'
+        '% Auslastung', '% load'
+        'ABSTÜRZE', 'CRASHES'
+        'AKTUELL', 'UP TO DATE'
+        'AMD Chipsatz-Treiber', 'AMD chipset driver'
+        'ARBEITSSPEICHER', 'MEMORY'
+        'Alle Treiber sind aktuell.', 'All drivers are up to date.'
+        'Alle Treiber von Drittherstellern sichern, mit ZIP-Datei', 'Back up all third-party drivers, with a ZIP file'
+        'Alle Werkzeuge →', 'All tools →'
+        'Auflösung & Hz', 'Resolution & Hz'
+        'Autostart aufräumen', 'Clean up startup'
+        'Autostart prüfen', 'Check startup'
+        'BERICHT & DIAGNOSE', 'REPORT & DIAGNOSTICS'
+        'BILDSCHIRM', 'DISPLAY'
+        'Belastet: beides', 'Load: both'
+        'Bereiche in Ordnung', 'areas OK'
+        'Bereit für den Scan.', 'Ready for the scan.'
+        'Bericht + Diagnose', 'Report + diagnostics'
+        'Bild prüfen', 'Check picture'
+        'Bildauflösung reparieren', 'Fix screen resolution'
+        'Bildschirm-Hz, Resizable BAR, Spielmodus und mehr', 'Display Hz, Resizable BAR, Game Mode and more'
+        'Bis etwa 80 °C im Spiel ist alles normal. Ohne Last sollte die Grafikkarte deutlich kühler sein.', 'Up to about 80 °C in games is normal. Without load the graphics card should be much cooler.'
+        'Boost automatisch', 'Automatic boost'
+        'Boost öffnen', 'Open Boost'
+        'Der Test endet von selbst: bei Rechenfehlern, bei 90 °C an der Grafikkarte, 98 °C am Prozessor oder wenn der Prozessor seinen Takt drosselt. Vorher speichern, was offen ist: Ein instabiler PC kann beim Test abstürzen.', 'The test stops by itself: on computation errors, at 90 °C on the graphics card, 98 °C on the processor or when the processor throttles. Save open work first: an unstable PC can crash during the test.'
+        'Der Test lastet den PC voll aus. Bleibt er dabei stabil und unter den Grenzen, ist auch langes Spielen kein Problem.', 'The test fully loads the PC. If it stays stable and below the limits, long gaming sessions are no problem either.'
+        'Desktop, kein Spiel offen', 'Desktop, no game open'
+        'Dienste, Stummschaltung und Ausgabegerät prüfen', 'Check services, mute and output device'
+        'EMPFOHLEN', 'RECOMMENDED'
+        'Einträge längst abgesteckter Hardware entfernen', 'Remove entries of hardware unplugged long ago'
+        'Ende', 'End'
+        'Ereignisprotokoll', 'Event log'
+        'Erneut scannen', 'Scan again'
+        'Ersetzte Treiber sichern', 'Back up replaced drivers'
+        'Festplatte (HDD)', 'Hard disk (HDD)'
+        'GESUNDHEIT', 'HEALTH'
+        'GRAFIKKARTE', 'GRAPHICS CARD'
+        'GRAFIKTREIBER SCHÜTZEN', 'PROTECT GRAPHICS DRIVER'
+        'Geräte mit gelbem Warnzeichen neu einrichten', 'Set up devices with a yellow warning sign again'
+        'Gerätefehler reparieren', 'Fix device errors'
+        'Gewählte Programme', 'Chosen programs'
+        'Grafikkarte max.', 'Graphics card max.'
+        'Grafikspeicher', 'Video memory'
+        'Gründlich testen', 'Test thoroughly'
+        'HINWEISE AUS DEM MICROSOFT-KATALOG', 'HINTS FROM THE MICROSOFT CATALOG'
+        'Im Leerlauf sind 5–20 % normal. Bleibt die Auslastung ohne offenes Programm lange hoch, lohnt ein Blick in den Autostart.', 'At idle 5–20 % is normal. If the load stays high for long with no program open, check the startup programs.'
+        'Installiert wird nur, was du bestätigst – Dateien kommen direkt von Windows Update, NVIDIA oder Microsoft und werden auf die Signatur geprüft. Firmware und BIOS spielt PulsRig nie ein. Zum Installieren PulsRig als Administrator starten.', 'Only what you confirm gets installed – files come straight from Windows Update, NVIDIA or Microsoft and their signature is checked. PulsRig never installs firmware or BIOS. To install, start PulsRig as administrator.'
+        'Jetzt sichern', 'Back up now'
+        'Katalog öffnen', 'Open catalog'
+        'Kurz testen', 'Quick test'
+        'LAUFZEITBIBLIOTHEKEN FÜR SPIELE', 'RUNTIME LIBRARIES FOR GAMES'
+        'LEISTUNG', 'PERFORMANCE'
+        'Lastet Prozessor und Grafikkarte voll aus', 'Fully loads processor and graphics card'
+        'Lüfter aus', 'Fan off'
+        'Messung läuft …', 'Measuring …'
+        'Nachholen', 'Catch up'
+        'Neuere Treiber findet der Scan', 'The scan finds newer drivers'
+        'Noch kein Test', 'No test yet'
+        'Noch keine gewählt – der Helfer schaltet den Boost bei diesen Spielen selbst ein', 'None chosen yet – the helper turns on the boost for these games by itself'
+        'Prozessor max.', 'Processor max.'
+        'Rechenproben', 'Computation checks'
+        'Reihe Q', 'Series Q'
+        'Riegel und Steckplätze', 'Modules and slots'
+        'SICHERHEIT BEIM INSTALLIEREN', 'SAFETY WHEN INSTALLING'
+        'SPEICHER & ANZEIGE', 'MEMORY & DISPLAY'
+        'SPIEL-BESCHLEUNIGUNG', 'GAME BOOST'
+        'STABILITÄTSTEST', 'STABILITY TEST'
+        'SYSTEM-PULS', 'SYSTEM PULSE'
+        'Schafft vor dem Spielen Platz: Energieplan, entbehrliche Dienste und die Programme, die du dafür gewählt hast.', 'Makes room before gaming: power plan, dispensable services and the programs you chose for it.'
+        'Sichern, zurückholen, Offline-Paket und Kernisolierung.', 'Back up, restore, offline package and core isolation.'
+        'Sieben Einstellungen, die fürs Spielen zählen – Tippen prüft', 'Seven settings that matter for gaming – tap to check'
+        'Speicher & Anzeige', 'Memory & display'
+        'Spiele & Aufzeichnung', 'Games & recording'
+        'Spielkomponenten, Gaming-Check und Systeminfos.', 'Game components, gaming check and system info.'
+        'Stabil', 'Stable'
+        'Strom, Netzteil oder Hitze', 'Power, PSU or heat'
+        'Stärkster Kern', 'Strongest core'
+        'Störungen 30 T.', 'Faults 30 d'
+        'Temperaturen aufzeichnen', 'Record temperatures'
+        'Temporäre Dateien und Caches', 'Temporary files and caches'
+        'Temporäre Dateien, Shader-Cache, alte Treiberpakete', 'Temporary files, shader cache, old driver packages'
+        'Ton reparieren', 'Fix sound'
+        'Treiber zurückholen', 'Restore drivers'
+        'Treiber setzte aus oder fing sich', 'Driver stopped or recovered'
+        'Ultimative Leistung', 'Ultimate Performance'
+        'Unerwartet aus', 'Unexpectedly off'
+        'Vor einem Update sichert PulsRig den bisherigen Treiber von Drittherstellern (bis 300 MB je Paket).', 'Before an update PulsRig backs up the previous third-party driver (up to 300 MB per package).'
+        'Vor großen Updates lohnt eine Sicherung aller Treiber von Drittherstellern.', 'Before big updates a backup of all third-party drivers is worth it.'
+        'Vor jeder Treiberinstallation legt PulsRig einen an (Windows höchstens einen am Tag).', 'PulsRig creates one before every driver installation (Windows allows at most one per day).'
+        'Was die Kernisolierung blockiert', 'What blocks core isolation'
+        'Was sich geändert hat', 'What changed'
+        'Was sich wann geändert hat', 'What changed when'
+        'Weitere Designs', 'More designs'
+        'Welche Spiele Boost und Aufzeichnung bekommen', 'Which games get boost and recording'
+        'Wiederherstellungspunkt', 'Restore point'
+        'Windows Update darf den Grafiktreiber ersetzen', 'Windows Update may replace the graphics driver'
+        'XMP an', 'XMP on'
+        'ZIP speichern', 'Save ZIP'
+        'alle Bereiche', 'all areas'
+        'alle oben in der Liste', 'all at the top of the list'
+        'arbeitet gerade', 'working'
+        'bei den Boost-Spielen, braucht den Helfer mit Adminrechten', 'for the boost games, needs the helper with admin rights'
+        'beim Spielen, für den Verlauf je Spiel', 'while gaming, for each game''s history'
+        'darf schon voll takten – bleibt, wie er ist', 'may already run at full clock – stays as it is'
+        'der Helfer sieht einmal pro Woche nach', 'the helper checks once a week'
+        'gefragt: Windows Update, NVIDIA, AMD, Katalog', 'asked: Windows Update, NVIDIA, AMD, catalog'
+        'kein Absturz, kein Rechenfehler', 'no crash, no computation error'
+        'kein Bluescreen', 'no blue screen'
+        'keine Sicherung', 'no backup'
+        'kommen später', 'coming later'
+        'liest ein …', 'reading …'
+        'mehr Leistung', 'more performance'
+        'noch keine', 'none yet'
+        'noch keine Sicherung', 'no backup yet'
+        'noch nicht gemessen', 'not measured yet'
+        'nur Beschreibung', 'description only'
+        'nur Info', 'info only'
+        'nur bei NVIDIA messbar', 'measurable on NVIDIA only'
+        'ohne Angabe', 'not stated'
+        'passt', 'fine'
+        'ruhig', 'calm'
+        'steht still – ohne Last normal', 'stopped – normal without load'
+        'tippen zum Wechseln', 'tap to switch'
+        'vor dem Spielen', 'before gaming'
+        'weniger Last', 'less load'
+        'werden nach Rückfrage geschlossen', 'closed after asking'
+        'wird gelesen …', 'reading …'
+        'wird gemessen', 'measuring'
+        'zurückholen', 'restore'
+        'zählen, während der Test läuft', 'count while the test runs'
+        'zählt bei Spielen mehr als der Mittelwert', 'matters more for games than the average'
+        'Überwachung läuft', 'Monitoring active'
+        'Derzeit ausgeschaltet', 'Currently off'
+        'Volle Leistung fürs Spiel', 'Full power for gaming'
+        'Tippen zum Starten', 'Tap to start'
+        'Tippen zum Beenden', 'Tap to stop'
+        'Aussehen', 'Appearance'
+        'Sprache', 'Language'
+        'Bewegung', 'Motion'
+        'Überwachung', 'Monitoring'
+        'Schnellzugriff', 'Quick access'
+        'Helfer neben der Uhr', 'Helper next to the clock'
+        'Neue Treiber melden', 'Report new drivers'
+        'Zielordner', 'Target folder'
+        'Kurzanleitung', 'Quick guide'
+        'Über PulsRig', 'About PulsRig'
+        'Ruhig', 'Calm'
+        'Lebendig', 'Lively'
+        'keine Animationen', 'no animations'
+        'langsamer, weniger Glühen', 'slower, less glow'
+        'schneller, mehr Glühen', 'faster, more glow'
+        'Den Helfer gibt es nur im installierten Programm.', 'The helper is only available in the installed program.'
+        'Die Schalter wirken, solange der Helfer läuft.', 'The switches work while the helper is running.'
+        'Erneut prüfen', 'Check again'
+        'Jedes Werkzeug prüft zuerst und fragt, bevor es etwas ändert.', 'Every tool checks first and asks before it changes anything.'
+        'Warum der PC aufwacht oder wach bleibt', 'Why the PC wakes up or stays awake'
+        'Programme, die mit Windows starten', 'Programs that start with Windows'
+        'Treiberverlauf', 'Driver history'
+        # --- neue Oberfläche: Boost einrichten, Ping, Strom, Benchmark, Sensoren
+        'Am besten vergleichbar: gleiche Uhrzeit, gleiche Programme offen, PC nicht gerade erst gestartet.', 'Best comparable: same time of day, same programs open, PC not just started.'
+        'Arbeitspreis je kWh, steht auf der Stromrechnung', 'Price per kWh, shown on the electricity bill'
+        'Ersparnis durch das FPS-Limit', 'Savings from the FPS limit'
+        'Erst ohne, dann mit Limit messen', 'Measure without, then with the limit'
+        'Last der Grafikkarte', 'Graphics card load'
+        'Limit im Spiel oder Treiber setzen, dann erneut messen', 'Set the limit in the game or driver, then measure again'
+        'Mit FPS-Limit', 'With FPS limit'
+        'Ohne FPS-Limit', 'Without FPS limit'
+        'Nach neuer Fassung sehen', 'Check for a new version'
+        'Prozessor und Grafikkarte messen und mit früher vergleichen', 'Measure processor and graphics card and compare with earlier'
+        'STROMVERBRAUCH', 'POWER USAGE'
+        'Schätzung – ein Messgerät an der Steckdose ist genauer.', 'Estimate – a meter at the socket is more accurate.'
+        'Sensoren & Aufzeichnungen', 'Sensors & recordings'
+        'Speichern und Boost starten', 'Save and start boost'
+        'Nur speichern', 'Save only'
+        'Empfohlene Auswahl', 'Recommended selection'
+        'Spiel ohne Limit starten, hier „Messen“ und ins Spiel wechseln', 'Start the game without a limit, press „Measure“ here and switch to the game'
+        'Temperaturen live und aufgezeichnete Spielsitzungen', 'Live temperatures and recorded game sessions'
+        'Verzögerung und Aussetzer zu Router und Internet messen', 'Measure latency and dropouts to the router and the internet'
+        'Watt und Stromkosten im Jahr, dazu der FPS-Limit-Vergleich', 'Watts and yearly electricity cost, plus the FPS limit comparison'
+        'beim Start einmal bei GitHub, geladen wird nur auf Knopfdruck', 'once at start on GitHub, downloads only on request'
+        'gemessen', 'measured'
+        'pauschal geschätzt', 'flat estimate'
+        'zusammen, mit dem Verlust im Netzteil', 'total, including power supply loss'
+        'Spielsitzungen', 'Game sessions'
+        'Messen', 'Measure'
+        'Neu messen', 'Measure again'
+        'Benchmark starten', 'Start benchmark'
+        'Stoppen', 'Stop'
+        'Verlauf', 'History'
+        'Einrichten', 'Set up'
+        'Ping-Test', 'Ping test'
+        'Stromverbrauch', 'Power usage'
+        'Nutzung am Tag', 'Use per day'
+        'So lange läuft der PC im Schnitt', 'How long the PC runs on average'
+        'Strompreis', 'Electricity price'
+        # --- neue Oberfläche: Verschleiß, Probezeit, Was ist los?, Controller und Maus
+        'Vom Problem zur Ursache: was PulsRig schon weiß und was als Nächstes zu prüfen ist', 'From problem to cause: what PulsRig already knows and what to check next'
+        'Seit wann ist es langsam? Der Treiberverlauf zeigt, was sich wann geändert hat', 'Since when is it slow? The driver history shows what changed when'
+        'Ein Diagnose-Paket fasst alles für die Fehlersuche zusammen', 'A diagnostics package bundles everything for troubleshooting'
+        'Lese die Messpunkte …', 'Reading the data points …'
+        'Spielsitzungen und Stabilitätstests der letzten Wochen', 'Game sessions and stability tests of the last weeks'
+        'vorige Fassung des Treibers', 'previous driver version'
+        'Ausblenden', 'Hide'
+        # --- neue Oberfläche: Ergebnisse der Werkzeuge
+        'Wiedergabegeräte', 'Playback devices'
+        'Lautstärke', 'Volume'
+        'automatisch', 'automatic'
+        'manuell', 'manual'
+        'ist stummgeschaltet', 'is muted'
+        'Keine Ursache gefunden. Prüfe, ob in Windows das richtige Wiedergabegerät gewählt ist (Klick auf das Lautsprechersymbol). Ein Neustart der Audiodienste hilft bei hängendem Ton.', 'No cause found. Check that the right playback device is selected in Windows (click the speaker icon). Restarting the audio services helps when sound hangs.'
+        'Geräteeinträge', 'Device entries'
+        'Geräte neu starten', 'Restart devices'
+        'Geräte, die weiter Fehler melden, entfernen und neu erkennen lassen', 'Remove devices that still report errors and let Windows detect them again'
+        'Passende Treiber bei Windows Update suchen und installieren', 'Search Windows Update for matching drivers and install them'
+        'Für Geräte ohne Treiber zeigt die Treiber-Seite, was der Microsoft-Katalog hat.', 'For devices without a driver, the Drivers page shows what the Microsoft catalog has.'
+        'Windows Update hat für diese Geräte keinen Treiber', 'Windows Update has no driver for these devices'
+        'alle Geräte arbeiten wieder', 'all devices work again'
+        'Die Verbindung funktioniert. Leeren und Erneuern geht trotzdem.', 'The connection works. Flushing and renewing is still possible.'
+        'DNS-Zwischenspeicher leeren, IP-Adresse neu anfordern', 'Flush DNS cache, request a new IP address'
+        'Netzwerkeinstellungen von Windows zurücksetzen (Winsock und TCP/IP) – fest eingetragene IP-Adressen gehen verloren, danach Neustart', 'Reset Windows network settings (Winsock and TCP/IP) – fixed IP addresses are lost, restart afterwards'
+        'Netzwerkadapter neu starten', 'Restart network adapter'
+        'Kein Adapter ist verbunden – zuerst Kabel bzw. WLAN prüfen.', 'No adapter is connected – check the cable or Wi-Fi first.'
+        'Windows kennt keinen Netzwerkadapter – vermutlich fehlt der Treiber. Dafür „Gerätefehler reparieren“ oder das Offline-Paket verwenden.', 'Windows knows no network adapter – the driver is probably missing. Use “Fix device errors” or the offline package.'
+        'die Verbindung funktioniert wieder', 'the connection works again'
+        'nicht nötig, die Verbindung funktioniert', 'not needed, the connection works'
+        'hat nicht geholfen', 'did not help'
+        'bitte den PC jetzt neu starten', 'please restart the PC now'
+        'keines festgelegt oder nicht ansprechbar', 'none set or not reachable'
+        'Alle Bildschirme laufen in ihrer empfohlenen Auflösung. Wirkt das Bild trotzdem unscharf oder zu groß, liegt es meist an der Skalierung (Anzeigeeinstellungen von Windows).', 'All displays run at their recommended resolution. If the picture still looks blurry or too big, it is usually the scaling (Windows display settings).'
+        'Der Treiber bietet die empfohlene Auflösung nicht an – Kabel und Anschluss prüfen.', 'The driver does not offer the recommended resolution – check cable and port.'
+        'Ursache: Der Grafikkarte fehlt ihr Treiber – ohne ihn bietet Windows nur niedrige Auflösungen an. Die Treiber-Seite sucht und installiert ihn.', 'Cause: the graphics card has no driver – without it Windows only offers low resolutions. The Drivers page finds and installs it.'
+        'läuft nur mit dem Windows-Standardtreiber', 'runs only with the Windows standard driver'
+        'Kernisolierung (Speicher-Integrität)', 'Core isolation (memory integrity)'
+        'kein eigenes Treiberpaket – gehört zu Windows oder einem Programm', 'no driver package of its own – belongs to Windows or a program'
+        'wird gerade verwendet – beim Hersteller nach einer neueren Version suchen', 'is in use – look for a newer version at the manufacturer'
+        'Unbenutzte Pakete lassen sich entfernen; wird das Gerät später wieder angeschlossen, braucht es einen neuen Treiber.', 'Unused packages can be removed; if the device is connected again later, it needs a new driver.'
+        'Größe etwa', 'Size about'
+        'Ziel', 'Destination'
+        'Das Paket enthält alle installierten Treiber von Drittherstellern samt Startdatei zum Einspielen – gedacht für diesen PC nach einer Neuinstallation von Windows, auch ohne Internet.', 'The package contains all installed third-party drivers with a start file to install them – meant for this PC after reinstalling Windows, even without internet.'
+        'Offline-Paket erstellen', 'Create offline package'
+        'Offline-Paket erstellen?', 'Create offline package?'
+        'Installiert', 'Installed'
+        'Als Textdatei speichern', 'Save as text file'
+        'Wiederherstellungspunkt erstellt', 'Restore point created'
+        'kein Wiederherstellungspunkt (Computerschutz aus?)', 'no restore point (system protection off?)'
+        'PulsRig als Administrator starten und neu prüfen.', 'Start PulsRig as administrator and check again.'
+        'Ereignisprotokoll der letzten 14 Tage und Energieplan. PulsRig ändert hier nichts; im Geräte-Manager: Gerät doppelklicken → Energieverwaltung → „Gerät kann den Computer aus dem Standby aktivieren“.', 'Event log of the last 14 days and power plan. PulsRig changes nothing here; in Device Manager: double-click the device → Power Management → “Allow this device to wake the computer”.'
+        'Geräte-Manager öffnen', 'Open Device Manager'
+        'Energieoptionen öffnen (Aufweck-Timer)', 'Open power options (wake timers)'
+        'Energiesparen in den Einstellungen', 'Power saving in Settings'
+        'Grafikeinstellungen öffnen', 'Open graphics settings'
+        'Erweiterte Anzeige öffnen', 'Open advanced display'
+        'Kernisolierung öffnen', 'Open core isolation'
+        'Spielmodus öffnen', 'Open game mode'
+        'So steht es im Energieplan.', 'This is what the power plan says.'
+        'Der Verlauf ließ sich nicht lesen', 'The history could not be read'
+        'keine Treiber im Verlauf', 'no drivers in the history'
+        'Gibt es nach einem Treiber Probleme, holt „Treiber zurückholen“ eine Sicherung zurück; ein Update nimmt der Wiederherstellungspunkt von vorher zurück.', 'If a driver causes problems, “Restore drivers” brings back a backup; an update is undone by the restore point from before.'
+        'Im BIOS „Above 4G Decoding“ und „Re-Size BAR“ einschalten: bringt in neuen Spielen ein paar Prozent. PulsRig ändert am BIOS nichts.', 'Turn on “Above 4G Decoding” and “Re-Size BAR” in the BIOS: gains a few percent in new games. PulsRig changes nothing in the BIOS.'
+        'Resizable BAR', 'Resizable BAR'
+        'Boost-Spiel', 'Boost game'
+        'Verlauf unter Sensoren', 'History under Sensors'
+        'kein Drosseln', 'no throttling'
+        'zu warm oder gedrosselt', 'too warm or throttled'
+        'letzte Sitzung nicht lesbar', 'last session not readable'
+        'wird beim nächsten Spielen aufgezeichnet', 'will be recorded the next time you play'
+        'wird beim nächsten Spielen aufgezeichnet (Helfer neben der Uhr)', 'will be recorded the next time you play (helper next to the clock)'
+        'wird nicht aufgezeichnet', 'is not recorded'
+        'wird nicht mehr aufgezeichnet', 'is no longer recorded'
+        'startet nicht mehr mit Windows', 'no longer starts with Windows'
+        'startet wieder mit Windows', 'starts with Windows again'
+        'aufgezeichnet werden die Boost-Spiele und die hier gewählten – „Aufzeichnen“ schaltet keinen Boost ein. Aufgezeichnet wird im Helfer neben der Uhr.', 'recorded are the boost games and the ones chosen here – “Record” does not turn on a boost. Recording happens in the helper next to the clock.'
+        'TREIBERPAKETE', 'DRIVER PACKAGES'
+        'WINDOWS UPDATE', 'WINDOWS UPDATE'
+        'fehlgeschlagen', 'failed'
+        'geladen', 'loaded'
+        'Läuft im eigenen Fenster – dort bestätigst du jede Änderung.', 'Runs in its own window – you confirm every change there.'
+        'Windows hat nichts übernommen: die installierten Treiber passen gleich gut oder besser.', 'Windows took nothing: the installed drivers fit as well or better.'
+        'Unbekanntes Werkzeug.', 'Unknown tool.'
+        'Adminrechte nötig', 'Admin rights needed'
+        'Diese Schritte ändern etwas am System – dafür muss PulsRig als Administrator laufen.', 'These steps change the system – PulsRig has to run as administrator for that.'
+        'Zum Einspielen muss PulsRig als Administrator laufen.', 'PulsRig has to run as administrator to restore.'
+        'Alle Treiber sichern?', 'Back up all drivers?'
+        'Sicherung einspielen?', 'Restore backup?'
+        'PulsRig exportiert alle Treiber von Drittherstellern in einen Ordner und packt ihn als ZIP-Datei daneben. Das kann einige Minuten dauern; am System ändert sich nichts.', 'PulsRig exports all third-party drivers to a folder and puts a ZIP file of it next to it. This can take a few minutes; nothing on the system changes.'
+        'Es gibt noch keine Sicherung. Lege zuerst mit „Treiber sichern“ eine an – vor Updates sichert PulsRig ersetzte Treiber auch selbst.', 'There is no backup yet. Create one first with “Back up drivers” – before updates PulsRig also backs up replaced drivers itself.'
+        'Keine Sicherung', 'No backup'
+        'Ordner zeigen', 'Show folder'
+        'Sichert …', 'Backing up …'
+        'vor 1 Tag', '1 day ago'
+        '1 Gerät', '1 device'
+        '1 Gerät mit Warnzeichen', '1 device with warning sign'
+        # Gerätefehler (Geraetefehler in Sicherung.cs)
+        'Gerät kann nicht gestartet werden', 'Device cannot start'
+        'Gerät fehlt oder ist fehlerhaft', 'Device is missing or faulty'
+        'Gerät hat einen Fehler gemeldet', 'Device reported an error'
+        'Gerät ausgefallen, wird zurückgesetzt', 'Device failed, being reset'
+        'Gerät wird gerade entfernt', 'Device is being removed'
+        'Gerätekennung ungültig', 'Device ID invalid'
+        'Einstellungen des Geräts nicht anwendbar', 'Device settings cannot be applied'
+        'BIOS liefert zu wenig Angaben zum Gerät', 'BIOS gives too little information about the device'
+        'Neustart erforderlich', 'Restart required'
+        'Registrierung zu groß', 'Registry too large'
+        'Registrierungseintrag des Treiberdienstes fehlerhaft', 'Registry entry of the driver service is faulty'
+        'Registrierungseinträge des Geräts beschädigt', 'Registry entries of the device damaged'
+        'Ressourcen nicht vollständig erkannt', 'Resources not fully detected'
+        'Treiber beschädigt oder zu wenig Speicher', 'Driver damaged or not enough memory'
+        'Treiber fehlt oder ist beschädigt', 'Driver missing or damaged'
+        'Treiber geladen, Gerät aber nicht gefunden', 'Driver loaded, but device not found'
+        'Treiber kann nicht geladen werden', 'Driver cannot be loaded'
+        'Treiber konnte nicht initialisiert werden', 'Driver could not be initialized'
+        'Treiber muss neu installiert werden', 'Driver must be reinstalled'
+        'Treiber von Windows wegen bekannter Probleme blockiert', 'Driver blocked by Windows because of known problems'
+        'Treiberdienst deaktiviert', 'Driver service disabled'
+        'Treibersignatur ungültig', 'Driver signature invalid'
+        'Windows fährt gerade herunter', 'Windows is shutting down'
+        'alte Treiberinstanz noch im Speicher', 'old driver instance still in memory'
+        'benötigte Ressourcen nicht ermittelbar', 'required resources cannot be determined'
+        'doppeltes Gerät erkannt', 'duplicate device detected'
+        'falsch konfiguriert', 'misconfigured'
+        'im BIOS deaktiviert', 'disabled in the BIOS'
+        'kein Treiber installiert', 'no driver installed'
+        'muss von Hand konfiguriert werden', 'must be configured manually'
+        'nicht angeschlossen', 'not connected'
+        'nicht genug freie Ressourcen (Konflikt)', 'not enough free resources (conflict)'
+        'unbekannter Fehler', 'unknown error'
+        'von einem Programm oder Dienst angehalten', 'stopped by a program or service'
+        'wartet auf ein anderes Gerät', 'waiting for another device'
+        'zum sicheren Entfernen vorbereitet', 'prepared for safe removal'
+        # Standby (Einblicke.cs)
+        'arbeitet im Hintergrund weiter', 'keeps working in the background'
+        'hält den Abwesenheitsmodus', 'holds away mode'
+        'hält den Bildschirm an', 'keeps the display on'
+        'hält den PC wach', 'keeps the PC awake'
+        'verhindert den Standby', 'prevents standby'
     )
     Patterns = @(
         # --- Ping-Test
@@ -1810,6 +2212,42 @@
         @{ R = '^Hält etwa (\d+) Std\. (\d+) Min\.$'; F = 'Lasts about $1 h $2 min' }
         @{ R = '^Hält etwa (\d+) Min\.$'; F = 'Lasts about $1 min' }
         @{ R = '^Schätzung von Windows bei voller Ladung und üblicher Nutzung\. Neu wären es etwa (\d+) Std\. (\d+) Min\. gewesen\.$'; F = 'Windows estimate at full charge and typical use. New it would have been about $1 h $2 min.' }
+        # --- C#: Akku, Aufrüst-Berater, Neuinstallation
+        @{ R = '^AKKU (.+)$'; F = 'BATTERY $1' }
+        @{ R = '^Gemessen um (\d+:\d+)\. Für ein anderes Spiel oder andere Einstellungen erneut messen\.$'; F = 'Measured at $1. Measure again for another game or other settings.' }
+        @{ R = '^Jetzt ins Spiel wechseln – Messung beginnt in (\d+) s$'; F = 'Switch to the game now – measuring starts in $1 s' }
+        @{ R = '^Misst im Spiel … noch (\d+) s$'; F = 'Measuring in game … $1 s left' }
+        @{ R = '^Mittel im Spiel, (\d+) % der Zeit über (\d+) %$'; F = 'Average in game, $1 % of the time above $2 %' }
+        @{ R = '^alle Kerne zusammen nur (\d+) %$'; F = 'all cores together only $1 %' }
+        @{ R = '^alle Kerne zusammen (\d+) %$'; F = 'all cores together $1 %' }
+        @{ R = '^Grafikspeicher (\d+) % belegt$'; F = 'graphics memory $1 % used' }
+        @{ R = '^Weder Grafikkarte noch Prozessor waren voll ausgelastet\. Meist begrenzt ein FPS-Limit oder V-Sync – dann ist der PC schnell genug\. Oder das Spiel lief nicht im Vordergrund\.(.*)$'; F = 'Neither the graphics card nor the processor was fully loaded. Usually an FPS limit or V-Sync caps it – then the PC is fast enough. Or the game was not in the foreground.{T:1}' }
+        @{ R = '^Ein Kern war fast ständig am Anschlag, obwohl der Prozessor insgesamt weniger zeigt\. Spiele hängen an ihrem Hauptkern: ein Prozessor mit mehr Leistung je Kern hilft, mehr Kerne allein nicht\.(.*)$'; F = 'One core was maxed out almost constantly, although the processor overall shows less. Games depend on their main core: a processor with more performance per core helps, more cores alone do not.{T:1}' }
+        @{ R = '^ Die Grafikkarte konnte PulsRig nicht messen\.(.*)$'; F = ' PulsRig could not measure the graphics card.{T:1}' }
+        @{ R = '^ Der Arbeitsspeicher war fast voll: Windows lagert aus, das ruckelt\. Mehr RAM hilft\.(.*)$'; F = ' The memory was almost full: Windows swaps to disk, which stutters. More RAM helps.{T:1}' }
+        @{ R = '^ Der Grafikspeicher war voll: Texturdetails eine Stufe senken oder eine Karte mit mehr Speicher\.$'; F = ' The graphics memory was full: lower texture details one step or get a card with more memory.' }
+        @{ R = '^(\d+) GB Arbeitsspeicher$'; F = '$1 GB memory' }
+        @{ R = '^höchstens (\d+) GB laut BIOS$'; F = 'at most $1 GB according to the BIOS' }
+        @{ R = '^(\d+) Riegel eingebaut; wie viele Steckplätze es gibt, meldet das BIOS nicht$'; F = '$1 modules installed; the BIOS does not report how many slots there are' }
+        @{ R = '^(\d+) Plätze frei$'; F = '$1 slots free' }
+        @{ R = '^Laufwerk von (.+)$'; F = 'Drive of $1' }
+        @{ R = '^Liegt auf (\w): – einer Festplatte\. Auf einer SSD lädt es viel schneller und ruckelt beim Nachladen weniger\.$'; F = 'On $1: – a hard disk. On an SSD it loads much faster and stutters less while streaming in.' }
+        @{ R = '^Liegt auf (\w): – einer NVMe-SSD\. Da gibt es nichts zu verbessern\.$'; F = 'On $1: – an NVMe SSD. Nothing to improve there.' }
+        @{ R = '^Liegt auf (\w): – einer SSD\. Das passt\.$'; F = 'On $1: – an SSD. That is fine.' }
+        @{ R = '^Liegt auf (\w):; die Bauart des Laufwerks meldet Windows nicht\.$'; F = 'On $1:; Windows does not report the drive type.' }
+        @{ R = '^(\d+) installieren$'; F = 'Install $1' }
+        @{ R = '^PROGRAMME \((\d+)\)$'; F = 'PROGRAMS ($1)' }
+        @{ R = '^(\d+) von (\d+) Programmen sind da\.$'; F = '$1 of $2 programs are there.' }
+        @{ R = '^(\d+) von (\d+) Programmen sind da\. Die übrigen beim Hersteller laden – manche Programme lassen sich nur dort installieren\.$'; F = '$1 of $2 programs are there. Get the rest from the manufacturer – some programs can only be installed there.' }
+        @{ R = '^(\d+) Treiberpakete, (.+)$'; F = '$1 driver packages, $2' }
+        @{ R = '^(\d+) Programme in der Liste$'; F = '$1 programs in the list' }
+        @{ R = '^pnputil meldet Code (-?\d+) - einzelne Treiber passten evtl\. nicht zu den Geräten\.$'; F = 'pnputil reports code $1 - some drivers may not have matched the devices.' }
+        @{ R = '^Programmliste fehlgeschlagen \(winget-Code (-?\d+)\)$'; F = 'Program list failed (winget code $1)' }
+        @{ R = '^fehlgeschlagen \(winget-Code (-?\d+)\)$'; F = 'failed (winget code $1)' }
+        @{ R = '^([\d.,]+) von ([\d.,]+) GB frei$'; F = '$1 of $2 GB free' }
+        @{ R = '^USB-Stick \((\w:)\)$'; F = 'USB stick ($1)' }
+        @{ R = '^Zu wenig Platz für die Treiber – es fehlen etwa ([\d.,]+) GB\. Einen größeren Stick nehmen oder dort Platz schaffen\.$'; F = 'Not enough space for the drivers – about $1 GB missing. Use a bigger stick or free up space there.' }
+        @{ R = '^PulsRig ist auf dem Stick, das Treiberpaket fehlt aber\. (.+)$'; F = 'PulsRig is on the stick, but the driver package is missing. {T:1}' }
         @{ R = '^Akku-Zustand: (.+)$'; F = 'Battery health: $1' }
         # --- Was ist los?
         @{ R = '^(\d+) von 100$'; F = '$1 of 100' }
@@ -1917,6 +2355,7 @@
         @{ R = '^für (.+) und (\d+) weitere$'; F = 'for $1 and $2 more' }
         @{ R = '^für (.+)$'; F = 'for {T:1}' }
         @{ R = '^• und (\d+) weitere$'; F = '• and $1 more' }
+        @{ R = '^TREIBER VON DRITTHERSTELLERN \((\d+)\)$'; F = 'THIRD-PARTY DRIVERS ($1)' }
         @{ R = '^Treiber (\S+) vom (\S+)$'; F = 'Driver $1 from $2' }
         @{ R = '^Version (\S+)$'; F = 'Version $1' }
         @{ R = '^seit (\S+)$'; F = 'since $1' }
@@ -2386,5 +2825,91 @@
         @{ R = '^Fertig\. Ordner: (.+)$'; F = 'Done. Folder: $1' }
         @{ R = '^Ordner: (.+)$'; F = 'Folder: $1' }
         @{ R = '^Bau: (.+)$'; F = 'Build: $1' }
+        # --- neue Oberfläche (PulsRig.App, Reihe Q)
+        @{ R = '^(\d+) Werkzeuge →$'; F = '$1 tools →' }
+        @{ R = '^(\d+) Geräte, (\d+) von Drittherstellern$'; F = '$1 devices, $2 from third parties' }
+        @{ R = '^(\d+) von Drittherstellern, der Rest von Microsoft$'; F = '$1 from third parties, the rest from Microsoft' }
+        @{ R = '^(\d+) Treiber geprüft$'; F = '$1 drivers checked' }
+        @{ R = '^(\d+) geprüft$'; F = '$1 checked' }
+        @{ R = '^(\d+) Bildschirme$'; F = '$1 displays' }
+        @{ R = '^(\d+) Störungen$'; F = '$1 faults' }
+        @{ R = '^(.+): (\d+) Störungen$'; F = '$1: $2 faults' }
+        @{ R = '^(\d+) laufen$'; F = '$1 running' }
+        @{ R = '^(\d+) entbehrlich$'; F = '$1 dispensable' }
+        @{ R = '^(\d+) pausiert$'; F = '$1 paused' }
+        @{ R = '^(\d+) Kerne$'; F = '$1 cores' }
+        @{ R = '^(\d+) Spiele$'; F = '$1 games' }
+        @{ R = '^(\d+) GB Grafikspeicher$'; F = '$1 GB video memory' }
+        @{ R = '^Grundtakt (.+)$'; F = 'Base clock $1' }
+        @{ R = '^PC ist plötzlich ausgegangen: (\d+)-mal, zuletzt (.+)$'; F = 'PC suddenly turned off: $1 times, last $2' }
+        @{ R = '^Prüft (\d+) Bereiche$'; F = 'Checks $1 areas' }
+        @{ R = '^Zuletzt ausgegangen am (.+)$'; F = 'Last turned off on $1' }
+        @{ R = '^Zustand der Laufwerke: (.+)$'; F = 'Drive health: {T:1}' }
+        @{ R = '^heute (\d+:\d+)$'; F = 'today $1' }
+        @{ R = '^letzter: (.+)$'; F = 'last: {T:1}' }
+        @{ R = '^neueste bei (AMD|NVIDIA): (.+)$'; F = 'latest from $1: $2' }
+        @{ R = '^neuester: (.+) vom (.+)$'; F = 'latest: $1 from $2' }
+        @{ R = '^von (.+) belegt$'; F = 'of $1 used' }
+        @{ R = '^von (\d.*)$'; F = 'of $1' }
+        # --- neue Oberfläche: Boost einrichten, Ping, Strom, Benchmark, Sensoren
+        @{ R = '^(Programme|Dienste|Weitere|Spiele)  (\d+)$'; F = '{T:1}  $2' }
+        @{ R = '^(.+?)   ×(\d+)$'; F = '$1   ×$2' }
+        @{ R = '^(.+) (\d+,\d) GB$'; F = '$1 $2 GB' }
+        @{ R = '^Im Mittel (\d+) W$'; F = 'On average $1 W' }
+        @{ R = '^(.+) € am Tag bei (\d+) Std\.$'; F = '$1 € per day at $2 h' }
+        @{ R = '^(.+) €/kWh$'; F = '$1 €/kWh' }
+        @{ R = '^(.+) Cent pro Stunde$'; F = '$1 cents per hour' }
+        @{ R = '^(\d+) % verloren$'; F = '$1 % lost' }
+        @{ R = '^Schnitt (\d+) ms$'; F = 'Average $1 ms' }
+        @{ R = '^Schwankung (\d+) ms$'; F = 'Jitter $1 ms' }
+        @{ R = '^schnellste (\d+)$'; F = 'fastest $1' }
+        @{ R = '^langsamste (\d+)$'; F = 'slowest $1' }
+        @{ R = '^stärkster Kern (\d+) %$'; F = 'strongest core $1 %' }
+        @{ R = '^geschätzt aus (\d+) % Auslastung × (\d+) W Nennleistung$'; F = 'estimated from $1 % load × $2 W rated power' }
+        @{ R = '^PulsRig (.+) beta$'; F = 'PulsRig $1 beta' }
+        # --- neue Oberfläche: Ergebnisse der Werkzeuge
+        @{ R = '^Dienst „(.+)“$'; F = 'Service “$1”' }
+        @{ R = '^(läuft|gestoppt), Starttyp (automatisch|manuell|\w+)$'; F = '{T:1}, startup type {T:2}' }
+        @{ R = '^(\d+) gefunden: (.+)$'; F = '$1 found: $2' }
+        @{ R = '^(\d+) gefunden$'; F = '$1 found' }
+        @{ R = '^(\d+), davon (\d+) zu nicht mehr angeschlossener Hardware$'; F = '$1, of which $2 for hardware no longer connected' }
+        @{ R = '^verbunden, (.+)$'; F = 'connected, $1' }
+        @{ R = '^Adapter (.+)$'; F = 'Adapter $1' }
+        @{ R = '^Bildschirm (.+)$'; F = 'Display $1' }
+        @{ R = '^Grafikkarte (.+)$'; F = 'Graphics card $1' }
+        @{ R = '^Laufwerk (\w):$'; F = 'Drive $1:' }
+        @{ R = '^(.+), davon (.+) frei$'; F = '$1, $2 free' }
+        @{ R = '^(\d+×\d+) bei (\d+) Hz, empfohlen (\d+×\d+)$'; F = '$1 at $2 Hz, recommended $3' }
+        @{ R = '^(.+) \(nur mit Adminrechten\)$'; F = '$1 (admin rights only)' }
+        @{ R = '^Temporäre Dateien und alte Downloads löschen \((.+)\)(\??)$'; F = 'Delete temporary files and old downloads ($1)$2' }
+        @{ R = '^Shader-Cache löschen \((.+)\) – Spiele ruckeln danach beim ersten Start kurz, während sie neu übersetzen$'; F = 'Delete shader cache ($1) – games stutter briefly on first start afterwards while they recompile' }
+        @{ R = '^(.+), läuft seit (.+)$'; F = '$1, running since $2' }
+        @{ R = '^(\d+) von (\d+) starten mit Windows\. Umschalten wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager\. Einträge für alle Benutzer nur mit Adminrechten\.$'; F = '$1 of $2 start with Windows. Switching takes effect at the next sign-in and can be undone at any time, also in Task Manager. Entries for all users need admin rights.' }
+        @{ R = '^(.+) einschalten$'; F = 'Turn on $1' }
+        @{ R = '^(.+) ausschalten$'; F = 'Turn off $1' }
+        @{ R = '^(.+) nicht aufzeichnen$'; F = 'Stop recording $1' }
+        @{ R = '^(.+) aufzeichnen$'; F = 'Record $1' }
+        @{ R = '^(\d+) Treiber, die neuesten zuerst$'; F = '$1 drivers, newest first' }
+        @{ R = '^(\d+) von Drittherstellern in Gebrauch, zuletzt hinzugekommen zuerst$'; F = '$1 from third parties in use, most recently added first' }
+        @{ R = '^(\d+) grün, (\d+) zu prüfen\. PulsRig ändert hier nichts: die Knöpfe öffnen die Stelle, an der man es einstellt\.$'; F = '$1 green, $2 to check. PulsRig changes nothing here: the buttons open the place where you set it.' }
+        @{ R = '^(\d+) grün\. PulsRig ändert hier nichts: die Knöpfe öffnen die Stelle, an der man es einstellt\.$'; F = '$1 green. PulsRig changes nothing here: the buttons open the place where you set it.' }
+        @{ R = '^zuletzt gespielt (\d\d\.\d\d\.) \((.+)\)$'; F = 'last played $1 ({T:2})' }
+        @{ R = '^(\d+) Min\.$'; F = '$1 min' }
+        @{ R = '^(\d+):(\d\d) Std\.$'; F = '$1:$2 h' }
+        @{ R = '^(.+) \(Code (\d+)\)$'; F = '{T:1} (code $2)' }
+        @{ R = '^Gerät neu starten: (.+)$'; F = 'Restart device: $1' }
+        @{ R = '^Deaktiviertes Gerät wieder aktivieren: (.+)$'; F = 'Enable disabled device again: $1' }
+        @{ R = '^Reparatur für (\d+) Gerät\(e\) versuchen \(Treiber suchen, Gerät neu starten\)\?$'; F = 'Try to repair $1 device(s) (search driver, restart device)?' }
+        @{ R = '^(\d+) Gerät\(e\) brauchen nur einen Neustart des PCs \(bei USB-Geräten: ab- und wieder anstecken\)\.$'; F = '$1 device(s) only need a PC restart (USB devices: unplug and plug in again).' }
+        @{ R = '^(\d+) Gerät\(e\): Die Ursache liegt im BIOS oder an der Hardware – BIOS-Einstellungen prüfen, BIOS aktualisieren, Gerät umstecken\.$'; F = '$1 device(s): the cause is in the BIOS or the hardware – check BIOS settings, update the BIOS, move the device.' }
+        @{ R = '^(\d+) melden weiter einen Fehler$'; F = '$1 still report an error' }
+        @{ R = '^(\d+) entfernt$'; F = '$1 removed' }
+        @{ R = '^(\d+) Treiber installiert$'; F = '$1 drivers installed' }
+        @{ R = '^Lautstärke auf (\d+) % stellen$'; F = 'Set volume to $1 %' }
+        @{ R = '^Windows meldet Code (-?\d+)$'; F = 'Windows reports code $1' }
+        @{ R = '^(.+) meldet Code (-?\d+)$'; F = '$1 reports code $2' }
+        @{ R = '^gespeichert: (.+)$'; F = 'saved: $1' }
+        # --- neue Oberfläche: Verschleiß, Probezeit, Was ist los?, Controller und Maus
+        @{ R = '^(\d+) Messpunkte seit dem (\S+) – verglichen wird ab drei Wochen Abstand, ab dem (\S+)$'; F = '$1 data points since $2 – comparison starts after three weeks, from $3' }
     )
 }

@@ -49,6 +49,9 @@ Type: files; Name: "{app}\*.cs"
 Type: files; Name: "{app}\*.bat"
 Type: files; Name: "{app}\PulsRig-Bau.txt"
 Type: filesandordirs; Name: "{app}\Sensoren"
+Type: filesandordirs; Name: "{app}\App"
+; die Verknüpfung zur bisherigen Oberfläche in PowerShell (abgelöst am 26.10.2026)
+Type: files; Name: "{autoprograms}\PulsRig (klassisch).lnk"
 
 [Files]
 Source: "dist\PulsRig-Programm\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs

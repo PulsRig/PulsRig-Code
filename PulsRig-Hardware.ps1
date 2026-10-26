@@ -390,100 +390,8 @@ $script:Queries.DriveSpeed = @'
 param($a)
 $result = @{ Letter = "$($a.Letter)"; Time = (Get-Date).ToString('HH:mm'); Date = (Get-Date).ToString('dd.MM.yyyy'); Error = '' }
 try {
-    if (-not ('PulsRigDiskTest' -as [type])) {
-        Add-Type -TypeDefinition @"
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Runtime.InteropServices;
-using Microsoft.Win32.SafeHandles;
-
-public static class PulsRigDiskTest
-{
-    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-    static extern SafeFileHandle CreateFile(string name, uint access, uint share, IntPtr security, uint disposition, uint flags, IntPtr template);
-    [DllImport("kernel32.dll", SetLastError = true)]
-    static extern bool WriteFile(SafeFileHandle handle, IntPtr buffer, uint count, out uint done, IntPtr overlapped);
-    [DllImport("kernel32.dll", SetLastError = true)]
-    static extern bool ReadFile(SafeFileHandle handle, IntPtr buffer, uint count, out uint done, IntPtr overlapped);
-    [DllImport("kernel32.dll", SetLastError = true)]
-    static extern bool SetFilePointerEx(SafeFileHandle handle, long distance, out long position, uint method);
-    [DllImport("kernel32.dll", SetLastError = true)]
-    static extern IntPtr VirtualAlloc(IntPtr address, UIntPtr size, uint type, uint protect);
-    [DllImport("kernel32.dll", SetLastError = true)]
-    static extern bool VirtualFree(IntPtr address, UIntPtr size, uint type);
-    [DllImport("kernel32.dll", SetLastError = true)]
-    static extern bool DeviceIoControl(SafeFileHandle handle, uint code, ref ushort input, uint inputSize, IntPtr output, uint outputSize, out uint returned, IntPtr overlapped);
-
-    // Ergebnis: Schreiben am Stück, Lesen am Stück, kleine zufällige Lesezugriffe (alles MB/s), Größe der Testdatei in MB.
-    // Fehlercode 5 (Zugriff verweigert) kommt als negative Zahl im ersten Feld zurück, damit der Aufrufer einen anderen Ordner probiert.
-    public static double[] Run(string path, long maxBytes, double seconds)
-    {
-        const int block = 1 << 20;
-        IntPtr buffer = VirtualAlloc(IntPtr.Zero, (UIntPtr)(uint)block, 0x3000, 0x04);
-        if (buffer == IntPtr.Zero) throw new IOException("Kein Speicher für die Messung");
-        try
-        {
-            // Zufallsdaten: manche Laufwerke stauchen gleichförmige Daten und wirken dann schneller, als sie sind
-            byte[] noise = new byte[block];
-            new Random(12345).NextBytes(noise);
-            Marshal.Copy(noise, 0, buffer, block);
-            // Lesen und Schreiben, immer neu anlegen; ohne Zwischenspeicher, direkt durchschreiben, beim Schließen löschen
-            using (SafeFileHandle handle = CreateFile(path, 0xC0000000, 0, IntPtr.Zero, 2, 0xA4000000u, IntPtr.Zero))
-            {
-                if (handle.IsInvalid)
-                {
-                    int code = Marshal.GetLastWin32Error();
-                    if (code == 5) return new double[] { -5, 0, 0, 0 };
-                    throw new IOException("Die Testdatei lässt sich nicht anlegen (Windows-Fehler " + code + ")");
-                }
-                uint done;
-                long position;
-                // liegt die Datei in einem komprimierten Ordner, erbt sie die Komprimierung: dann schreibt Windows langsam und
-                // liest immer über den Zwischenspeicher - gemessen würde der Prozessor statt des Laufwerks. Also abschalten.
-                ushort plain = 0;
-                DeviceIoControl(handle, 0x9C040, ref plain, 2, IntPtr.Zero, 0, out done, IntPtr.Zero);
-                long written = 0;
-                Stopwatch watch = Stopwatch.StartNew();
-                while (written < maxBytes && watch.Elapsed.TotalSeconds < seconds)
-                {
-                    if (!WriteFile(handle, buffer, block, out done, IntPtr.Zero)) throw new IOException("Schreiben fehlgeschlagen (Windows-Fehler " + Marshal.GetLastWin32Error() + ")");
-                    written += done;
-                }
-                double write = written / 1048576.0 / watch.Elapsed.TotalSeconds;
-
-                SetFilePointerEx(handle, 0, out position, 0);
-                long read = 0;
-                watch.Restart();
-                while (read < written && watch.Elapsed.TotalSeconds < seconds)
-                {
-                    if (!ReadFile(handle, buffer, block, out done, IntPtr.Zero)) throw new IOException("Lesen fehlgeschlagen (Windows-Fehler " + Marshal.GetLastWin32Error() + ")");
-                    if (done == 0) break;
-                    read += done;
-                }
-                double readSpeed = read / 1048576.0 / watch.Elapsed.TotalSeconds;
-
-                // kleine Zugriffe: 4 KB an zufälligen Stellen, einer nach dem anderen
-                Random random = new Random(7);
-                long blocks = written / 4096;
-                long count = 0;
-                double smallSeconds = Math.Min(seconds, 3.0);
-                watch.Restart();
-                while (blocks > 0 && watch.Elapsed.TotalSeconds < smallSeconds)
-                {
-                    SetFilePointerEx(handle, (long)(random.NextDouble() * blocks) * 4096, out position, 0);
-                    if (!ReadFile(handle, buffer, 4096, out done, IntPtr.Zero)) break;
-                    count++;
-                }
-                double small = count * 4096 / 1048576.0 / watch.Elapsed.TotalSeconds;
-                return new double[] { write, readSpeed, small, written / 1048576.0 };
-            }
-        }
-        finally { VirtualFree(buffer, UIntPtr.Zero, 0x8000); }
-    }
-}
-"@
-    }
+    # PulsRig.Core (Laufwerkstempo.cs), vorher PulsRigDiskTest per Add-Type
+    Import-PulsRigCore
     $letter = "$($a.Letter)"
     $free = ([IO.DriveInfo]"$letter`:").AvailableFreeSpace
     if ($free -lt 3GB) { throw 'Für die Messung müssen mindestens 3 GB frei sein.' }
@@ -496,7 +404,7 @@ public static class PulsRigDiskTest
     $values = $null
     foreach ($folder in $folders) {
         $file = Join-Path $folder 'PulsRig-Tempotest.tmp'
-        $values = [PulsRigDiskTest]::Run($file, 1GB, 5.0)
+        $values = [PulsRig.Core.Laufwerkstempo]::Run($file, 1GB, 5.0)
         if ($values[0] -ge 0) { break }
         $values = $null
     }
@@ -519,20 +427,18 @@ $result
 # und Hardwarefehler aus dem Ereignisprotokoll. Alles ohne Adminrechte lesbar.
 $script:Queries.Memory = @'
 param($a)
-$types = @{ 20 = 'DDR'; 21 = 'DDR2'; 24 = 'DDR3'; 26 = 'DDR4'; 34 = 'DDR5' }
+Import-PulsRigCore
 $modules = @(Get-CimInstance Win32_PhysicalMemory | ForEach-Object {
-        $maker = "$($_.Manufacturer)".Trim()
-        if ($maker -match '^(Unknown|Undefined|0+)$') { $maker = '' }
         @{
             Slot    = "$($_.DeviceLocator)".Trim()
             Bank    = "$($_.BankLabel)".Trim()
-            Maker   = $maker
+            Maker   = [PulsRig.Core.Speicher]::Maker("$($_.Manufacturer)")
             Part    = "$($_.PartNumber)".Trim()
             Bytes   = [double]$_.Capacity
             Speed   = $(if ($_.ConfiguredClockSpeed) { [int]$_.ConfiguredClockSpeed } else { [int]$_.Speed })
             Rated   = [int]$_.Speed
             Voltage = $(if ($_.ConfiguredVoltage) { [int]$_.ConfiguredVoltage } else { 0 })
-            Type    = $(if ($types.ContainsKey([int]$_.SMBIOSMemoryType)) { $types[[int]$_.SMBIOSMemoryType] } else { '' })
+            Type    = [PulsRig.Core.Speicher]::TypeName([int]$_.SMBIOSMemoryType)
             Laptop  = [int]$_.FormFactor -eq 12
         }
     })
@@ -548,31 +454,7 @@ catch { }
 $layout = @()
 try {
     $raw = (Get-CimInstance -Namespace root\wmi -ClassName MSSmBios_RawSMBiosTables -ErrorAction Stop | Select-Object -First 1).SMBiosData
-    $at = 0; $filled = 0
-    while ($at -lt $raw.Length - 4) {
-        $kind = $raw[$at]; $length = $raw[$at + 1]
-        if ($length -lt 4) { break }
-        # hinter dem festen Teil stehen die Texte des Eintrags, jeder mit einer Null beendet, am Ende zwei Nullen
-        $next = $at + $length; $strings = @()
-        while ($next -lt $raw.Length - 1 -and -not ($raw[$next] -eq 0 -and $raw[$next + 1] -eq 0)) {
-            $end = $next
-            while ($end -lt $raw.Length -and $raw[$end] -ne 0) { $end++ }
-            $strings += [Text.Encoding]::ASCII.GetString($raw, $next, $end - $next)
-            $next = $end
-            if ($next -lt $raw.Length - 1 -and $raw[$next + 1] -ne 0) { $next++ }
-        }
-        if ($kind -eq 17 -and $length -ge 0x12) {
-            $size = [BitConverter]::ToUInt16($raw, $at + 0x0C)
-            $names = foreach ($offset in 0x10, 0x11) { $index = [int]$raw[$at + $offset]; if ($index -ge 1 -and $index -le $strings.Count) { "$($strings[$index - 1])".Trim() } else { '' } }
-            $place = @{ Slot = $names[0]; Bank = $names[1]; Module = -1 }
-            if ($size -ne 0 -and $size -ne 0xFFFF) { $place.Module = $filled; $filled++ }
-            $layout += $place
-        }
-        if ($kind -eq 127) { break }
-        $at = $next + 2
-    }
-    # passt die Zahl der belegten Plätze nicht zu den Riegeln von Windows, ist der Tabelle nicht zu trauen
-    if ($filled -ne $modules.Count) { $layout = @() }
+    $layout = @([PulsRig.Core.Speicher]::ParseSmbios([byte[]]$raw, $modules.Count))
 }
 catch { $layout = @() }
 $total = 0.0; $free = 0.0
@@ -734,113 +616,44 @@ $memorySlotXaml = @'
 </Grid>
 '@
 
-# Der Takt, für den ein Riegel gebaut ist. Windows meldet oft nur den laufenden Takt; der volle steht bei den
-# meisten Herstellern in der Typenbezeichnung (F4-3000C16, CMK16GX4M2B3200C16, KF432C16 ...).
-function Get-MemoryRated($Module) {
-    $rated = [int]$Module.Rated
-    $part = "$($Module.Part)"
-    $found = 0
-    if ($part -match '(?<![0-9])([1-9][0-9]{3})H?CL?[0-9]{2}') { $found = [int]$Matches[1] }
-    elseif ($part -match '^(?:KF|HX)[45]([0-9]{2})C[0-9]{2}') { $found = 100 * [int]$Matches[1] }
-    elseif ($part -match '^BL[0-9]+G([0-9]{2})C[0-9]{2}') { $found = 100 * [int]$Matches[1] }
-    if ($found -lt 1600 -or $found -gt 10000) { $found = 0 }
-    @{ Speed = [Math]::Max($rated, $found); Known = ($found -gt 0 -or $rated -gt [int]$Module.Speed) }
+# Arbeitsspeicher: Takt, Kanäle und Steckplätze rechnet PulsRig.Core (Speicher.cs). Die Riegel kommen als Hashtables
+# aus der Abfrage oder aus gespeicherten Ergebnissen; fehlende Angaben zählen als leer.
+function ConvertTo-MemoryModules($Modules) {
+    Import-PulsRigCore
+    $list = New-Object 'System.Collections.Generic.List[PulsRig.Core.SpeicherRiegel]'
+    foreach ($m in @($Modules | Where-Object { $_ })) {
+        $list.Add([PulsRig.Core.SpeicherRiegel]@{ Slot = "$($m.Slot)"; Bank = "$($m.Bank)"; Maker = "$($m.Maker)"; Part = "$($m.Part)"
+                Bytes = [double]$m.Bytes; Speed = [int]$m.Speed; Rated = [int]$m.Rated; Voltage = [int]$m.Voltage; Type = "$($m.Type)"; Laptop = [bool]$m.Laptop })
+    }
+    , $list
 }
 
-# Urteil über den Takt: laufen die Riegel so schnell, wie sie können? Wenn nicht, fehlt meist das Speicherprofil im BIOS.
-function Get-MemoryProfile($Modules) {
-    $running = @($Modules | Where-Object { $_.Speed -gt 0 })
-    if ($running.Count -eq 0) { return $null }
-    $now = [int](($running | ForEach-Object { $_.Speed } | Measure-Object -Minimum).Minimum)
-    $known = @($running | ForEach-Object { Get-MemoryRated $_ } | Where-Object { $_.Known })
-    $rated = if ($known.Count -gt 0) { [int](($known | ForEach-Object { $_.Speed } | Measure-Object -Minimum).Minimum) } else { 0 }
-    if ($rated -ge $now + 100) {
-        return @{ Tone = 'Warn'; Badge = 'Profil prüfen'; Now = $now; Rated = $rated; Title = ('{0:N0} MHz – die Riegel können {1:N0} MHz' -f $now, $rated)
-            Text = 'Im BIOS ist das Speicherprofil (XMP, bei AMD auch DOCP oder EXPO) nicht aktiv, oder der Takt ist dort von Hand niedriger gestellt. Nicht jedes Mainboard schafft den vollen Takt.' }
-    }
-    if ($rated -gt 0) {
-        return @{ Tone = 'Good'; Badge = 'voller Takt'; Now = $now; Rated = $rated; Title = ('{0:N0} MHz – voller Takt der Riegel' -f $now)
-            Text = 'Die Riegel laufen so schnell, wie sie gebaut sind. Am Speicherprofil im BIOS (XMP, DOCP oder EXPO) ist nichts zu tun.' }
-    }
-    @{ Tone = 'TextDim'; Badge = 'aktuell'; Now = $now; Rated = 0; Title = ('{0:N0} MHz' -f $now)
-        Text = 'Für welchen Takt die Riegel gebaut sind, verrät Windows bei diesem Modell nicht. Steht auf ihrem Aufkleber mehr, im BIOS das Speicherprofil (XMP, DOCP oder EXPO) einschalten.' }
+function ConvertTo-MemorySlots($Layout) {
+    Import-PulsRigCore
+    $list = New-Object 'System.Collections.Generic.List[PulsRig.Core.Steckplatz]'
+    foreach ($p in @($Layout | Where-Object { $_ })) { $list.Add([PulsRig.Core.Steckplatz]@{ Slot = "$($p.Slot)"; Bank = "$($p.Bank)"; Module = [int]$p.Module }) }
+    , $list
 }
 
-# Der Kanal eines Steckplatzes steht in seinem Namen ("CHANNEL A", "ChannelB-DIMM0", "DIMM_A1"); fehlt er, gibt es kein
-# Urteil (leere Antwort). Intel-Boards ab der 12. Generation nennen beide Kanäle "ChannelA" und unterscheiden sie nur
-# über den Speicher-Controller davor ("Controller0-ChannelA-DIMM1", "Controller1-ChannelA-DIMM1").
-function Get-MemoryChannelKey([string]$Text) {
-    if ($Text -match '(?i)controller\s*(\d+)\s*-?\s*channel\s*-?\s*([A-H])(?![A-Za-z])') { return "$($Matches[1])$($Matches[2].ToUpper())" }
-    if ($Text -match '(?i)channel\s*-?\s*([A-H])(?![A-Za-z])' -or $Text -match '(?i)DIMM[_ ]?([A-H])[0-9]') { return $Matches[1].ToUpper() }
-    ''
-}
+# Der Takt, für den ein Riegel gebaut ist (laufender Takt von Windows oder aus der Typenbezeichnung)
+function Get-MemoryRated($Module) { Import-PulsRigCore; [PulsRig.Core.Speicher]::Rated((ConvertTo-MemoryModules @($Module))[0]) }
 
-# In wie vielen Kanälen die Riegel stecken: auf zwei Kanäle verteilt (Dual-Channel) ist der Speicher deutlich schneller.
-function Get-MemoryChannels($Modules, [int]$Slots) {
-    $channels = @()
-    foreach ($module in @($Modules)) {
-        $channel = Get-MemoryChannelKey "$($module.Bank) $($module.Slot)"
-        if ($channel) { $channels += $channel } else { return $null }
-    }
-    $count = @($channels | Sort-Object -Unique).Count
-    if ($count -eq 0) { return $null }
-    $name = switch ($count) { 1 { 'Single-Channel' } 2 { 'Dual-Channel' } 3 { 'Triple-Channel' } 4 { 'Quad-Channel' } default { "$count Kanäle" } }
-    $hint = ''
-    if ($count -eq 1 -and @($Modules).Count -gt 1) { $hint = 'Alle Riegel stecken im selben Kanal. Auf beide Kanäle verteilt (siehe Handbuch des Mainboards) wird der Speicher deutlich schneller.' }
-    elseif ($count -eq 1 -and $Slots -gt 1) { $hint = 'Ein einzelner Riegel läuft im Single-Channel. Ein zweiter gleicher im anderen Kanal macht den Speicher deutlich schneller.' }
-    @{ Name = $name; Hint = $hint }
-}
+# Urteil über den Takt: laufen die Riegel so schnell, wie sie können? Ohne Taktangabe nichts.
+function Get-MemoryProfile($Modules) { Import-PulsRigCore; [PulsRig.Core.Speicher]::Profile((ConvertTo-MemoryModules $Modules)) }
 
-# Stecken die Riegel in den richtigen Steckplätzen? Bei zwei Steckplätzen je Kanal verlangen fast alle Mainboards
-# zuerst den zweiten (meist A2 und B2). Im ersten läuft der PC zwar, aber das Speicherprofil (XMP) scheitert oft.
-# Ergebnis: State good/bad (leer = kein Urteil möglich), Wrong und Better als Stellen in der Reihenfolge der Steckplätze.
-function Get-MemoryPlacement($Layout) {
-    $result = @{ State = ''; Wrong = @(); Better = @(); Hint = '' }
-    $places = @($Layout)
-    $groups = [ordered]@{}
-    for ($i = 0; $i -lt $places.Count; $i++) {
-        $channel = Get-MemoryChannelKey "$($places[$i].Bank) $($places[$i].Slot)"
-        if (-not $channel) { return $result }
-        if (-not $groups.Contains($channel)) { $groups[$channel] = @() }
-        $groups[$channel] += $i
-    }
-    # ein Urteil gibt es nur für den üblichen Aufbau: mindestens zwei Kanäle mit je zwei Steckplätzen
-    if ($groups.Count -lt 2 -or @($groups.Keys | Where-Object { @($groups[$_]).Count -ne 2 }).Count -gt 0) { return $result }
-    $filled = @{}
-    foreach ($channel in $groups.Keys) { $filled[$channel] = @($groups[$channel] | Where-Object { $places[$_].Module -ge 0 }) }
-    if (@($filled.Values | ForEach-Object { $_ }).Count -eq 0) { return $result }
-    $first = $false; $crowded = $false
-    $empty = @($groups.Keys | Where-Object { @($filled[$_]).Count -eq 0 })
-    foreach ($channel in $groups.Keys) {
-        $slots = @($groups[$channel]); $used = @($filled[$channel])
-        if ($used.Count -eq 1 -and $used[0] -eq $slots[0]) {
-            # ein Riegel im Kanal, aber im ersten Steckplatz statt im zweiten
-            $result.Wrong += $slots[0]; $result.Better += $slots[1]; $first = $true
-        }
-        elseif ($used.Count -eq 2 -and $empty.Count -gt 0) {
-            # zwei Riegel in einem Kanal, während ein anderer leer ist: einer gehört hinüber
-            $target = $empty[0]; $empty = @($empty | Select-Object -Skip 1)
-            $result.Wrong += $slots[0]; $result.Better += @($groups[$target])[1]; $crowded = $true
-        }
-    }
-    if ($result.Wrong.Count -eq 0) { $result.State = 'good'; return $result }
-    $result.State = 'bad'
-    $hints = @()
-    if ($first) { $hints += 'Die gelb markierten Riegel stecken im ersten Steckplatz ihres Kanals. Fast alle Mainboards wollen zuerst den zweiten (meist A2 und B2), sonst scheitert oft XMP.' }
-    if ($crowded) { $hints += 'Zwei Riegel teilen sich einen Kanal, ein anderer ist leer: so läuft der Speicher nur im Single-Channel.' }
-    $result.Hint = ($hints -join ' ') + ' PC ausschalten und wie markiert umstecken; im Zweifel gilt das Handbuch.'
-    $result
-}
+# Kanal aus dem Namen des Steckplatzes ("CHANNEL A", "ChannelB-DIMM0", "DIMM_A1", "Controller1-ChannelA-DIMM1")
+function Get-MemoryChannelKey([string]$Text) { Import-PulsRigCore; [PulsRig.Core.Speicher]::ChannelKey($Text) }
+
+# Single-, Dual-, ... Channel samt Hinweis; ohne erkennbare Kanäle nichts
+function Get-MemoryChannels($Modules, [int]$Slots) { Import-PulsRigCore; [PulsRig.Core.Speicher]::Channels((ConvertTo-MemoryModules $Modules), $Slots) }
+
+# Stecken die Riegel in den richtigen Steckplätzen? State good/bad/leer, Wrong und Better als Stellen der Steckplätze
+function Get-MemoryPlacement($Layout) { Import-PulsRigCore; [PulsRig.Core.Speicher]::Placement((ConvertTo-MemorySlots $Layout)) }
 
 # Reihenfolge der Steckplätze: aus dem BIOS, sonst die Riegel und dahinter die freien Plätze
 function Get-MemoryLayout($Data) {
-    $modules = @($Data.Modules)
-    $layout = @($Data.Layout)
-    if ($layout.Count -eq 0) {
-        for ($i = 0; $i -lt $modules.Count; $i++) { $layout += @{ Slot = $modules[$i].Slot; Bank = $modules[$i].Bank; Module = $i } }
-        for ($i = $modules.Count; $i -lt $Data.Slots; $i++) { $layout += @{ Slot = 'Steckplatz'; Bank = ''; Module = -1 } }
-    }
-    $layout
+    $modules = ConvertTo-MemoryModules $Data.Modules
+    [PulsRig.Core.Speicher]::Layout($modules, (ConvertTo-MemorySlots $Data.Layout), [int]$Data.Slots)
 }
 
 function Show-MemoryOverview($Data) {
@@ -1031,68 +844,24 @@ function Show-MemoryTab {
 # kommt aus PulsRig-Temperatur.cs, sobald der Treiber PawnIO installiert ist (sonst steht ein Hinweis im Fenster).
 
 $sensorCode = @'
-param($id)
-$process = $null
+param($id, $corePath)
+# das Messen selbst steckt in PulsRig.Core.dll (Messung.cs); gesucht wird nvidia-smi hier, damit der Probelauf auf
+# einem vorgetäuschten System (PulsRig-Fremdsystem.ps1) auch die Messung täuscht
+$messung = $null
 try {
+    if (-not ('PulsRig.Core.Messung' -as [type])) { Add-Type -LiteralPath $corePath }
     $exe = Join-Path $env:WINDIR 'System32\nvidia-smi.exe'
     if (-not (Test-Path -LiteralPath $exe)) {
         $found = Get-Command nvidia-smi.exe -ErrorAction SilentlyContinue
         $exe = if ($found) { $found.Source } else { '' }
     }
-    if ($exe) {
-        $start = New-Object Diagnostics.ProcessStartInfo
-        $start.FileName = $exe
-        # -i 0: bei mehreren NVIDIA-Karten käme sonst je Karte eine Zeile und die Werte sprängen hin und her
-        $start.Arguments = '-i 0 --query-gpu=name,temperature.gpu,fan.speed,utilization.gpu,memory.used,memory.total,power.draw --format=csv,noheader,nounits -l 1'
-        $start.UseShellExecute = $false
-        $start.RedirectStandardOutput = $true
-        $start.CreateNoWindow = $true
-        $process = [Diagnostics.Process]::Start($start)
-        $sync.SensorPid = $process.Id
-    }
-}
-catch { $process = $null }
-
-$load = $null; $performance = $null
-foreach ($name in @('Processor Information', '% Processor Utility'), @('Processor', '% Processor Time')) {
-    try { $load = New-Object Diagnostics.PerformanceCounter $name[0], $name[1], '_Total'; [void]$load.NextValue(); break } catch { $load = $null }
-}
-try { $performance = New-Object Diagnostics.PerformanceCounter 'Processor Information', '% Processor Performance', '_Total'; [void]$performance.NextValue() } catch { $performance = $null }
-$baseMhz = 0.0
-try { $baseMhz = [double](Get-CimInstance Win32_Processor | Select-Object -First 1).MaxClockSpeed } catch { }
-# Arbeitsspeicher: die Gesamtgröße einmal lesen, den freien Rest danach aus einem Leistungszähler - das kostet
-# im Sekundentakt viel weniger als jedes Mal eine Abfrage an Windows
-$available = $null; $totalMb = 0.0
-try {
-    $totalMb = [double](Get-CimInstance Win32_OperatingSystem -Property TotalVisibleMemorySize).TotalVisibleMemorySize / 1024.0
-    $available = New-Object Diagnostics.PerformanceCounter 'Memory', 'Available MBytes'
-    [void]$available.NextValue()
-}
-catch { $available = $null }
-
-$number = { param($text) $value = 0.0; if ([double]::TryParse("$text".Trim(), [Globalization.NumberStyles]::Float, [cultureinfo]::InvariantCulture, [ref]$value)) { $value } else { $null } }
-$stamp = 0
-try {
+    $baseMhz = 0.0
+    try { $baseMhz = [double](Get-CimInstance Win32_Processor | Select-Object -First 1).MaxClockSpeed } catch { }
+    $messung = New-Object PulsRig.Core.Messung $exe, $baseMhz
+    $sync.SensorPid = $messung.NvidiaPid
+    $stamp = 0
     while ($sync.SensorId -eq $id) {
-        $values = @{}
-        if ($process -and -not $process.HasExited) {
-            # die Zeile des NVIDIA-Werkzeugs gibt zugleich den Sekundentakt vor
-            $line = $process.StandardOutput.ReadLine()
-            $parts = @("$line" -split ',')
-            if ($parts.Count -ge 7) {
-                $values.GpuName = $parts[0].Trim()
-                $values.GpuTemp = & $number $parts[1]
-                $values.GpuFan = & $number $parts[2]
-                $values.GpuLoad = & $number $parts[3]
-                $values.GpuMemory = & $number $parts[4]
-                $values.GpuMemoryTotal = & $number $parts[5]
-                $values.GpuPower = & $number $parts[6]
-            }
-        }
-        else { Start-Sleep -Milliseconds 1000 }
-        try { if ($load) { $values.CpuLoad = [Math]::Min(100.0, [double]$load.NextValue()) } } catch { }
-        try { if ($performance -and $baseMhz -gt 0) { $values.CpuClock = $baseMhz * [double]$performance.NextValue() / 100.0 / 1000.0 } } catch { }
-        try { if ($available -and $totalMb -gt 0) { $values.Ram = [Math]::Max(0.0, 100.0 * (1.0 - [double]$available.NextValue() / $totalMb)) } } catch { }
+        $values = $messung.Next()
         # Temperatur des Prozessors (PulsRig-Temperatur.cs); im Probelauf ein gestellter Wert
         if ($sync.CpuTempDemo) { $values.CpuTemp = [double]$sync.CpuTempDemo + (Get-Random -Minimum -2 -Maximum 3); $values.CpuPower = 60.0 + (Get-Random -Maximum 9) }
         elseif ($sync.CpuTempReady) {
@@ -1110,10 +879,9 @@ try {
     }
 }
 finally {
-    if ($process) { try { if (-not $process.HasExited) { $process.Kill() } } catch { } }
+    if ($messung) { $messung.Dispose() }
 }
 '@
-
 $script:SensorRun = $null
 $script:SensorTiles = @{}      # die Kacheln des Fensters, nach dem Schlüssel ihres Messwerts
 
@@ -1147,7 +915,7 @@ function Start-Sensors {
     if ($script:ForeignCode) { $first = [powershell]::Create(); $first.Runspace = $space; [void]$first.AddScript($script:ForeignCode).Invoke(); $first.Dispose() }
     $ps = [powershell]::Create()
     $ps.Runspace = $space
-    [void]$ps.AddScript($sensorCode).AddArgument($sync.SensorId)
+    [void]$ps.AddScript($sensorCode).AddArgument($sync.SensorId).AddArgument((Get-CoreDll))
     [void]$ps.BeginInvoke()
     $timer = New-Object Windows.Threading.DispatcherTimer
     $timer.Interval = [TimeSpan]::FromMilliseconds(500)
