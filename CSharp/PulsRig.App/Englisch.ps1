@@ -414,6 +414,11 @@
         'Energieplan auf Höchstleistung …', 'Power plan to maximum …'
         'Arbeitsspeicher wird frei …', 'Freeing memory …'
         'Dienste werden pausiert …', 'Pausing services …'
+        'Spiel wird bevorzugt, Hintergrundprogramme treten zurück …', 'Prioritizing the game, background programs step back …'
+        'Speicher der geschlossenen Programme wird frei …', 'Memory of the closed programs is being freed …'
+        'Prioritäten werden zurückgestellt …', 'Restoring priorities …'
+        'Spiel bevorzugt', 'Game prioritized'
+        '1 Hintergrundprozess zurückgestellt', '1 background process deprioritized'
         'Programme werden beendet …', 'Closing programs …'
         'wird beim Ausschalten zurückgestellt', 'is restored when turned off'
         'bleibt, wie er ist', 'stays as it is'
@@ -2301,6 +2306,7 @@
         @{ R = '^(\d+) ausgewählt$'; F = '$1 selected' }
         @{ R = '^(\d+) angehalten$'; F = '$1 paused' }
         @{ R = '^(\d+) geschlossen$'; F = '$1 closed' }
+        @{ R = '^(\d+) Hintergrundprozesse zurückgestellt$'; F = '$1 background processes deprioritized' }
         @{ R = '^(\d+) Störungen in 30 Tagen$'; F = '$1 faults in 30 days' }
         @{ R = '^vorher ([\d.,]+) GB$'; F = 'before $1 GB' }
         @{ R = '^([\d.,]+) GB freigemacht$'; F = '$1 GB freed' }

@@ -39,6 +39,34 @@ namespace PulsRig.Core
             @"Steam|Epic|Origin|\bEA\b|Ubisoft|Rockstar|Battle\.net|GOG|Xbox|Gaming|GameInput|Play Games|Defend|Antivir|Security|Firewall|Bitdefender|Kaspersky|ESET|Avast|AVG|" +
             @"Norton|McAfee|Malware|VPN|Bluetooth|WLAN|Wi-?Fi|Ethernet|Killer|Thunderbolt|USB|HID|Synaptics|Wacom|VMware|VirtualBox|Docker|Hyper-V");
 
+        // Programme, die während des Boosts mit niedrigerer Priorität laufen (nur zurückgestellt, nie geschlossen):
+        // Browser, Cloud-Abgleich, Updater. Nicht dabei sind Programme mit Ton oder Sprache (Discord, Spotify, Teams),
+        // deren Wiedergabe sonst unter Last knacken könnte, und alles aus Keep (Windows, Spiele-Starter, Grafiktreiber).
+        public static readonly string[] Background = { "chrome", "msedge", "firefox", "opera", "opera_gx", "brave", "vivaldi",
+            "OneDrive", "Dropbox", "GoogleDriveFS", "iCloudDrive", "iCloudServices", "MEGAsync", "Creative Cloud", "CCXProcess", "AdobeIPCBroker",
+            "GoogleUpdate", "MicrosoftEdgeUpdate", "AdobeARM", "PhoneExperienceHost", "YourPhone" };
+
+        // Welche laufenden Programme der Boost anfasst: Raise = das Spiel (höher als normal), sonst ein Hintergrundprogramm
+        // (niedriger als normal). games: die Spiele unter Boost (Namen mit oder ohne .exe), game: das Spiel, für das der
+        // Helfer den Boost einschaltet.
+        public static List<(int Pid, string Name, bool Raise)> PriorityPlan(IEnumerable<(int Pid, string Name)>? processes, IEnumerable<string>? games, string? game)
+        {
+            var wanted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string g in games ?? new string[0]) wanted.Add(Plain(g));
+            if (!string.IsNullOrWhiteSpace(game)) wanted.Add(Plain(game!));
+            var background = new HashSet<string>(Background, StringComparer.OrdinalIgnoreCase);
+            var plan = new List<(int, string, bool)>();
+            foreach (var (pid, name) in processes ?? new (int, string)[0])
+            {
+                if (string.IsNullOrEmpty(name) || IsKept(name)) continue;
+                if (wanted.Contains(name)) plan.Add((pid, name, true));
+                else if (background.Contains(name)) plan.Add((pid, name, false));
+            }
+            return plan;
+        }
+
+        static string Plain(string name) => Regex.Replace(name.Trim(), @"\.exe$", "", RegexOptions.IgnoreCase);
+
         // text: "Name Anzeigename Hersteller" wie in Get-BoostChoices
         public static bool IsServiceKept(string? text) => ServiceKeep.IsMatch(text ?? "");
 

@@ -20,7 +20,10 @@ static class Spielboost
     public sealed record Plan(bool GameModeOff, (string Guid, string Name)? Active, bool SwitchPlan, List<(string Name, string Display)> Services,
         List<(string Name, long Bytes)> Apps, List<(string Name, long Bytes)> Hungry, List<string> Games, long Free, long Total);
 
-    public sealed record Zustand(string Time, string? PowerPlan, string? PowerPlanName, List<string> Services, List<string> ClosedApps, long FreeBefore, long FreeAfter, string? Game = null);
+    // Priorities: je umgestelltes Programm "Pid|Name|Startzeit|alte Priorität", damit das Ausschalten nur genau diese
+    // Prozesse zurückstellt (eine Pid kann inzwischen einem anderen Programm gehören)
+    public sealed record Zustand(string Time, string? PowerPlan, string? PowerPlanName, List<string> Services, List<string> ClosedApps, long FreeBefore, long FreeAfter, string? Game = null,
+        List<string>? Priorities = null);
 
     public static string StateFile => Path.Combine(Altdaten.Folder, "Spiel-Beschleunigung.json");
 
@@ -39,7 +42,8 @@ static class Spielboost
             var j = JsonNode.Parse(File.ReadAllText(StateFile));
             long Long(string n) => j?[n] is JsonValue v && v.TryGetValue<long>(out var l) ? l : 0;
             return new(Altdaten.Text(j, "Time", ""), Altdaten.Text(j, "PowerPlan", "") is { Length: > 0 } p ? p : null, Altdaten.Text(j, "PowerPlanName", ""),
-                Altdaten.List(j, "Services"), Altdaten.List(j, "ClosedApps"), Long("FreeBefore"), Long("FreeAfter"));
+                Altdaten.List(j, "Services"), Altdaten.List(j, "ClosedApps"), Long("FreeBefore"), Long("FreeAfter"), Altdaten.Text(j, "Game", "") is { Length: > 0 } game ? game : null,
+                Altdaten.List(j, "Priorities"));
         }
         catch (Exception) { return new("", null, null, new(), new(), 0, 0); }
     }
@@ -156,7 +160,7 @@ static class Spielboost
     {
         if (IsOn) return true;
         var plan = Prepare() with { Apps = new() };
-        if (!plan.GameModeOff && !plan.SwitchPlan && plan.Services.Count == 0) return false;
+        if (!plan.GameModeOff && !plan.SwitchPlan && plan.Services.Count == 0 && Prioritize(plan.Games, game, dryRun: true).Count == 0) return false;
         TurnOn(plan, false, _ => { }, game);
         return true;
     }
@@ -193,15 +197,54 @@ static class Spielboost
             report("Programme werden geschlossen …");
             foreach (var (name, _) in plan.Apps) if (Close(name)) closed.Add(name);
         }
-        report("Arbeitsspeicher wird frei …");
+        report("Spiel wird bevorzugt, Hintergrundprogramme treten zurück …");
+        var priorities = Prioritize(plan.Games, game, dryRun: false);
         // Zwischenablage leeren, wenn unter Einrichten gewählt (die Zwischenablage gehört dem Fenster-Thread)
         if (game == null && Altdaten.Flag(Altdaten.Settings()["Boost"], "Clipboard", false))
             try { System.Windows.Application.Current.Dispatcher.Invoke(System.Windows.Clipboard.Clear); } catch (Exception) { }
         var now = Core.Boost.Plans(Tool("powercfg.exe", "/list").Output.Split('\n')).FirstOrDefault(p => p.Active);
         var planChanged = plan.SwitchPlan && plan.Active != null && now.Guid != null && now.Guid != plan.Active.Value.Guid;
-        Save(new(DateTime.Now.ToString("dd.MM.yyyy HH:mm"), planChanged ? plan.Active!.Value.Guid : null, planChanged ? plan.Active!.Value.Name : null, stopped, closed, before, before, game));
+        Zustand Snapshot(long after) => new(DateTime.Now.ToString("dd.MM.yyyy HH:mm"), planChanged ? plan.Active!.Value.Guid : null, planChanged ? plan.Active!.Value.Name : null,
+            stopped, closed, before, after, game, priorities);
+        Save(Snapshot(before));
+        // frei wird Speicher nur durch geschlossene Programme; ohne sie bliebe nur das übliche Schwanken als „freigemacht“
+        if (closed.Count == 0) return;
+        report("Speicher der geschlossenen Programme wird frei …");
         Thread.Sleep(2000);
-        Save(new(DateTime.Now.ToString("dd.MM.yyyy HH:mm"), planChanged ? plan.Active!.Value.Guid : null, planChanged ? plan.Active!.Value.Name : null, stopped, closed, before, FreeMemory(), game));
+        Save(Snapshot(FreeMemory()));
+    }
+
+    // das Spiel „höher als normal“, Hintergrundprogramme „niedriger als normal“ (Core.Boost.PriorityPlan); nur Prozesse
+    // der eigenen Sitzung, deren Priorität noch „normal“ ist – was jemand selbst eingestellt hat, bleibt
+    static List<string> Prioritize(List<string> games, string? game, bool dryRun)
+    {
+        var session = Process.GetCurrentProcess().SessionId;
+        var mine = Process.GetProcesses().Where(p => { try { return p.SessionId == session && p.PriorityClass == ProcessPriorityClass.Normal; } catch (Exception) { return false; } }).ToList();
+        var done = new List<string>();
+        foreach (var (pid, name, raise) in Core.Boost.PriorityPlan(mine.Select(p => (p.Id, p.ProcessName)), games, game))
+            try
+            {
+                var p = mine.First(x => x.Id == pid);
+                if (!dryRun) p.PriorityClass = raise ? ProcessPriorityClass.AboveNormal : ProcessPriorityClass.BelowNormal;
+                done.Add(pid + "|" + name + "|" + p.StartTime.Ticks + "|" + (raise ? "spiel" : "hintergrund"));
+            }
+            catch (Exception) { }   // beendet oder geschützt
+        return done;
+    }
+
+    // zurück auf „normal“, aber nur, wenn es noch derselbe Prozess ist und niemand die Priorität inzwischen geändert hat
+    static void Restore(List<string> entries)
+    {
+        foreach (var entry in entries)
+            try
+            {
+                var part = entry.Split('|');
+                using var p = Process.GetProcessById(int.Parse(part[0]));
+                if (!p.ProcessName.Equals(part[1], StringComparison.OrdinalIgnoreCase) || p.StartTime.Ticks != long.Parse(part[2])) continue;
+                var set = part[3] == "spiel" ? ProcessPriorityClass.AboveNormal : ProcessPriorityClass.BelowNormal;
+                if (p.PriorityClass == set) p.PriorityClass = ProcessPriorityClass.Normal;
+            }
+            catch (Exception) { }   // schon beendet
     }
 
     // wie Invoke-GameBoostOff: Energieplan zurück, Dienste wieder starten; geschlossene Programme startet man selbst
@@ -214,6 +257,7 @@ static class Spielboost
         if (state?.Services.Count > 0) report("Dienste starten wieder …");
         foreach (var name in state?.Services ?? new())
             try { using var service = new ServiceController(name); if (service.Status == ServiceControllerStatus.Stopped) service.Start(); } catch (Exception) { }
+        if (state?.Priorities is { Count: > 0 } priorities) { report("Prioritäten werden zurückgestellt …"); Restore(priorities); }
         File.Delete(StateFile);
     }
 
@@ -227,6 +271,7 @@ static class Spielboost
         };
         // für die Boost-Seite: für welches Spiel der Helfer ihn eingeschaltet hat
         if (s.Game != null) json["Game"] = s.Game;
+        if (s.Priorities is { Count: > 0 }) json["Priorities"] = Altdaten.Array(s.Priorities);
         Directory.CreateDirectory(Altdaten.Folder);
         File.WriteAllText(StateFile, json.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), new UTF8Encoding(true));
     }

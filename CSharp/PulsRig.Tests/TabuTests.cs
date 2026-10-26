@@ -11,6 +11,17 @@ public class BoostTabuTests
     [Fact]
     public void EigeneListe() => Assert.True(Boost.IsAllowed("SysMain", Known, null, Windir));
 
+    // Prioritäten: das Spiel höher, Browser und Cloud niedriger; Windows, Starter, Ton und Sprache bleiben, wie sie sind
+    [Fact]
+    public void Prioritaeten()
+    {
+        var running = new[] { (1, "cs2"), (2, "chrome"), (3, "explorer"), (4, "Discord"), (5, "steam"), (6, "NMS"), (7, "OneDrive"), (8, "Spotify") };
+        var plan = Boost.PriorityPlan(running, new[] { "NMS.exe" }, "cs2");
+        Assert.Equal(new[] { (1, "cs2", true), (2, "chrome", false), (6, "NMS", true), (7, "OneDrive", false) }, plan);
+        Assert.Empty(Boost.PriorityPlan(new[] { (3, "explorer"), (5, "steam") }, new[] { "explorer", "steam" }, null));
+        Assert.Empty(Boost.PriorityPlan(null, null, null));
+    }
+
     [Fact]
     public void FremderHersteller() => Assert.True(Boost.IsAllowed("Steuer", Known, @"""C:\Program Files\Steuer\steuer.exe""", Windir));
 

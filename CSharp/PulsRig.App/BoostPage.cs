@@ -89,6 +89,12 @@ sealed class BoostPage : UserControl, IPage
             if (state.FreeAfter > state.FreeBefore) chips.Children.Add(Chip(Ui.Gb(state.FreeAfter - state.FreeBefore, "N1") + " freigemacht", Mint, "#10261C"));
             if (state.Services.Count > 0) chips.Children.Add(Chip(state.Services.Count + (state.Services.Count == 1 ? " Dienst" : " Dienste") + " pausiert", Beere, "#1B0916"));
             if (state.ClosedApps.Count > 0) chips.Children.Add(Chip(state.ClosedApps.Count + (state.ClosedApps.Count == 1 ? " Programm" : " Programme") + " geschlossen", "#F6C989", "#2A2112"));
+            if (state.Priorities is { Count: > 0 } prio)
+            {
+                if (prio.Any(x => x.EndsWith("|spiel"))) chips.Children.Add(Chip("Spiel bevorzugt", "#B19FE0", "#160D29"));
+                var back = prio.Count(x => x.EndsWith("|hintergrund"));
+                if (back > 0) chips.Children.Add(Chip(back + (back == 1 ? " Hintergrundprozess" : " Hintergrundprozesse") + " zurückgestellt", Beere, "#1B0916"));
+            }
         }
         if (Spielboost.Message.Length > 0) chips.Children.Add(Chip(Spielboost.Message, "#F6C989", "#2A2112"));
         DockPanel.SetDock(chips, Dock.Bottom);
