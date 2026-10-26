@@ -108,6 +108,9 @@ static partial class Hardwaremodell
         var last = Belastung.Last;
         double cpuMax = Belastung.Running ? Live.CpuTemp.LastOrDefault() : last?.MaxCpuTemp ?? 0, gpuMax = Belastung.Running ? Live.GpuTemp.LastOrDefault() : last?.MaxGpuTemp ?? 0;
         var errors = Belastung.Running ? PulsRigStress.Errors : last?.Title.StartsWith("Rechenfehler") == true ? 1 : 0;
+        // nach dem Test steht die Zahl nur im Ergebnistext („24.919.422 Rechenproben ohne Fehler“)
+        var sm = System.Text.RegularExpressions.Regex.Match(last?.Text ?? "", @"([\d.]+) Rechenproben");
+        var lastSamples = sm.Success ? sm.Groups[1].Value : null;
         d.Facts = new()
         {
             new(Belastung.Running ? "Prozessor" : "Prozessor max.", cpuMax > 0 ? Math.Round(cpuMax) + " °C" : "–", cpuMax > 0 ? "Grenze 98 °C" : CpuTempFact().Note, "#8C6BD6", "#160D29", cpuMax / 100),
@@ -115,7 +118,9 @@ static partial class Hardwaremodell
             new("Fehler", errors > 0 ? (Belastung.Running ? errors + " Rechenfehler" : "Rechenfehler") : last == null && !Belastung.Running ? "–" : "keine",
                 errors > 0 ? "die Hardware hat falsch gerechnet" : "kein Absturz, kein Rechenfehler", "#5EE0A0", "#10291F", errors > 0 || (last == null && !Belastung.Running) ? 0 : 1,
                 errors > 0 ? "Fehler" : last != null || Belastung.Running ? "gut" : "", errors > 0 ? Warn : Good),
-            new("Rechenproben", Belastung.Running ? PulsRigStress.Iterations.ToString("N0", De) : "–", Belastung.Running ? "jede wird nachgeprüft" : "zählen, während der Test läuft", "#A8326F", "#1F0A19", Belastung.Running ? Belastung.Elapsed / Math.Max(1, Belastung.Seconds) : 0),
+            new("Rechenproben", Belastung.Running ? PulsRigStress.Iterations.ToString("N0", De) : lastSamples ?? "–",
+                Belastung.Running ? "jede wird nachgeprüft" : lastSamples != null ? (errors > 0 ? "beim letzten Test" : "beim letzten Test, alle richtig") : "zählen, während der Test läuft",
+                "#A8326F", "#1F0A19", Belastung.Running ? Belastung.Elapsed / Math.Max(1, Belastung.Seconds) : lastSamples != null ? 1 : 0),
         };
         return d;
     }

@@ -1647,6 +1647,8 @@ function Open-HelpSheet([int]$Tab = 0) {
         Sub   = 'PulsRig in Kürze'
         Glyph = 0xE897
         Tabs  = 'Kurzanleitung', 'Über'
+        Link  = 'PulsRig unterstützen'
+        OnLink = { Open-WebLink 'https://ko-fi.com/pulsrig' }
         Show  = {
             param($tab)
             Show-SheetPanel
@@ -1668,6 +1670,7 @@ function Open-HelpSheet([int]$Tab = 0) {
                 Add-SheetText 'Was es tut' 'Sucht neuere Treiber, beschleunigt den PC fürs Spielen und bringt Werkzeuge für Treiber, Geräte und Spiele mit. Testversion: Fehler bitte mit dem Diagnose-Paket melden.' 0xE946
                 Add-SheetText 'Quellen' 'Windows Update, NVIDIA, die Chipsatz-Seite von AMD und der Microsoft Update-Katalog. Von AMD und aus dem Katalog kommen Hinweise. Fehlt einem Gerät der Treiber, lädt PulsRig ihn auf Nachfrage aus dem Katalog.' 0xE774
                 Add-SheetText 'Rechte' $(if ($script:IsAdmin) { 'Läuft mit Adminrechten: Installieren und Reparieren ist möglich.' } else { 'Läuft ohne Adminrechte: Scannen geht, Installieren und Reparieren nicht.' }) 0xE83D
+                Add-SheetText 'Unterstützen' 'PulsRig ist kostenlos, ohne Werbung und bleibt es. Wenn es dir hilft, kannst du die Entwicklung auf Ko-fi unterstützen – der Knopf unten öffnet die Seite.' 0xEB51
                 Add-SheetText 'Ordner' "Programm: $(Format-ShownPath $script:Root)`nZielordner: $(Format-ShownPath (Get-TargetDir))" 0xE8B7
                 Set-SheetColumns 1
             }
