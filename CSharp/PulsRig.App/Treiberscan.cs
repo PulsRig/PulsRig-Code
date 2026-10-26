@@ -158,13 +158,6 @@ static class Treiberscan
             catch (Exception) { }
         }
 
-        var searchError = "";
-        var updates = new List<(dynamic Update, string Id, bool Optional)>();
-        try { updates = FindDriverUpdates(); }
-        catch (COMException e) { searchError = ScanText.UpdateError(e.HResult, e.Message); }
-        catch (Exception e) { searchError = e.Message; }
-
-        report(58, "Frage NVIDIA und AMD nach den neuesten Treibern …", null);
         var failed = new List<string>();
         var gpus = new List<(string Name, string Version, string Pnp)>();
         string cpuMaker = "", cpuName = "", socket = "", boardMaker = "", boardProduct = "";
@@ -178,13 +171,72 @@ static class Treiberscan
         }
         catch (Exception) { }
 
-        HerstellerAngebot? nvidia = null, amd = null, radeon = null;
-        try { nvidia = NvidiaUpdate(gpus); } catch (Exception) { failed.Add("NVIDIA"); }
+        // Windows Update braucht die meiste Zeit und läuft hier auf dem STA-Thread; NVIDIA und AMD, der Katalog und die
+        // Geräte ohne Treiber fragen derweil im Hintergrund. Der Fortschritt zählt die erledigten Teile.
+        var osName = Environment.OSVersion.Version.Build >= 22000 ? "Windows 11" : "Windows 10";
+        var osVersion = Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "DisplayVersion", "") as string ?? "";
+        int done = 0, parts = 4;   // Windows Update, Hersteller, Katalog, Geräte ohne Treiber; dazu jede Katalog-Abfrage
+        bool updateDone = false, catalogDone = false;
+        void Step(int more = 0)
+        {
+            if (more > 0) { Interlocked.Add(ref parts, more); return; }
+            var now = Interlocked.Increment(ref done);
+            report(16 + 76.0 * now / Math.Max(now, Volatile.Read(ref parts)),
+                !Volatile.Read(ref updateDone) ? "Frage Windows Update nach neueren Treibern …" : !Volatile.Read(ref catalogDone) ? "Durchsuche den Microsoft-Katalog …" : "Frage NVIDIA und AMD nach den neuesten Treibern …", null);
+        }
+
+        var vendors = Task.Run(() =>
+        {
+            var lost = new List<string>();
+            HerstellerAngebot? n = null, a = null, r = null;
+            try { n = NvidiaUpdate(gpus); } catch (Exception) { lost.Add("NVIDIA"); }
+            try { a = AmdChipsetUpdate(cpuMaker + " " + cpuName, cpuName, socket, boardProduct); } catch (Exception) { lost.Add("AMD"); }
+            try { r = RadeonUpdate(gpus); } catch (Exception) { if (!lost.Contains("AMD")) lost.Add("AMD"); }
+            Step();
+            return (n, a, r, lost);
+        });
+        var catalog = Task.Run(() =>
+        {
+            try { return (Hints: CatalogHints(installed, n => Step(n)), Failed: false); }
+            catch (Exception) { return (Hints: new List<KatalogHinweis>(), Failed: true); }
+            finally { Volatile.Write(ref catalogDone, true); Step(); }
+        });
+        // Geräte ohne Treiber: steht im Katalog einer? Beim ersten Fehlschlag hört die Nachfrage auf, höchstens acht Geräte
+        var missing = Task.Run(() =>
+        {
+            var rows = new Dictionary<int, (string Version, string Query)>();
+            var asked = 0;
+            for (var i = 0; i < problems.Count; i++)
+            {
+                var p = problems[i];
+                if (p.Code != 28 || p.Id.Length == 0) continue;
+                if (asked++ >= 8) break;
+                try
+                {
+                    var query = Katalog.Query(p.Id);
+                    if (query == null) continue;
+                    var row = KatalogAuswahl.MissingDriver(SearchCatalog(query), osName, osVersion);
+                    if (row != null) rows[i] = (row.Version?.ToString() ?? "", query);
+                }
+                catch (Exception) { break; }
+            }
+            Step();
+            return rows;
+        });
+
+        var searchError = "";
+        var updates = new List<(dynamic Update, string Id, bool Optional)>();
+        try { updates = FindDriverUpdates(); }
+        catch (COMException e) { searchError = ScanText.UpdateError(e.HResult, e.Message); }
+        catch (Exception e) { searchError = e.Message; }
+        Volatile.Write(ref updateDone, true);
+        Step();
+
+        var (nvidia, amd, radeon, vendorFailed) = vendors.GetAwaiter().GetResult();
+        failed.AddRange(vendorFailed);
         // den Grafiktreiber liefert NVIDIA selbst immer mindestens so aktuell wie Windows Update
         if (nvidia != null)
             updates = updates.Where(u => !(((string)u.Update.DriverClass) is "Display" or "Video" && Regex.IsMatch((string)u.Update.Title + " " + (string)u.Update.DriverProvider, "NVIDIA", RegexOptions.IgnoreCase))).ToList();
-        try { amd = AmdChipsetUpdate(cpuMaker + " " + cpuName, cpuName, socket, boardProduct); } catch (Exception) { failed.Add("AMD"); }
-        try { radeon = RadeonUpdate(gpus); } catch (Exception) { if (!failed.Contains("AMD")) failed.Add("AMD"); }
 
         var offers = new List<UpdateAngebot>();
         List<(string Id, string Name)>? allDevices = null;
@@ -215,28 +267,9 @@ static class Treiberscan
                 cls == "Firmware" || Regex.IsMatch(title, "Firmware|BIOS|UEFI", RegexOptions.IgnoreCase), key, title));
         }
 
-        report(66, "Durchsuche den Microsoft-Katalog …", null);
-        var hints = new List<KatalogHinweis>();
-        try { hints = CatalogHints(installed); } catch (Exception) { failed.Add("Katalog"); }
-
-        // Geräte ohne Treiber: steht im Katalog einer? Beim ersten Fehlschlag hört die Nachfrage auf, höchstens acht Geräte
-        var osName = Environment.OSVersion.Version.Build >= 22000 ? "Windows 11" : "Windows 10";
-        var osVersion = Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "DisplayVersion", "") as string ?? "";
-        var asked = 0;
-        for (var i = 0; i < problems.Count; i++)
-        {
-            var p = problems[i];
-            if (p.Code != 28 || p.Id.Length == 0) continue;
-            if (asked++ >= 8) break;
-            try
-            {
-                var query = Katalog.Query(p.Id);
-                if (query == null) continue;
-                var row = KatalogAuswahl.MissingDriver(SearchCatalog(query), osName, osVersion);
-                if (row != null) problems[i] = p with { Catalog = row.Version?.ToString() ?? "", CatalogQuery = query };
-            }
-            catch (Exception) { break; }
-        }
+        var (hints, catalogFailed) = catalog.GetAwaiter().GetResult();
+        if (catalogFailed) failed.Add("Katalog");
+        foreach (var (i, row) in missing.GetAwaiter().GetResult()) problems[i] = problems[i] with { Catalog = row.Version, CatalogQuery = row.Query };
 
         report(93, "Fasse zusammen …", null);
         var gpuNames = gpus.Select(g => g.Name).ToList();
@@ -443,8 +476,9 @@ static class Treiberscan
     sealed class CacheEntry { public string Time { get; set; } = ""; public List<CacheRow> Rows { get; set; } = new(); }
 
     // wie Find-CatalogHints: je Treiberlinie eines Drittherstellers ein neuerer Eintrag im Katalog?
-    // Antworten gelten einen Tag; die Datei teilt sich die App mit dem PowerShell-Programm.
-    static List<KatalogHinweis> CatalogHints(List<Installiert> installed)
+    // Antworten gelten einen Tag. Fehlende fragt der Scan zu fünft gleichzeitig ab; nach drei Fehlschlägen hört er auf.
+    // step(n) meldet, wie viele Abfragen anstehen, step() jede erledigte.
+    static List<KatalogHinweis> CatalogHints(List<Installiert> installed, Action<int> step)
     {
         var osName = Environment.OSVersion.Version.Build >= 22000 ? "Windows 11" : "Windows 10";
         var services = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
@@ -468,26 +502,36 @@ static class Treiberscan
         static KatalogTreffer[] Rows(CacheEntry e) => e.Rows.Select(r => new KatalogTreffer { Title = r.Title, Products = r.Products, Size = r.Size, Bytes = r.Bytes,
             Date = DateTime.ParseExact(r.Date, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), Version = Version.TryParse(r.Version, out var v) ? v : null }).ToArray();
 
+        var fetched = new System.Collections.Concurrent.ConcurrentDictionary<string, KatalogTreffer[]>();
+        var open = groups.Select(g => g.Key).Where(k => !cache.ContainsKey(k)).ToList();
+        if (open.Count > 0) step(open.Count);
+        int failures = 0;
+        Exception? lastError = null;
+        using (var stop = new CancellationTokenSource())
+        {
+            try
+            {
+                Parallel.ForEach(open, new ParallelOptions { MaxDegreeOfParallelism = 5, CancellationToken = stop.Token }, key =>
+                {
+                    try { fetched[key] = SearchCatalog(key); }
+                    catch (Exception e) { lastError = e; if (Interlocked.Increment(ref failures) >= 3) stop.Cancel(); }
+                    finally { step(0); }
+                });
+            }
+            catch (OperationCanceledException) { }
+        }
+        if (failures >= 3) throw new InvalidOperationException("Der Katalog antwortet nicht (" + lastError?.Message + ").");
+        foreach (var (key, rows) in fetched)
+            cache[key] = new CacheEntry { Time = DateTime.Now.ToString("yyyy-MM-dd HH:mm"), Rows = rows.Select(r => new CacheRow { Title = r.Title, Products = r.Products, Size = r.Size, Bytes = r.Bytes, Date = r.Date.ToString("yyyy-MM-dd"), Version = r.Version?.ToString() ?? "" }).ToList() };
+
         var found = new List<(Installiert Driver, KatalogTreffer Entry, string Url, bool HasService)>();
-        int failures = 0, rowsSeen = 0;
+        int rowsSeen = 0;
         foreach (var group in groups)
         {
             KatalogTreffer[] rows;
-            if (cache.TryGetValue(group.Key, out var cached)) rows = Rows(cached);
-            else
-            {
-                try
-                {
-                    rows = SearchCatalog(group.Key);
-                    failures = 0;
-                    cache[group.Key] = new CacheEntry { Time = DateTime.Now.ToString("yyyy-MM-dd HH:mm"), Rows = rows.Select(r => new CacheRow { Title = r.Title, Products = r.Products, Size = r.Size, Bytes = r.Bytes, Date = r.Date.ToString("yyyy-MM-dd"), Version = r.Version?.ToString() ?? "" }).ToList() };
-                }
-                catch (Exception e)
-                {
-                    if (++failures >= 3) throw new InvalidOperationException("Der Katalog antwortet nicht (" + e.Message + ").");
-                    continue;
-                }
-            }
+            if (fetched.TryGetValue(group.Key, out var fresh)) rows = fresh;
+            else if (cache.TryGetValue(group.Key, out var cached)) rows = Rows(cached);
+            else continue;
             rowsSeen += rows.Length;
             foreach (var (_, driver) in group)
             {
