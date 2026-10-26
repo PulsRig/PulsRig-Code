@@ -186,9 +186,14 @@ static class PulsRigHelper
             if (!File.Exists(settingsPath)) return;
             DateTime time = File.GetLastWriteTime(settingsPath);
             if (time == settingsTime) return;
-            settingsTime = time;
-            var parsed = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(settingsPath, Encoding.UTF8));
+            string text;
+            using (var stream = new FileStream(settingsPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            using (var reader = new StreamReader(stream, Encoding.UTF8))
+                text = reader.ReadToEnd();
+            var parsed = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(text);
             if (parsed != null) settings = parsed;
+            // erst nach erfolgreichem Lesen merken, sonst bleibt eine Änderung bis zur nächsten unbemerkt
+            settingsTime = time;
             english = Convert.ToString(Value("Language")) == "en";
         }
         catch { }

@@ -17,6 +17,7 @@ sealed class OptionenPage : UserControl, IPage
     readonly Grid root = Ui.Mosaic(3, 3, 12);
     string helperStatus = "";
     bool stopped, shown;
+    static readonly System.Diagnostics.Stopwatch Pulse = System.Diagnostics.Stopwatch.StartNew();
 
     public OptionenPage(MainWindow window)
     {
@@ -143,8 +144,13 @@ sealed class OptionenPage : UserControl, IPage
         var line = new Path { Data = Geometry.Parse("M0 17 H200 l10 -10 l14 24 l12 -20 l8 6 H600"), Stroke = Ui.Brush(Lila), StrokeThickness = 2.4, Stretch = Stretch.Fill, Height = 30,
             Margin = new Thickness(0, 8, 0, 0), Effect = Ui.Glow("#6D43C9", 8), StrokeDashArray = new DoubleCollection { 60, 400 }, StrokeDashCap = PenLineCap.Round };
         if (!Bewegung.Off)
-            line.BeginAnimation(Shape.StrokeDashOffsetProperty, new System.Windows.Media.Animation.DoubleAnimation(460, 0, TimeSpan.FromSeconds(2.4 / Bewegung.Speed))
-                { RepeatBehavior = System.Windows.Media.Animation.RepeatBehavior.Forever });
+        {
+            // die Seite baut beim Schalten neu: an der Stelle weiterlaufen, an der die Linie gerade ist, statt von vorn
+            var period = TimeSpan.FromSeconds(2.4 / Bewegung.Speed);
+            var phase = TimeSpan.FromTicks(Pulse.Elapsed.Ticks % period.Ticks);
+            line.BeginAnimation(Shape.StrokeDashOffsetProperty, new System.Windows.Media.Animation.DoubleAnimation(460, 0, period)
+                { RepeatBehavior = System.Windows.Media.Animation.RepeatBehavior.Forever, BeginTime = -phase });
+        }
         DockPanel.SetDock(line, Dock.Top);
         body.Children.Add(line);
         var pick = new Grid { VerticalAlignment = VerticalAlignment.Bottom };

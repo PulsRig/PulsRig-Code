@@ -23,6 +23,15 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        // unerwartete Fehler nicht stumm abstürzen lassen: ins Fehlerprotokoll schreiben, Fenster-Fehler melden und weiterlaufen
+        DispatcherUnhandledException += (_, x) =>
+        {
+            Fehlerprotokoll.Write(x.Exception);
+            x.Handled = true;
+            try { MessageBox.Show("Da ist etwas schiefgegangen. PulsRig läuft weiter, der Fehler steht im Fehlerprotokoll (" + Fehlerprotokoll.File + ").\n\n" + x.Exception.Message, "PulsRig", MessageBoxButton.OK, MessageBoxImage.Warning); } catch (Exception) { }
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, x) => { if (x.ExceptionObject is Exception ex) Fehlerprotokoll.Write(ex); };
+        TaskScheduler.UnobservedTaskException += (_, x) => { Fehlerprotokoll.Write(x.Exception); x.SetObserved(); };
         // Arbeit ohne Fenster für den Helfer, vor allem anderen (auch ohne das Kennzeichen, das Setups warten lässt)
         if (Hintergrund.Run(e.Args) is { } code) { Shutdown(code); return; }
         // Sora und JetBrains Mono liegen im Programm (Schriften\, OFL); fehlen sie, greifen die Ersatzschriften

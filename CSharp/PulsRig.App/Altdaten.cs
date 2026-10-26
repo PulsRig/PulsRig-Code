@@ -44,19 +44,48 @@ static class Altdaten
     public static JsonObject Settings()
     {
         lock (Gate)
-            try { return File.Exists(SettingsFile) ? JsonNode.Parse(File.ReadAllText(SettingsFile)) as JsonObject ?? new() : new(); }
+            try { return Load() ?? new(); }
             catch (Exception) { return new(); }
     }
 
-    // liest, ändert und schreibt in einem Zug
+    // null ohne Datei; liest der Helfer sie gerade oder ist sie halb geschrieben, mehrmals versuchen
+    static JsonObject? Load()
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                if (!File.Exists(SettingsFile)) return null;
+                using var stream = new FileStream(SettingsFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                using var reader = new StreamReader(stream, Encoding.UTF8);
+                return JsonNode.Parse(reader.ReadToEnd()) as JsonObject ?? new();
+            }
+            catch (Exception) when (attempt < 5) { Thread.Sleep(50 * (attempt + 1)); }
+        }
+    }
+
+    // liest, ändert und schreibt in einem Zug. Ist die Datei nicht lesbar, nicht mit fast leeren Einstellungen
+    // überschreiben, sondern sie vorher als .defekt beiseitelegen; geschrieben wird über eine Zwischendatei
     public static void Change(Action<JsonObject> change)
     {
         lock (Gate)
         {
-            var settings = Settings();
+            JsonObject settings;
+            try { settings = Load() ?? new(); }
+            catch (Exception)
+            {
+                try { File.Copy(SettingsFile, SettingsFile + ".defekt", true); } catch (Exception) { }
+                settings = new();
+            }
             change(settings);
             Directory.CreateDirectory(Folder);
-            File.WriteAllText(SettingsFile, settings.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), new UTF8Encoding(false));
+            var draft = SettingsFile + ".neu";
+            File.WriteAllText(draft, settings.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), new UTF8Encoding(false));
+            for (var attempt = 0; ; attempt++)
+            {
+                try { File.Move(draft, SettingsFile, true); return; }
+                catch (IOException) when (attempt < 5) { Thread.Sleep(50 * (attempt + 1)); }
+            }
         }
     }
 

@@ -34,6 +34,7 @@ static class Diagnosepaket
         if (Treiberscan.Last is { } scan) files["Letzter-Scan.json"] = HideNames(System.Text.Json.JsonSerializer.Serialize(scan, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
         var stress = Path.Combine(Belastung.Folder, "Stabilitaetstest.json");
         if (File.Exists(stress)) files["Stabilitaetstest.json"] = HideNames(File.ReadAllText(stress));
+        if (File.Exists(Fehlerprotokoll.File)) files["PulsRig-Fehler.log"] = HideNames(File.ReadAllText(Fehlerprotokoll.File));
 
         // erst im Temp-Ordner packen, dann an den Zielort kopieren: so scheitert das Packen nicht am Zielordner
         var packed = Path.Combine(Path.GetTempPath(), "PulsRig-Paket-" + stamp + "-" + Environment.ProcessId + ".zip");
@@ -82,8 +83,10 @@ static class Diagnosepaket
         return "im Ordner Downloads";
     }
 
-    public static void ShowInFolder(string file) =>
-        System.Diagnostics.Process.Start("explorer.exe", "/select,\"" + file + "\"");
+    public static void ShowInFolder(string file)
+    {
+        try { System.Diagnostics.Process.Start("explorer.exe", "/select,\"" + file + "\""); } catch (Exception) { }
+    }
 
     static string Windows()
     {
