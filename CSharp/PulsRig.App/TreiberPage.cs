@@ -207,13 +207,14 @@ sealed class TreiberPage : UserControl, IPage
                 p.Chipset ? "Chipsatz" : "", p.Chipset && s.Board != null ? "Treiber suchen" : "Geräte-Manager",
                 () => Open(p.Chipset && s.Board != null ? s.Board.Url : "devmgmt.msc"))).ToList();
 
-        // Katalog-Hinweise: echte Treiber lassen sich direkt installieren, reine Beschreibungen nur ansehen
-        var hints = s.Hints.Select(h => new Zeile(Lila, h.Title, h.Device + " · installiert " + h.Installed + " · Katalog vom " + h.Date + (h.Size.Length > 0 ? " · " + h.Size : ""),
-            h.NoCode ? "nur Beschreibung" : "Katalog", h.NoCode || h.Query.Length == 0 ? "Katalog öffnen" : "Installieren",
-            h.NoCode || h.Query.Length == 0 ? () => Open(h.Url) : Guarded(h.Title + " installieren?",
-                "PulsRig lädt das Paket aus dem Microsoft-Katalog, prüft Prüfsumme, Microsoft-Signatur und ob es dieses Gerät nennt, sichert den bisherigen Treiber und installiert den neuen." + RestoreText,
+        // Katalog-Hinweise: echte Treiber lassen sich direkt installieren; reine Beschreibungen ohne Treibercode bringen nichts und fehlen
+        var hints = s.Hints.Where(h => !h.NoCode).Select(h => new Zeile(Lila, h.Title, h.Device + " · installiert " + h.Installed + " · Katalog vom " + h.Date + (h.Size.Length > 0 ? " · " + h.Size : ""),
+            "Katalog", h.Query.Length == 0 ? "Katalog öffnen" : "Installieren",
+            h.Query.Length == 0 ? () => Open(h.Url) : Guarded(h.Title + " installieren?",
+                "PulsRig lädt das Paket aus dem Microsoft-Katalog, prüft Prüfsumme, Microsoft-Signatur und ob es dieses Gerät nennt, sichert den bisherigen Treiber und installiert den neuen."
+                + (System.Text.RegularExpressions.Regex.IsMatch(h.Title + " " + h.Device, "(?i)audio|media|sound") ? " Der Ton setzt dabei kurz aus." : "") + RestoreText,
                 "Installieren", () => Treiberinstallation.InstallCatalog(h.Query, h.Title, h.Version, h.HardwareIds)),
-            null, !h.NoCode && h.Query.Length > 0)).ToList();
+            null, h.Query.Length > 0)).ToList();
 
         var current = new List<Zeile>();
         foreach (var v in new[] { s.Nvidia, s.Radeon, s.Amd }.Where(v => v is { IsNewer: false }))
