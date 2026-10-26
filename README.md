@@ -2,7 +2,7 @@
 
 Windows-Programm für Treiber, Boost, Hardware-Prüfungen und Werkzeuge: sucht neuere Treiber (Windows Update, NVIDIA, AMD, Microsoft-Katalog), schafft vor dem Spielen Platz, misst Temperaturen, testet die Hardware unter Last, vergleicht Benchmarks über die Zeit und erklärt Abstürze.
 
-- **Setup und Updates:** [PulsRig/PulsRig](https://github.com/PulsRig/PulsRig) · **Webseite:** https://pulsrig.github.io/PulsRig/
+- **Setup und Updates:** [PulsRig/PulsRig](https://github.com/PulsRig/PulsRig) · **Webseite:** https://pulsrig.de
 - **Kontakt:** pulsrig.hilfe@gmail.com
 
 ![PulsRig im Aussehen Nacht Puls](bilder/start.png)

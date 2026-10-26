@@ -63,8 +63,8 @@ function Send-ProjectPictures {
     }
 }
 
-# die Webseite (Webseite\index.html) liegt im Hauptordner des Projekts; GitHub Pages zeigt sie unter
-# https://pulsrig.github.io/PulsRig/ - eingeschaltet wird Pages beim ersten Mal hier. ".nojekyll" verhindert,
+# Webseite\index.html leitet nur noch auf https://pulsrig.de weiter (eigenes Projekt PulsRig/pulsrig.github.io). Sie liegt
+# im Hauptordner, GitHub Pages zeigt sie unter pulsrig.de/PulsRig/ für alte Links - eingeschaltet wird Pages hier. ".nojekyll" verhindert,
 # dass GitHub die Dateien erst durch seinen Seitenbauer schickt.
 function Send-Website {
     $page = Join-Path $root 'Webseite\index.html'
@@ -84,7 +84,7 @@ function Send-Website {
         else { Write-Host 'GitHub Pages eingeschaltet (die Seite ist nach ein bis zwei Minuten erreichbar).' }
     }
     $owner, $name = $Projekt -split '/'
-    Write-Host "Webseite: https://$($owner.ToLower()).github.io/$name/"
+    Write-Host "Alte Webseite (leitet auf pulsrig.de): https://pulsrig.de/$name/"
 }
 
 # Text der Release-Seite. PulsRig-Neuerungen.md sammelt alles, was in der Version neu ist. "Was ist neu" oben zeigt
@@ -134,7 +134,7 @@ function New-ReleaseNotes($Earlier, [string]$Version, [datetime]$Built) {
         # oben das Bild der Startseite (liegt im Projekt unter bilder/) und der Weg zur Webseite
         "![PulsRig im Aussehen Nacht Puls](https://raw.githubusercontent.com/$Projekt/main/bilder/start.png)"
         ''
-        "**Webseite:** https://pulsrig.github.io/PulsRig/ · **Hilfe und Fehler:** pulsrig.hilfe@gmail.com"
+        "**Webseite:** https://pulsrig.de · **Hilfe und Fehler:** pulsrig.hilfe@gmail.com"
         ''
         '## Was ist neu'
         ''
