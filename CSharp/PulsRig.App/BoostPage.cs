@@ -19,7 +19,7 @@ sealed class BoostPage : UserControl, IPage
     static Spielboost.Plan? plan;
     // aus "Boost einrichten": nach dem Einlesen gleich einschalten (mit der üblichen Rückfrage)
     public static bool StartWhenReady;
-    bool stopped;
+    bool stopped, arrived;
 
     public BoostPage(MainWindow window)
     {
@@ -219,7 +219,8 @@ sealed class BoostPage : UserControl, IPage
         gameTile.Cursor = System.Windows.Input.Cursors.Hand;
         gameTile.MouseLeftButtonUp += (_, _) => { window.GoTop("tools"); window.Go("games"); };
         tiles.Add(gameTile);
-        Ui.Arrive(tiles);
+        if (!arrived) Ui.Arrive(tiles);
+        arrived = true;
         return tiles;
     }
 
