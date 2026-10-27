@@ -24,9 +24,8 @@ public partial class HomePage : UserControl, IPage
     bool watching;
     bool boost;
     Ellipse scanBase = null!;
-    // Schläge je Minute: der Ring trägt drei Zacken, eine Runde dauert drei Schläge
+    // Schläge je Minute für die Puls-Kachel
     const int Beat = 60;
-    static readonly TimeSpan BeatTime = TimeSpan.FromSeconds(60.0 / Beat);
 
     public HomePage(MainWindow main, bool demo)
     {
@@ -219,66 +218,35 @@ public partial class HomePage : UserControl, IPage
         GameArc.Data = new PathGeometry(new[] { figure });
     }
 
-    // Herzmonitor-Ring: EKG-Zacke dreimal auf dem Kreis, vier Spuren laufen mit verschiedener Länge im Kreis (.p-t1 bis .p-t4)
+    // Puls-Ring wie im Nova-HUD (NovaRing): Bild für Bild über CompositionTarget.Rendering, nur solange die Seite sichtbar ist.
+    // Die Stärke (energy) folgt dem Scan: im Leerlauf ruhig, während des Scans zappelt der Bogen mehr und läuft schneller
     void BuildRing()
     {
-        var k = new (double T, double V)[] { (0, 0), (.14, 0), (.18, 2.5), (.22, 0), (.3, 0), (.315, -2), (.34, 18), (.365, -8), (.385, 0), (.5, 0), (.57, 4), (.64, 0), (1, 0) };
-        double F(double t)
-        {
-            for (var i = 1; i < k.Length; i++)
-                if (t <= k[i].T) return k[i - 1].V + (k[i].V - k[i - 1].V) * (t - k[i - 1].T) / (k[i].T - k[i - 1].T);
-            return 0;
-        }
-        var points = new List<Point>();
-        for (var i = 0; i <= 900; i++)
-        {
-            var u = i / 900.0;
-            var r = 94 + F(u * 3 % 1) * 0.8;
-            var w = -Math.PI / 2 + u * 2 * Math.PI;
-            points.Add(new Point(120 + r * Math.Cos(w), 120 + r * Math.Sin(w)));
-        }
-        var length = 0.0;
-        for (var i = 1; i < points.Count; i++) length += (points[i] - points[i - 1]).Length;
-        var figure = new PathFigure { StartPoint = points[0] };
-        figure.Segments.Add(new PolyLineSegment(points.Skip(1), true));
-        var geometry = new PathGeometry(new[] { figure });
-        geometry.Freeze();
-
-        Ring.Children.Add(new Ellipse { Width = 188, Height = 188, Stroke = new SolidColorBrush(Hex("#1C1229")), StrokeThickness = 2, Margin = new Thickness(26) });
+        var nova = new NovaRing { Width = 240, Height = 240, IsHitTestVisible = false };
         scanBase = new Ellipse { Width = 216, Height = 216, Stroke = new SolidColorBrush(Hex("#1C1229")), StrokeThickness = 2, Margin = new Thickness(12), Opacity = 0 };
         Ring.Children.Add(scanBase);
-        var pulse = (Brush)FindResource("Puls");
-        var traces = new (double Dash, double From, Brush Brush, double Width, double Opacity, bool Glow)[]
+        Ring.Children.Add(nova);
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        double energy = .04, sweep = 0, last = 0;
+        var breath = (ScaleTransform)Breath.RenderTransform;
+        void Frame(object? sender, EventArgs e)
         {
-            (340, 340, pulse, 2, 0.2, false), (200, 200, pulse, 2, 0.4, false),
-            (100, 100, new SolidColorBrush(Hex("#6D43C9")), 2.2, 0.75, false), (28, 28, new SolidColorBrush(Hex("#D9CFF0")), 2.8, 1, true),
-        };
-        foreach (var t in traces)
-        {
-            // pathLength=1000: Strichlängen auf die echte Länge umrechnen, WPF misst sie in Strichstärken
-            var unit = length / 1000 / t.Width;
-            var path = new Path { Data = geometry, Stroke = t.Brush, StrokeThickness = t.Width, Opacity = t.Opacity,
-                StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, StrokeLineJoin = PenLineJoin.Round,
-                StrokeDashArray = new DoubleCollection { t.Dash * unit, (1000 - t.Dash) * unit } };
-            // kein Leuchteffekt auf der laufenden Spur: er müsste jedes Bild neu gerechnet werden
-            path.BeginAnimation(Shape.StrokeDashOffsetProperty,
-                new DoubleAnimation(t.From * unit, (t.From - 1000) * unit, TimeSpan.FromTicks(BeatTime.Ticks * 3)) { RepeatBehavior = RepeatBehavior.Forever });
-            Ring.Children.Add(path);
+            var s = clock.Elapsed.TotalSeconds;
+            // auf 60 Bilder je Sekunde bezogen wie requestAnimationFrame im HUD, damit langsame Bildschirme nicht langsamer drehen
+            var step = Math.Clamp((s - last) * 60, 0, 4);
+            last = s;
+            energy += ((scanning ? .26 : .04) - energy) * (1 - Math.Pow(1 - .12, step));
+            sweep += (scanning ? .012 + energy * .02 : .004) * step;
+            nova.Update(s, energy, sweep);
+            Sphere.Update(s, energy, sweep);
+            // Atmen: Radius 0,3 W bis 0,37 W des HUD, Deckkraft .25 bis .45 (die Ellipse misst 170, ihr Verlauf trägt .45)
+            var scale = 262 * (.3 + .02 * Math.Sin(s * 1.6) + energy * .05) / 85;
+            breath.ScaleX = breath.ScaleY = scale;
+            Breath.Opacity = (.25 + energy * .2) / .45;
         }
-
-        // Atmen hinter dem Knopf (.p-breathe): Herzschlag mit Doppelschlag im Takt des Pulses
-        var opacity = new DoubleAnimationUsingKeyFrames { Duration = BeatTime, RepeatBehavior = RepeatBehavior.Forever };
-        var scale = new DoubleAnimationUsingKeyFrames { Duration = BeatTime, RepeatBehavior = RepeatBehavior.Forever };
-        foreach (var (at, o, s) in new[] { (0.0, .5, 1.0), (.29, .5, 1), (.34, .9, 1.05), (.41, .62, 1.01), (.48, .75, 1.03), (.64, .5, 1), (1, .5, 1) })
-        {
-            var time = KeyTime.FromTimeSpan(TimeSpan.FromTicks((long)(BeatTime.Ticks * at)));
-            opacity.KeyFrames.Add(new EasingDoubleKeyFrame(o, time, new QuadraticEase { EasingMode = EasingMode.EaseOut }));
-            scale.KeyFrames.Add(new EasingDoubleKeyFrame(s, time, new QuadraticEase { EasingMode = EasingMode.EaseOut }));
-        }
-        Breath.BeginAnimation(OpacityProperty, opacity);
-        var st = (ScaleTransform)Breath.RenderTransform;
-        st.BeginAnimation(ScaleTransform.ScaleXProperty, scale);
-        st.BeginAnimation(ScaleTransform.ScaleYProperty, scale);
+        Loaded += (_, _) => CompositionTarget.Rendering += Frame;
+        Unloaded += (_, _) => CompositionTarget.Rendering -= Frame;
+        Breath.Opacity = .25 / .45;
 
         ScanButton.MouseEnter += (_, _) => { Zoom(ScanButton, 1.04); Zoom(ScanShadow, 1.04); };
         ScanButton.MouseLeave += (_, _) => { Zoom(ScanButton, 1); Zoom(ScanShadow, 1); };
