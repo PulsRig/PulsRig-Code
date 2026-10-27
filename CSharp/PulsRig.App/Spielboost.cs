@@ -104,18 +104,19 @@ static class Spielboost
         // fehlt die Auswahl, gelten die Vorgaben; jeder Name muss die Prüfung von Core bestehen
         var names = choice?["Services"] is JsonArray ? Altdaten.List(choice, "Services") : Core.Boost.Services.ToList();
         var windir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+        // alle laufenden Dienste in einer Abfrage statt einer je Dienst (je Abfrage gut 0,2 Sekunden)
+        var running = new Dictionary<string, (string Display, string? Path)>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            using var s = new ManagementObjectSearcher("SELECT Name, DisplayName, PathName FROM Win32_Service WHERE State = 'Running'");
+            foreach (ManagementObject o in s.Get())
+                if (o["Name"]?.ToString() is { } n) running[n] = (o["DisplayName"]?.ToString() ?? n, o["PathName"]?.ToString());
+        }
+        catch (Exception) { }
         var services = new List<(string, string)>();
         foreach (var name in names.Where(Core.Boost.IsSafeName).Distinct(StringComparer.OrdinalIgnoreCase))
-            try
-            {
-                using var service = new ServiceController(name);
-                if (service.Status != ServiceControllerStatus.Running) continue;
-                string? path = null;
-                using (var s = new ManagementObjectSearcher("SELECT PathName FROM Win32_Service WHERE Name = '" + name + "'"))
-                    foreach (ManagementObject o in s.Get()) path = o["PathName"]?.ToString();
-                if (Core.Boost.IsAllowed(name, Core.Boost.Services, path, windir)) services.Add((name, service.DisplayName));
-            }
-            catch (Exception) { }   // gibt es nicht
+            if (running.TryGetValue(name, out var service) && Core.Boost.IsAllowed(name, Core.Boost.Services, service.Path, windir))
+                services.Add((name, service.Display));
         var apps = Altdaten.List(choice, "Apps");
         return new(gameMode, active.Guid != null ? (active.Guid, active.Name) : null, switchPlan, services,
             Programs(n => apps.Contains(n, StringComparer.OrdinalIgnoreCase)), Programs(_ => true).Take(3).ToList(), Altdaten.List(settings, "BoostGames"), FreeMemory(), TotalMemory());
@@ -180,17 +181,21 @@ static class Spielboost
             report("Energieplan auf Höchstleistung …");
             Tool("powercfg.exe", "/setactive " + Core.Boost.Performance);
         }
-        var stopped = new List<string>();
         if (plan.Services.Count > 0) report("Dienste werden pausiert …");
-        foreach (var (name, _) in plan.Services)
+        // alle zugleich anhalten: dauert so lange wie der langsamste (DoSvc gut 2 Sekunden), nicht wie alle zusammen
+        var halted = new bool[plan.Services.Count];
+        Parallel.For(0, plan.Services.Count, i =>
+        {
             try
             {
-                using var service = new ServiceController(name);
+                using var service = new ServiceController(plan.Services[i].Name);
                 service.Stop();
                 service.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(20));
-                stopped.Add(name);
+                halted[i] = true;
             }
             catch (Exception) { }
+        });
+        var stopped = plan.Services.Where((_, i) => halted[i]).Select(s => s.Name).ToList();
         var closed = new List<string>();
         if (closeApps && plan.Apps.Count > 0)
         {
