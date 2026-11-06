@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -40,9 +40,9 @@ static class Ui
         return tile;
     }
 
-    public static TextBlock Text(string text, double size, string? color = null, bool bold = false, bool mono = false)
+    public static TextBlock Text(string text, double size, string? color = null, bool bold = false, bool mono = false, bool wrap = false)
     {
-        var t = new TextBlock { Text = text, FontSize = size, TextTrimming = TextTrimming.CharacterEllipsis };
+        var t = new TextBlock { Text = text, FontSize = size, TextTrimming = wrap ? TextTrimming.None : TextTrimming.CharacterEllipsis, TextWrapping = wrap ? TextWrapping.Wrap : TextWrapping.NoWrap };
         if (color != null) t.Foreground = color.StartsWith('#') ? Brush(color) : Res(color);
         if (bold) t.FontWeight = FontWeights.SemiBold;
         if (mono) t.FontFamily = Mono;

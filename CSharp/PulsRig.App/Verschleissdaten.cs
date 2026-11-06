@@ -30,6 +30,10 @@ static class Verschleissdaten
         return o;
     }
 
+    // Tag der letzten Reinigung aus dem Scheckheft (null = keine eingetragen): dort beginnt der Kühlungs-Vergleich neu
+    public static DateTime? LastCleaning() =>
+        Scheckheftdaten.Entries().Where(e => e.Kind == "cleaning").Select(e => Scheckheft.ParseStamp(e.D)).Where(t => t != null).OrderBy(t => t).LastOrDefault();
+
     public static List<Messpunkt> Points() =>
         (Ergebnisse.History(Ergebnisse.Read())["Thermal"] as JsonArray ?? new()).OfType<JsonObject>().Select(ToPoint).ToList();
 
@@ -61,7 +65,8 @@ static class Verschleissdaten
     // Messpunkt aus einem Stabilitätstest ab 5 Minuten: Mittel (Median) der letzten Minute
     public static void AddStress(string what, double seconds, IReadOnlyList<(double? GT, double? GW, double? GF, double? CT, double? CC, double? CW)> tail)
     {
-        if (seconds < 290 || tail.Count < 20) return;
+        // vom Stick läuft PulsRig auf fremden PCs (Gebrauchtkauf-Check): deren Werte gehören nicht in den Verlauf
+        if (Altdaten.Portable != null || seconds < 290 || tail.Count < 20) return;
         var p = new Messpunkt { D = DateTime.Now.ToString("yyyy-MM-dd"), Src = "Stresstest", Name = what, Min = Math.Round(seconds / 60, MidpointRounding.ToEven) };
         double? R(double v, int d) => double.IsNaN(v) ? null : Math.Round(v, d, MidpointRounding.ToEven);
         if (what is "gpu" or "both") { p.GT = R(Verschleiss.Median(tail.Select(t => t.GT)), 1); p.GW = R(Verschleiss.Median(tail.Select(t => t.GW)), 1); p.GF = R(Verschleiss.Median(tail.Select(t => t.GF)), 1); }
@@ -74,6 +79,7 @@ static class Verschleissdaten
 
     public static void AddDrives(Laufwerke drives)
     {
+        if (Altdaten.Portable != null) return;
         var today = DateTime.Now.ToString("yyyy-MM-dd");
         try
         {

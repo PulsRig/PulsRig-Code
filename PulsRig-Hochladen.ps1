@@ -186,20 +186,34 @@ $readme = Join-Path $dist 'README.md'
 if (-not (Test-Path -LiteralPath $versionFile)) { throw 'dist\version.json fehlt - zuerst PulsRig-Paket.ps1 laufen lassen.' }
 $note = Get-Content -LiteralPath $versionFile -Raw -Encoding UTF8 | ConvertFrom-Json
 $versionName = "$($note.Version)" -replace '\s+', '-'
-$setup = Join-Path $dist "PulsRig-Setup-$versionName.exe"
+$packageName = $versionName
+$hasBuildId = $note.PSObject.Properties.Name -contains 'BuildId'
+if ($hasBuildId) {
+    if ("$($note.BuildId)" -notmatch '^\d{8}-\d{6}$') { throw 'Ungültige Build-Kennung in version.json.' }
+    $packageName += "-$($note.BuildId)"
+}
+$setup = Join-Path $dist "PulsRig-Setup-$packageName.exe"
 if (-not (Test-Path -LiteralPath $setup)) { throw "Die Setup-Datei fehlt: $setup" }
 # die Setup-Datei muss zu version.json gehören: beide schreibt das Paketskript im selben Lauf
 if ([Math]::Abs(((Get-Item -LiteralPath $setup).LastWriteTime - (Get-Item -LiteralPath $versionFile).LastWriteTime).TotalMinutes) -gt 5) {
     throw 'Setup-Datei und version.json stammen nicht aus demselben Bau - PulsRig-Paket.ps1 noch einmal laufen lassen.'
 }
 # das ZIP zum Starten ohne Installation kommt mit ins Release, wenn es aus demselben Bau stammt
-$zip = Join-Path $dist "PulsRig-$versionName.zip"
+$zip = Join-Path $dist "PulsRig-$packageName.zip"
 $assets = @($setup)
 if ((Test-Path -LiteralPath $zip) -and [Math]::Abs(((Get-Item -LiteralPath $zip).LastWriteTime - (Get-Item -LiteralPath $versionFile).LastWriteTime).TotalMinutes) -le 5) { $assets += $zip }
 else { Write-Host "Das ZIP fehlt oder stammt aus einem anderen Bau - es kommt nicht ins Release: $zip" -ForegroundColor Yellow }
+# der Knopf auf pulsrig.de zeigt fest auf releases/latest/download/PulsRig-Setup-<Version>.exe: dieselbe Datei auch ohne Build-Kennung
+$stableFolder = Join-Path ([IO.Path]::GetTempPath()) "PulsRig-Setup-$PID"
+if ($hasBuildId) {
+    [void][IO.Directory]::CreateDirectory($stableFolder)
+    $stable = Join-Path $stableFolder "PulsRig-Setup-$versionName.exe"
+    Copy-Item -LiteralPath $setup -Destination $stable -Force
+    $assets += $stable
+}
 $built = [datetime]::ParseExact("$($note.Gebaut)".Substring(0, 16), 'dd.MM.yyyy HH:mm', [cultureinfo]::InvariantCulture)
 # je Bau ein eigenes Release: dieselbe Version wird während einer Testphase mehrfach gebaut
-$tag = ('v{0}-{1:yyyyMMdd-HHmm}' -f $versionName, $built).ToLower()
+$tag = if ($hasBuildId) { ('v{0}' -f $packageName).ToLower() } else { ('v{0}-{1:yyyyMMdd-HHmm}' -f $versionName, $built).ToLower() }
 $title = "PulsRig $($note.Version), Bau vom $($built.ToString('dd.MM.yyyy HH:mm'))"
 
 Write-Host "Projekt:      $Projekt"
@@ -208,7 +222,10 @@ foreach ($file in $assets) { Write-Host ("Datei:        {0}  ({1:N0} KB)" -f (Sp
 Write-Host "Danach:       version.json und README.md"
 if (-not $Ja) {
     $answer = Read-Host 'Hochladen? (j/n)'
-    if ($answer -notmatch '^[jJyY]') { Write-Host 'Nichts hochgeladen.'; exit 0 }
+    if ($answer -notmatch '^[jJyY]') {
+        if (Test-Path -LiteralPath $stableFolder) { Remove-Item -LiteralPath $stableFolder -Recurse -Force }
+        Write-Host 'Nichts hochgeladen.'; exit 0
+    }
 }
 
 # ein Lauf, der nach dem Release abbrach, darf wiederholt werden
@@ -223,7 +240,9 @@ else {
     try { Invoke-Gh release create $tag @assets --repo $Projekt --title $title --notes-file $notesFile --latest }
     finally { [IO.File]::Delete($notesFile) }
 }
-if ($LASTEXITCODE -ne 0) { throw 'Das Release ließ sich nicht anlegen - version.json bleibt unverändert.' }
+$uploaded = $LASTEXITCODE
+if (Test-Path -LiteralPath $stableFolder) { Remove-Item -LiteralPath $stableFolder -Recurse -Force }
+if ($uploaded -ne 0) { throw 'Das Release ließ sich nicht anlegen - version.json bleibt unverändert.' }
 
 if (Test-Path -LiteralPath $readme) { Send-ProjectFile $readme 'README.md' 'Beschreibung' }
 Send-ProjectPictures

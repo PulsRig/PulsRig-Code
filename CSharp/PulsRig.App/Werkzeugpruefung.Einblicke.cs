@@ -188,10 +188,39 @@ static partial class Werkzeugpruefung
         return entries.OrderBy(e => !e.Enabled).ThenBy(e => Core.Autostart.Title(e.Name, e.Description)).ToList();
     }
 
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    static extern bool GetProcessIoCounters(IntPtr process, out IoCounters counters);
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    struct IoCounters { public ulong ReadOps, WriteOps, OtherOps, ReadBytes, WriteBytes, OtherBytes; }
+
+    // laufende Prozesse je Programmdatei: CPU-Sekunden, gelesene und geschriebene MB, Arbeitsspeicher in MB, Minuten
+    // seit dem Start des ältesten. Fremde Prozesse mit Adminrechten lassen sich ohne Adminrechte nicht öffnen und fehlen.
+    internal static Dictionary<string, (double Cpu, double Io, double Ram, double Age)> RunningLoad()
+    {
+        var all = new Dictionary<string, (double Cpu, double Io, double Ram, double Age)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in Process.GetProcesses())
+            using (p)
+                try
+                {
+                    var file = p.MainModule?.FileName;
+                    if (string.IsNullOrEmpty(file)) continue;
+                    var io = GetProcessIoCounters(p.Handle, out var c) ? (c.ReadBytes + c.WriteBytes) / 1048576.0 : 0;
+                    var age = (DateTime.Now - p.StartTime).TotalMinutes;
+                    var mine = (p.TotalProcessorTime.TotalSeconds, io, p.WorkingSet64 / 1048576.0, age);
+                    all[file] = all.TryGetValue(file, out var old) ? (old.Cpu + mine.Item1, old.Io + mine.io, old.Ram + mine.Item3, Math.Max(old.Age, age)) : mine;
+                }
+                catch (Exception) { }
+        return all;
+    }
+
     // Ausgeschaltet wird wie im Task-Manager: der Eintrag bleibt, Windows vermerkt unter StartupApproved "nicht starten"
     static Werkbefund Autostart()
     {
         var entries = StartEntries();
+        Dictionary<string, (double Cpu, double Io, double Ram, double Age)> load = new();
+        try { load = RunningLoad(); } catch (Exception) { }
+        var heavy = 0;
         var lines = new List<Pruefzeile>();
         var steps = new List<Schritt>();
         if (entries.Count == 0) lines.Add(new(true, "Beim Anmelden startet kein Programm von selbst"));
@@ -208,7 +237,15 @@ static partial class Werkzeugpruefung
                     RemoveStep(e, title), Button: "Entfernen"));
                 continue;
             }
-            var parts = new[] { e.Company, e.File.Length > 0 ? Path.GetFileName(e.File) : "", e.Where }.Where(p => p.Length > 0);
+            var impact = "";
+            if (e.Enabled && e.File.Length > 0 && load.TryGetValue(e.File, out var l))
+            {
+                var (level, _) = Core.Autostart.Impact(l.Cpu, l.Io, l.Ram, l.Age);
+                if (level == "hoch") heavy++;
+                impact = "bremst " + level + " (" + (l.Age <= 15 ? string.Format("{0:N1} s Rechenzeit, {1:N0} MB gelesen/geschrieben", l.Cpu, l.Io) : string.Format("{0:N0} MB Arbeitsspeicher", l.Ram)) + ")";
+            }
+            else if (e.Enabled) impact = "läuft gerade nicht";
+            var parts = new[] { impact, e.Company, e.File.Length > 0 ? Path.GetFileName(e.File) : "", e.Where }.Where(p => p.Length > 0);
             var on = !e.Enabled;
             lines.Add(new(true, title, string.Join(" · ", parts), new(title + (on ? " einschalten" : " ausschalten"), () =>
             {
@@ -220,7 +257,9 @@ static partial class Werkzeugpruefung
         if (orphans.Count > 1)
             steps.Add(new("Alle " + orphans.Count + " Reste entfernen", () => string.Join("; ", orphans.Select(e => RemoveStep(e, Core.Autostart.Title(e.Name, e.Description)).Run())), Optional: true, Admin: orphans.Any(e => e.Machine)));
         var active = entries.Where(e => !e.Orphan).ToList();
-        return new(lines, active.Count(e => e.Enabled) + " von " + active.Count + " starten mit Windows. Der Schalter wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager. Einträge für alle Benutzer nur mit Adminrechten."
+        return new(lines, active.Count(e => e.Enabled) + " von " + active.Count + " starten mit Windows"
+            + (heavy == 0 ? "." : heavy == 1 ? ", einer davon bremst stark." : ", " + heavy + " davon bremsen stark.")
+            + " Die Bremse misst wie der Task-Manager Rechenzeit und Datenzugriffe kurz nach der Anmeldung; läuft ein Programm schon länger, zählen Arbeitsspeicher und Dauerlast. Der Schalter wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager. Einträge für alle Benutzer nur mit Adminrechten."
             + (orphans.Count == 0 ? "" : orphans.Count == 1 ? " Ein Eintrag ist der Rest eines deinstallierten Programms." : " " + orphans.Count + " Einträge sind Reste deinstallierter Programme.")
             + (orphans.Count == 0 ? "" : " Entfernen löscht nur den Autostart-Eintrag und legt vorher eine Sicherung an; Programmdateien bleiben unberührt."), steps);
     }
@@ -318,7 +357,7 @@ static partial class Werkzeugpruefung
                 p.WaitForExit();
             }
             catch (Exception) { }
-        if (bar is > 256) checks.Add(("Resizable BAR", "good", "an", "Die Grafikkarte erreicht ihren ganzen Speicher auf einmal (" + Math.Round(bar.Value / 1024.0) + " GB). Das bringt in vielen neuen Spielen ein paar Prozent.", null));
+        if (bar is > 256) checks.Add(("Resizable BAR", "good", "an", Spielcheck.BarDescription(bar.Value), null));
         else if (bar != null) checks.Add(("Resizable BAR", "warn", "aus", "Im BIOS „Above 4G Decoding“ und „Re-Size BAR“ einschalten: bringt in neuen Spielen ein paar Prozent. PulsRig ändert am BIOS nichts.", null));
         else checks.Add(("Resizable BAR", "", "nicht prüfbar", "Lässt sich nur bei NVIDIA-Grafikkarten auslesen.", null));
 
@@ -369,10 +408,10 @@ static partial class Werkzeugpruefung
 
         var score = Spielcheck.Score(checks.Select(c => c.Tone));
         GameScore = score;
-        var lines = checks.Select(c => new Pruefzeile(c.Tone != "warn" && c.Tone != "bad", c.Name + " · " + c.State, c.Text)).ToList();
+        var lines = checks.Select(c => new Pruefzeile(c.Tone == "good", c.Name + " · " + c.State, c.Text, Unknown: Spielcheck.IsUnknown(c.Tone))).ToList();
         var steps = checks.Where(c => c.Open != null).Select(c => c.Open!).GroupBy(s => s.Text).Select(g => g.First()).ToList();
-        var todo = checks.Count(c => c.Tone is "warn" or "bad");
-        return new(lines, (score is { } s ? s + " von 100 · " : "") + checks.Count(c => c.Tone == "good") + " grün" + (todo > 0 ? ", " + todo + " zu prüfen" : "") + ". PulsRig ändert hier nichts: die Knöpfe öffnen die Stelle, an der man es einstellt.", steps);
+        var counts = Spielcheck.Counts(checks.Select(c => c.Tone));
+        return new(lines, (score is { } s ? s + " von 100 · " : "") + counts.Good + " in Ordnung, " + counts.Concern + " zu prüfen, " + counts.Unknown + " unbekannt" + ". PulsRig ändert hier nichts: die Knöpfe öffnen die Stelle, an der man es einstellt.", steps);
     }
 
     // --- Spiele & Aufzeichnung ----------------------------------------------------------------------------------------

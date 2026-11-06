@@ -7,7 +7,7 @@ namespace PulsRig.Core
         public const string Name = "PulsRig";
 
         // die Version von PulsRig: PulsRig-Paket.ps1 liest sie hier für Setup und ZIP
-        public const string Version = "0.7 Beta";
+        public const string Version = "1.0";
     }
 }
 
@@ -24,9 +24,25 @@ namespace PulsRig.Core
     {
         public const string Repo = "PulsRig/PulsRig";
 
-        // "13.10.2026 18:45 · Stand abc1234" -> Baudatum; null in der Werkstatt (ohne Zeile)
-        public static DateTime? BuildTime(string? text) =>
-            text != null && text.Length >= 16 && DateTime.TryParseExact(text.Substring(0, 16), "dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime t) ? t : (DateTime?)null;
+        // "13.10.2026 18:45 · Build 20261013-184512 · Stand abc1234" -> Kennung; bis 04.11.2026 war sie länger
+        // (Millisekunden und eine Zufallszahl, "20261029-133001123-1234abcd") – beide gelten weiter
+        static readonly string[] Formats = { "yyyyMMdd-HHmmss", "yyyyMMdd-HHmmssfff" };
+
+        static DateTime? IdTime(string id) =>
+            id.Length >= 15 && DateTime.TryParseExact(id.Length == 15 ? id : id.Substring(0, 18), id.Length == 15 ? Formats[0] : Formats[1], CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime t) ? t : (DateTime?)null;
+
+        public static string BuildId(string? text)
+        {
+            var match = Regex.Match(text ?? "", @"(?:^| · )Build (\d{8}-\d{6}|\d{8}-\d{9}-[a-f0-9]{8})(?:$| · )");
+            return match.Success && IdTime(match.Groups[1].Value) != null ? match.Groups[1].Value : "";
+        }
+
+        public static DateTime? BuildTime(string? text)
+        {
+            var id = BuildId(text);
+            if (id.Length > 0 && IdTime(id) is DateTime precise) return precise;
+            return text != null && text.Length >= 16 && DateTime.TryParseExact(text.Substring(0, 16), "dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime t) ? t : (DateTime?)null;
+        }
 
         public static bool IsNewer(string? mine, string? theirs) => BuildTime(mine) is DateTime own && BuildTime(theirs) is DateTime other && other > own;
 

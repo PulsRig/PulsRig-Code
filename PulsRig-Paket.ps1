@@ -22,6 +22,11 @@ $info = [IO.File]::ReadAllText((Join-Path $root 'CSharp\PulsRig.Core\PulsRigInfo
 if ($info -notmatch 'const string Version = "([^"]+)"') { throw 'Version in PulsRigInfo.cs nicht gefunden.' }
 $version = $Matches[1]
 $versionName = $version -replace '\s+', '-'
+# Ein Bau bekommt genau eine Kennung, die in App, Setup, ZIP und Metadaten identisch bleibt.
+$buildMoment = Get-Date
+# Datum und Uhrzeit bis zur Sekunde: kurz genug für Dateinamen, und zwei Bauten derselben Minute bleiben verschieden
+$buildId = $buildMoment.ToString('yyyyMMdd-HHmmss')
+$packageName = "$versionName-$buildId"
 
 # PulsRig.Core.dll: die nach C# übertragenen Teile (Ordner CSharp, Fassung net48 für PowerShell 5.1). Braucht das .NET SDK.
 $solution = Join-Path $root 'CSharp\PulsRig.slnx'
@@ -95,7 +100,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $sensors 'LibreHardwareMonitorLib.dl
 Copy-Item -LiteralPath $sensors -Destination (Join-Path $stage 'Sensoren') -Recurse
 
 # Baudatum und Stand der Versionsverwaltung: das Programm nennt beides im Diagnose-Paket
-$stamp = (Get-Date).ToString('dd.MM.yyyy HH:mm')
+$stamp = $buildMoment.ToString('dd.MM.yyyy HH:mm') + " · Build $buildId"
 try {
     $git = Join-Path $env:ProgramFiles 'Git\cmd\git.exe'
     if (Test-Path -LiteralPath $git) {
@@ -108,7 +113,7 @@ catch { }
 Write-Host "Baudatum: $stamp"
 # version.json gehört ins Projekt bei GitHub: daran erkennen installierte Fassungen, dass es eine neuere gibt.
 # Hier entsteht sie ohne Setup-Datei; gibt es am Ende eine, kommen deren Adresse, Größe und Prüfsumme dazu.
-$versionNote = [ordered]@{ Version = $version; Gebaut = $stamp }
+$versionNote = [ordered]@{ Version = $version; BuildId = $buildId; Gebaut = $stamp }
 [IO.File]::WriteAllText((Join-Path $dist 'version.json'), ($versionNote | ConvertTo-Json), (New-Object Text.UTF8Encoding $false))
 # die Beschreibung für die Projektseite bei GitHub liegt als README.md daneben
 Copy-Item -LiteralPath (Join-Path $root 'PulsRig-GitHub.md') -Destination (Join-Path $dist 'README.md') -Force
@@ -144,7 +149,7 @@ Write-Host ("Neue Oberfläche: App\PulsRig.App.exe  ({0:N0} MB)" -f ($appBytes /
 
 # ZIP ohne Installation: derselbe Programmordner wie im Setup. Entpackt außerhalb von "Programme" bleiben die Daten
 # daneben in Treiber\ (wie beim Notfall-Stick); gestartet wird PulsRig.exe.
-$zip = Join-Path $dist "PulsRig-$versionName.zip"
+$zip = Join-Path $dist "PulsRig-$packageName.zip"
 if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Confirm:$false }
 Compress-Archive -Path (Join-Path $program '*') -DestinationPath $zip
 Write-Host ("ZIP:   {0}  ({1:N0} KB)" -f $zip, ((Get-Item -LiteralPath $zip).Length / 1KB))
@@ -156,15 +161,15 @@ if (-not $compiler) {
     Write-Host 'Inno Setup ist nicht installiert - es gibt nur die ZIP-Datei.' -ForegroundColor Yellow
     return
 }
-& $compiler.FullName "/DAppVersion=$version" "/DVersionName=$versionName" '/Qp' (Join-Path $root 'PulsRig-Setup.iss')
+& $compiler.FullName "/DAppVersion=$version" "/DVersionName=$packageName" "/DBuildId=$buildId" '/Qp' (Join-Path $root 'PulsRig-Setup.iss')
 if ($LASTEXITCODE -ne 0) { throw "Inno Setup hat einen Fehler gemeldet (Code $LASTEXITCODE)." }
-$setup = Join-Path $dist "PulsRig-Setup-$versionName.exe"
+$setup = Join-Path $dist "PulsRig-Setup-$packageName.exe"
 Write-Host ("Setup: {0}  ({1:N0} KB)" -f $setup, ((Get-Item -LiteralPath $setup).Length / 1KB)) -ForegroundColor Green
 # Damit eine installierte Fassung die neue selbst laden kann: wo die Setup-Datei nach dem Hochladen liegt (das Release
 # heißt wie in PulsRig-Hochladen.ps1), wie groß sie ist und welche Prüfsumme sie hat. Das Programm startet nur eine
 # Datei, bei der beides stimmt.
 $built = [datetime]::ParseExact($stamp.Substring(0, 16), 'dd.MM.yyyy HH:mm', [cultureinfo]::InvariantCulture)
-$tag = ('v{0}-{1:yyyyMMdd-HHmm}' -f $versionName, $built).ToLower()
+$tag = ('v{0}' -f $packageName).ToLower()
 $versionNote.Setup = "https://github.com/$Projekt/releases/download/$tag/$(Split-Path -Leaf $setup)"
 $versionNote.Bytes = (Get-Item -LiteralPath $setup).Length
 $versionNote.Sha256 = (Get-FileHash -LiteralPath $setup -Algorithm SHA256).Hash

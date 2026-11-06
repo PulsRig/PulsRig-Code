@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -22,8 +22,8 @@ public static class PulsRigStress
     static long iterations;
     static long errors;
     static long frames;
-    static Thread[] workers;
-    static Thread gpuThread;
+    static Thread[] workers = Array.Empty<Thread>();
+    static Thread? gpuThread;
     static volatile string gpuError = "";
     static volatile bool gpuActive;
     // Zähler der Läufe: ein Lauf, der gerade erst gestoppt wurde, darf nicht weiterarbeiten, wenn sofort ein neuer startet
@@ -143,7 +143,7 @@ public static class PulsRigStress
 
     // Shader-Befehle gibt es nur über wglGetProcAddress (OpenGL 2.0)
     delegate uint CreateShaderFn(uint type);
-    delegate void ShaderSourceFn(uint shader, int count, string[] source, int[] length);
+    delegate void ShaderSourceFn(uint shader, int count, string[] source, int[]? length);
     delegate void CompileShaderFn(uint shader);
     delegate void GetShaderivFn(uint shader, uint name, out int value);
     delegate uint CreateProgramFn();
@@ -153,7 +153,7 @@ public static class PulsRigStress
     delegate int GetUniformLocationFn(uint program, string name);
     delegate void Uniform1fFn(int location, float value);
 
-    static T Gl<T>(string name) where T : class
+    static T? Gl<T>(string name) where T : class
     {
         IntPtr pointer = wglGetProcAddress(name);
         long value = pointer.ToInt64();
@@ -178,7 +178,7 @@ void main() {
 }";
 
     // baut das Programm; Ergebnis 0, wenn die Karte oder der Treiber keine Shader kann
-    static uint BuildShader(out UseProgramFn use, out Uniform1fFn uniform, out int timeAt, out int countAt)
+    static uint BuildShader(out UseProgramFn? use, out Uniform1fFn? uniform, out int timeAt, out int countAt)
     {
         use = null; uniform = null; timeAt = -1; countAt = -1;
         try
@@ -225,7 +225,7 @@ void main() {
         gpuRun = true;
         gpuThread = new Thread(delegate ()
         {
-            Form form = null; IntPtr dc = IntPtr.Zero, context = IntPtr.Zero;
+            Form? form = null; IntPtr dc = IntPtr.Zero, context = IntPtr.Zero;
             try
             {
                 form = new Form();
@@ -264,7 +264,7 @@ void main() {
                 }
                 glEnd();
                 glEndList();
-                UseProgramFn use; Uniform1fFn uniform; int timeAt, countAt;
+                UseProgramFn? use; Uniform1fFn? uniform; int timeAt, countAt;
                 uint shader = BuildShader(out use, out uniform, out timeAt, out countAt);
                 GpuMode = shader != 0 ? "Shader" : "Flächen";
                 int calls = shader != 0 ? 1 : 4;
@@ -276,7 +276,7 @@ void main() {
                     watch.Restart();
                     glClearColor(0.03f, 0.05f, 0.1f, 1);
                     glClear(0x4000);
-                    if (shader != 0)
+                    if (shader != 0 && use != null && uniform != null)
                     {
                         use(shader);
                         if (timeAt >= 0) uniform(timeAt, phase);
@@ -305,7 +305,7 @@ void main() {
                     // So viel Arbeit, dass ein Bild rund 30 Millisekunden kostet: dann ist die Karte ausgelastet,
                     // und Windows (Zeitgrenze 2 Sekunden je Bild) bleibt weit weg
                     double ms = watch.Elapsed.TotalMilliseconds;
-                    if (shader != 0)
+                    if (shader != 0 && use != null && uniform != null)
                     {
                         // erst die Schleife länger machen (bis 512), dann mehr Flächen; zu langsam: erst Flächen, dann Schleife
                         if (ms < 24) { if (loops < 512) loops = Math.Min(512, loops * 1.02f + 0.2f); else if (calls < 1000) calls++; }

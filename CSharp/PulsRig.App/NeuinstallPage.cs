@@ -93,7 +93,7 @@ sealed class NeuinstallPage : UserControl, IPage
         message = "";
         Changed?.Invoke();
         var ui = Application.Current.Dispatcher;
-        Task.Run(() => { try { return work(); } catch (Exception e) { return e.Message; } })
+        Task.Run(() => { try { return work(); } catch (Exception e) { return Fehlermeldung.Text(e); } })
             .ContinueWith(t => ui.BeginInvoke(() => { busy = ""; message = t.Result; Changed?.Invoke(); }));
     }
 
@@ -142,7 +142,7 @@ sealed class NeuinstallPage : UserControl, IPage
         {
             var code = Tool(Path.Combine(Environment.SystemDirectory, "pnputil.exe"), "/add-driver \"" + Path.Combine(drivers, "*.inf") + "\" /subdirs /install").Code;
             // 3010: fertig, Neustart nötig; 259: nichts Neues für die vorhandenen Geräte
-            return code is 0 or 259 or 3010 ? "Treiber eingespielt. Bitte den PC danach neu starten." : "pnputil meldet Code " + code + " - einzelne Treiber passten evtl. nicht zu den Geräten.";
+            return code is 0 or 259 or 3010 ? "Windows hat die Treiberpakete verarbeitet. Bitte den PC danach neu starten." : throw new TreiberWerkzeugException(code);
         });
     }
 
@@ -319,7 +319,7 @@ sealed class NeuinstallPage : UserControl, IPage
             list.Children.Add(Row("Treiber einspielen", App.IsAdmin ? "Alle Treiber aus dem Offline-Paket, danach neu starten" : "Alle Treiber aus dem Offline-Paket – geht nur mit Adminrechten", busy == "drivers" ? ("läuft …", "accent") : null,
                 "Jetzt einspielen", App.IsAdmin && busy.Length == 0 ? Drivers : null));
             list.Children.Add(Head("2 · SPIELKOMPONENTEN"));
-            list.Children.Add(Row("Spielkomponenten", "Visual C++, DirectX und XNA prüfen und nachinstallieren", null, "Prüfen", () => main.Go("drivers")));
+            list.Children.Add(Row("Spiel-Laufzeiten (VC++, DirectX)", "Visual C++, DirectX und XNA prüfen und nachinstallieren", null, "Prüfen", () => main.Go("drivers")));
             list.Children.Add(Head(programs.Count > 0 ? "3 · PROGRAMME (" + programs.Count + ")" : "3 · PROGRAMME"));
             if (programs.Count == 0) list.Children.Add(Row("Keine Programmliste", "In dieser Sicherung fehlt Programme.json", null));
             else

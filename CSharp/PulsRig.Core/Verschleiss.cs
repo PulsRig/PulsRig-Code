@@ -81,13 +81,55 @@ namespace PulsRig.Core
 
         static DateTime Day(string d) => DateTime.ParseExact(d, "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
-        // Vergleich alt gegen neu für einen Teil ('G' Grafikkarte, 'C' Prozessor)
-        public static Verschleissbefund Trend(IEnumerable<Messpunkt> all, char part)
+        // Art der Last: Stabilitätstest je Teil (gpu, cpu, both) oder Spiel je Name
+        public static string Kind(Messpunkt p) => p.Src == "Stresstest" ? "S|" + p.Name : p.Src + "|" + p.Name.ToLowerInvariant();
+
+        static string KindText(Messpunkt p) => p.Src == "Stresstest"
+            ? "Stabilitätstest " + (p.Name == "gpu" ? "Grafikkarte" : p.Name == "cpu" ? "Prozessor" : "beide")
+            : p.Name.Length > 0 ? p.Name : "Spielsitzungen";
+
+        // Hinweis für die Startseite: Kühlung lässt nach (Schlüssel = jüngster Messtag, damit ein Ausblenden bis zur
+        // nächsten Messung gilt)
+        public static (string Title, string Key)? Warning(IEnumerable<Messpunkt> all, DateTime? cleaned = null)
+        {
+            var list = all.ToList();
+            var bad = new[] { Trend(list, 'G', cleaned), Trend(list, 'C', cleaned) }.FirstOrDefault(t => t.Tone == "warn");
+            if (bad == null) return null;
+            var last = list.Where(p => p.Src != "kurz" && p.D.Length == 10).Select(p => p.D).OrderBy(d => d, StringComparer.Ordinal).LastOrDefault() ?? "";
+            return (bad.Title + ": Kühlung lässt nach – entstauben?", bad.Title + "|" + last);
+        }
+
+        // Vergleich alt gegen neu für einen Teil ('G' Grafikkarte, 'C' Prozessor). Ist eine Reinigung im Scheckheft
+        // eingetragen, beginnt der Vergleich danach neu (der Staub von früher ist weg); dazu kommt eine Zeile, wie viel
+        // die Reinigung gebracht hat. Messpunkte vom Tag der Reinigung zählen weder davor noch danach.
+        public static Verschleissbefund Trend(IEnumerable<Messpunkt> all, char part, DateTime? cleaned = null)
         {
             Func<Messpunkt, double?> temp = part == 'G' ? p => p.GT : p => p.CT;
             Func<Messpunkt, double?> watt = part == 'G' ? p => p.GW : p => p.CW;
             var points = all.Where(p => p.Src != "kurz" && temp(p) is > 0 && p.D.Length == 10).OrderBy(p => p.D, StringComparer.Ordinal).ToList();
             var name = part == 'G' ? "Grafikkarte" : "Prozessor";
+            var effect = "";
+            if (cleaned is { } c)
+            {
+                var day = c.Date;
+                var before = points.Where(p => Day(p.D) < day).ToList();
+                points = points.Where(p => Day(p.D) > day).ToList();
+                effect = CleaningEffect(before, points, part, day);
+                var cut = "seit der Reinigung am " + day.ToString("dd.MM.yyyy", De);
+                if (points.Count < 4)
+                    return new Verschleissbefund { Title = name, State = "neu gestartet", Text = Join(effect, "Der Vergleich beginnt " + cut + " neu: erst " + points.Count + " von vier Messpunkten.") };
+                var span = (Day(points[points.Count - 1].D) - Day(points[0].D)).TotalDays;
+                if (span < MinDays)
+                    return new Verschleissbefund { Title = name, State = "neu gestartet", Text = Join(effect, "Der Vergleich beginnt " + cut + " neu: " + points.Count + " Messpunkte, verglichen wird ab dem " + Day(points[0].D).AddDays(MinDays).ToString("dd.MM.", De) + ".") };
+            }
+            // gleiche Last zuerst: Reicht eine Art von Test (derselbe Stabilitätstest oder dasselbe Spiel) für den
+            // Vergleich, zählt nur sie – ein Spiel und ein Stresstest heizen verschieden, auch bei gleicher Leistung
+            var same = points.GroupBy(Kind)
+                .Select(g => g.ToList())
+                .Where(g => g.Count >= 4 && (Day(g[g.Count - 1].D) - Day(g[0].D)).TotalDays >= MinDays)
+                .OrderByDescending(g => g.Count).FirstOrDefault();
+            var basis = "";
+            if (same != null) { points = same; basis = "Gleicher Test: " + KindText(same[0]) + "."; }
             if (points.Count < 4)
                 return new Verschleissbefund { Title = name, State = "zu wenig Daten", Text = "Erst " + points.Count + " Messpunkte. Der Vergleich beginnt ab vier, aus Spielsitzungen ab 15 Minuten oder Stabilitätstests ab 5 Minuten." };
             var first = Day(points[0].D);
@@ -124,17 +166,46 @@ namespace PulsRig.Core
                 if (!double.IsNaN(oldF) && !double.IsNaN(newF) && newF - oldF >= Fan)
                 { tone = "warn"; parts.Add(string.Format(De, "Die Lüfter drehen {0:N0} % schneller als damals ({1:N0} statt {2:N0} %).", newF - oldF, newF, oldF)); }
             }
+            if (basis.Length > 0) parts.Add(basis);
+            if (effect.Length > 0) parts.Insert(0, effect);
             parts.Add(tone == "warn" ? "Zeit zum Entstauben: Lüfter, Kühlrippen und Filter reinigen. Hilft das nicht, kann die Wärmeleitpaste eingetrocknet sein."
                 : "Die Kühlung hält mit: kein Nachlassen zu sehen.");
             return new Verschleissbefund { Tone = tone, Title = name, State = tone == "warn" ? "lässt nach" : "unverändert", Text = string.Join("\n", parts) };
         }
 
-        // für "Was ist los?": der schlechtere Zustand von Grafikkarte und Prozessor
-        public static (string Text, string Tone) CoolingState(IEnumerable<Messpunkt> points)
+        static string Join(string first, string second) => first.Length == 0 ? second : first + "\n" + second;
+
+        // Was hat die Reinigung gebracht? Die letzten (bis zu drei) Messpunkte davor gegen die ersten danach, möglichst
+        // aus derselben Art von Test, auf gleiche Leistung umgerechnet. Leer, solange auf einer Seite Punkte fehlen.
+        public static string CleaningEffect(IList<Messpunkt> before, IList<Messpunkt> after, char part, DateTime day)
         {
-            var trends = new[] { Trend(points, 'G'), Trend(points, 'C') };
+            Func<Messpunkt, double?> temp = part == 'G' ? p => p.GT : p => p.CT;
+            Func<Messpunkt, double?> watt = part == 'G' ? p => p.GW : p => p.CW;
+            before = before.Where(p => temp(p) is > 0).ToList();
+            after = after.Where(p => temp(p) is > 0).ToList();
+            if (before.Count == 0 || after.Count == 0) return "";
+            // eine gemeinsame Art von Test, sonst alle
+            var kind = after.Select(Kind).Distinct().Where(k => before.Any(p => Kind(p) == k))
+                .OrderByDescending(k => Math.Min(before.Count(p => Kind(p) == k), after.Count(p => Kind(p) == k))).FirstOrDefault();
+            var old = (kind == null ? before : before.Where(p => Kind(p) == kind).ToList()).Skip(Math.Max(0, (kind == null ? before.Count : before.Count(p => Kind(p) == kind)) - 3)).ToList();
+            var now = (kind == null ? after : after.Where(p => Kind(p) == kind).ToList()).Take(3).ToList();
+            double oldT = Median(old.Select(temp)), newT = Median(now.Select(temp)), oldW = Median(old.Select(watt)), newW = Median(now.Select(watt));
+            var cooler = oldT - newT;
+            if (oldW > 0 && newW > 0) cooler = oldT - ((newT - 25) * oldW / newW + 25);
+            var when = day.ToString("dd.MM.yyyy", De);
+            if (cooler >= 2)
+                return string.Format(De, "Reinigung am {0}: bei gleicher Leistung {1:N0} °C kühler (vorher {2:N0} °C, danach {3:N0} °C).", when, cooler, oldT, newT);
+            return string.Format(De, "Reinigung am {0}: kaum Unterschied (vorher {1:N0} °C, danach {2:N0} °C). Wird es trotzdem wärmer, kann die Wärmeleitpaste eingetrocknet sein.", when, oldT, newT);
+        }
+
+        // für "Was ist los?": der schlechtere Zustand von Grafikkarte und Prozessor
+        public static (string Text, string Tone) CoolingState(IEnumerable<Messpunkt> points, DateTime? cleaned = null)
+        {
+            var list = points.ToList();
+            var trends = new[] { Trend(list, 'G', cleaned), Trend(list, 'C', cleaned) };
             if (trends.Any(t => t.Tone == "warn")) return ("lässt nach", "warn");
             if (trends.Any(t => t.Tone == "good")) return ("unverändert", "good");
+            if (trends.Any(t => t.State == "neu gestartet")) return ("seit Reinigung neu", "");
             return ("sammelt noch", "");
         }
 

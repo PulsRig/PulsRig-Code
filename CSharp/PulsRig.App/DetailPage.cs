@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
@@ -78,6 +78,10 @@ sealed class DetailPage : UserControl, IPage
         var kicker = Ui.Text(d.Kicker, 10, "Leise", mono: true);
         kicker.VerticalAlignment = VerticalAlignment.Center;
         head.Children.Add(kicker);
+        model.TextTrimming = TextTrimming.None;
+        model.TextWrapping = TextWrapping.Wrap;
+        sub.TextTrimming = TextTrimming.None;
+        sub.TextWrapping = TextWrapping.Wrap;
         model.Margin = new Thickness(0, 8, 0, 0);
         sub.Margin = new Thickness(0, 2, 0, 0);
         big.FontFamily = Ui.Mono;
@@ -102,11 +106,11 @@ sealed class DetailPage : UserControl, IPage
         for (var i = 0; i < 4; i++)
         {
             var f = i < d.Facts.Count ? d.Facts[i] : new Fact("", "", "", "#22172F", "#0B0710", 0);
-            var fState = Ui.Text(f.State, 11, f.StateColor);
+            var fState = Ui.Text(f.State, 11, f.StateColor); fState.Margin = new Thickness(8, 0, 0, 0);
             var fHead = new DockPanel();
             DockPanel.SetDock(fState, Dock.Right);
             fHead.Children.Add(fState);
-            var fTitle = Ui.Text(f.Title, 12.5, f.Color, bold: true);
+            var fTitle = Ui.Text(f.Title, 12.5, f.Color, bold: true, wrap: true);
             fHead.Children.Add(fTitle);
             var fValue = Ui.Text(f.Value, 24, "Text", bold: true, mono: true);
             fValue.Margin = new Thickness(0, 6, 0, 0);
@@ -151,8 +155,11 @@ sealed class DetailPage : UserControl, IPage
     Button ActionButton(Act a, bool primary, int index)
     {
         var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-        text.Children.Add(Ui.Text(a.Label, 12.5, bold: true));
-        var subText = Ui.Text(a.Sub, 11);
+        var label = Ui.Text(a.Label, 12.5, bold: true);
+        label.TextTrimming = TextTrimming.None;
+        label.TextWrapping = TextWrapping.Wrap;
+        text.Children.Add(label);
+        var subText = Ui.Text(a.Sub, 11, wrap: true);
         subText.Opacity = 0.75;
         subText.Margin = new Thickness(0, 3, 0, 0);
         text.Children.Add(subText);
@@ -203,7 +210,7 @@ sealed class DetailPage : UserControl, IPage
             actions.Children.Clear();
             for (var i = 0; i < d.Actions.Count; i++) actions.Children.Add(ActionButton(d.Actions[i], i == 0, i));
         }
-        chart.VerticalAlignment = d.Chart == ChartKind.Slots ? VerticalAlignment.Stretch : VerticalAlignment.Bottom;
+        chart.VerticalAlignment = d.Chart is ChartKind.Slots or ChartKind.List ? VerticalAlignment.Stretch : VerticalAlignment.Bottom;
         if (d.Chart == ChartKind.Line && d.Values.Count >= 2)
         {
             if (liveLine == null || liveColor != d.Color + d.Light) { liveLine = new Livelinie(d.Color, d.Light) { Height = 110 }; liveColor = d.Color + d.Light; }
@@ -229,7 +236,7 @@ sealed class DetailPage : UserControl, IPage
         ChartKind.Bars => Bars(d),
         ChartKind.Days => Days(d),
         ChartKind.Slots => Slots(d.Memory!),
-        ChartKind.List => List(d),
+        ChartKind.List => new ScrollViewer { Content = List(d), VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled },
         ChartKind.Note => new TextBlock { Text = d.NoteText, FontSize = 13, Foreground = Ui.Res("Halbleise"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 30), MaxWidth = 380, HorizontalAlignment = HorizontalAlignment.Left },
         _ => new Border(),
     };
@@ -279,16 +286,16 @@ sealed class DetailPage : UserControl, IPage
 
     static UIElement List(Detail d)
     {
-        var grid = new UniformGrid { Columns = 2 };
+        var grid = new Grid(); grid.ColumnDefinitions.Add(new ColumnDefinition()); grid.ColumnDefinitions.Add(new ColumnDefinition()); int index = 0;
         foreach (var r in d.Rows)
         {
             var (bg, fg, mark) = r.Ok switch { true => ("#10261C", Hardwaremodell.Good, "✓"), false => ("#2A2112", Hardwaremodell.Warn, "!"), _ => ("#140C1D", "#8C819F", "·") };
             var circle = new Border { Width = 16, Height = 16, CornerRadius = new CornerRadius(8), Background = Ui.Brush(bg), Margin = new Thickness(0, 0, 8, 0),
                 Child = new TextBlock { Text = mark, FontSize = 10, FontWeight = FontWeights.Bold, Foreground = Ui.Brush(fg), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center } };
-            var line = new StackPanel { Orientation = Orientation.Horizontal };
+            var line = new DockPanel(); DockPanel.SetDock(circle, Dock.Left);
             line.Children.Add(circle);
-            line.Children.Add(Ui.Text(r.Text, 12, "Halbleise"));
-            grid.Children.Add(new Border { BorderBrush = Ui.Brush("#1A1224"), BorderThickness = new Thickness(0, 0, 0, 1), Padding = new Thickness(0, 6, 0, 6), Margin = new Thickness(0, 0, 14, 6), Child = line });
+            line.Children.Add(Ui.Text(r.Text, 12, "Halbleise", wrap: true));
+            if (index % 2 == 0) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); var cell = new Border { BorderBrush = Ui.Brush("#1A1224"), BorderThickness = new Thickness(0, 0, 0, 1), Padding = new Thickness(0, 4, 0, 4), Margin = new Thickness(0, 0, 14, 4), Child = line }; Grid.SetColumn(cell, index % 2); Grid.SetRow(cell, index++ / 2); grid.Children.Add(cell);
         }
         return grid;
     }

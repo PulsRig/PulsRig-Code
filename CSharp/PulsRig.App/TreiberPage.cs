@@ -12,6 +12,7 @@ namespace PulsRig.App;
 sealed class TreiberPage : UserControl, IPage
 {
     const string Lila = "#8C6BD6", Beere = "#C0608F", Bernstein = "#F2B661", Gruen = "#5EE0A0", Grau = "#3E3150";
+    readonly MainWindow main;
     readonly bool demo;
     readonly Grid root = new();
     bool stopped;
@@ -20,8 +21,9 @@ sealed class TreiberPage : UserControl, IPage
 
     sealed record Zeile(string Bar, string Name, string Sub, string Hint, string Button, Action? Run, Action? Ignore = null, bool Install = false);
 
-    public TreiberPage(bool demo)
+    public TreiberPage(MainWindow main, bool demo)
     {
+        this.main = main;
         this.demo = demo;
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
@@ -30,6 +32,15 @@ sealed class TreiberPage : UserControl, IPage
         Fill();
         Treiberscan.Changed += Fill;
         Treiberinstallation.Changed += Refresh;
+        Treiberinstallation.StageChanged += ShowStage;
+    }
+
+    // Fortschritt: nur die Zeile unten ändern statt die ganze Seite neu aufzubauen
+    TextBlock? stageText;
+    void ShowStage()
+    {
+        if (stageText != null && Treiberinstallation.Busy) stageText.Text = Texte.T(Treiberinstallation.Stage);
+        else Fill();
     }
 
     // nach einer Installation die Laufzeiten und Grafikkarten neu lesen
@@ -124,8 +135,9 @@ sealed class TreiberPage : UserControl, IPage
             : Treiberinstallation.LastMessage.Length > 0 ? Treiberinstallation.LastMessage
             : "Installiert wird nur, was du bestätigst – Dateien kommen direkt von Windows Update, NVIDIA oder Microsoft und werden auf die Signatur geprüft. Firmware und BIOS spielt PulsRig nie ein."
               + (App.IsAdmin ? "" : " Zum Installieren PulsRig als Administrator starten.");
-        noteRow.Children.Add(new TextBlock { Text = noteText,
-            FontSize = 12, Foreground = Ui.Res(Treiberinstallation.Busy ? "Text" : "Halbleise"), TextWrapping = TextWrapping.Wrap, LineHeight = 17.5 });
+        stageText = new TextBlock { Text = noteText,
+            FontSize = 12, Foreground = Ui.Res(Treiberinstallation.Busy ? "Text" : "Halbleise"), TextWrapping = TextWrapping.Wrap, LineHeight = 17.5 };
+        noteRow.Children.Add(stageText);
         note.Child = noteRow;
         DockPanel.SetDock(note, Dock.Bottom);
         var running = Treiberscan.Running;
@@ -204,8 +216,8 @@ sealed class TreiberPage : UserControl, IPage
                 Guarded("Treiber aus dem Katalog installieren?", "PulsRig lädt das Paket " + p.Catalog + " aus dem Microsoft-Katalog, prüft Prüfsumme, Microsoft-Signatur und ob es dieses Gerät nennt, und installiert es." + RestoreText,
                     "Installieren", () => Treiberinstallation.InstallCatalog(p.CatalogQuery, "", p.Catalog, p.Id)), null, true)
             : new Zeile(p.Code == 22 ? Grau : Bernstein, p.Name.Length > 0 ? p.Name : p.Id, p.Text + " (Code " + p.Code + ") · " + p.Advice,
-                p.Chipset ? "Chipsatz" : "", p.Chipset && s.Board != null ? "Treiber suchen" : "Geräte-Manager",
-                () => Open(p.Chipset && s.Board != null ? s.Board.Url : "devmgmt.msc"))).ToList();
+                p.Chipset ? "Chipsatz" : "", p.Chipset && s.Board != null ? "Treiber suchen" : "Reparieren",
+                p.Chipset && s.Board != null ? () => Open(s.Board.Url) : RepairDevices)).ToList();
 
         // Katalog-Hinweise: echte Treiber lassen sich direkt installieren; reine Beschreibungen ohne Treibercode bringen nichts und fehlen
         var hints = s.Hints.Where(h => !h.NoCode).Select(h => new Zeile(Lila, h.Title, h.Device + " · installiert " + h.Installed + " · Katalog vom " + h.Date + (h.Size.Length > 0 ? " · " + h.Size : ""),
@@ -226,6 +238,15 @@ sealed class TreiberPage : UserControl, IPage
         var all = new List<(string, List<Zeile>)> { ("Neuer verfügbar", newer), ("Gerätefehler", problems), ("Hinweise aus dem Microsoft-Katalog", hints), ("Aktuell", current) };
         all.AddRange(extra);
         return all;
+    }
+
+    // Gerätefehler gehören zum Werkzeug „Gerätefehler reparieren“: dorthin springen und die Prüfung gleich starten
+    void RepairDevices()
+    {
+        WerkzeugePage.FocusTool = "Gerätefehler reparieren";
+        main.GoTop("tools");
+        main.Go("repair");
+        Werkzeuglauf.Check("repair:Gerätefehler reparieren", "FixDevices");
     }
 
     // Grafiktreiber schützen, Laufzeitbibliotheken und Ausschlüsse: unabhängig vom Scan
@@ -277,8 +298,8 @@ sealed class TreiberPage : UserControl, IPage
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var bar = new Border { Width = 4, Height = 34, CornerRadius = new CornerRadius(2), Background = Ui.Brush(r.Bar), Margin = new Thickness(0, 0, 16, 0), Effect = r.Bar == Grau ? null : Ui.Glow(r.Bar, 10) };
         var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 10, 12, 10) };
-        text.Children.Add(Ui.Text(r.Name, 15, "Text", bold: true));
-        var sub = Ui.Text(r.Sub, 12.5, "Leise");
+        text.Children.Add(Ui.Text(r.Name, 15, "Text", bold: true, wrap: true));
+        var sub = Ui.Text(r.Sub, 12.5, "Leise", wrap: true);
         sub.Margin = new Thickness(0, 3, 0, 0);
         sub.ToolTip = r.Sub;
         text.Children.Add(sub);
@@ -320,5 +341,6 @@ sealed class TreiberPage : UserControl, IPage
         stopped = true;
         Treiberscan.Changed -= Fill;
         Treiberinstallation.Changed -= Refresh;
+        Treiberinstallation.StageChanged -= ShowStage;
     }
 }

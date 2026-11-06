@@ -17,7 +17,7 @@ static class Fehlerprotokoll
             {
                 Directory.CreateDirectory(Altdaten.Folder);
                 if (new FileInfo(File) is { Exists: true, Length: > 512 * 1024 }) System.IO.File.Delete(File);
-                System.IO.File.AppendAllText(File, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  " + typeof(App).Assembly.GetName().Version + Environment.NewLine + e + Environment.NewLine + Environment.NewLine);
+                System.IO.File.AppendAllText(File, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  " + typeof(App).Assembly.GetName().Version + " · " + Neuefassung.Identity + Environment.NewLine + e + Environment.NewLine + Environment.NewLine);
             }
         }
         catch (Exception) { }

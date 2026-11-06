@@ -74,6 +74,26 @@ public class StandbyTests
 
 public class AutostartTests
 {
+    [Theory]
+    [InlineData(1.2, 0, 50, 3, "hoch")]       // kurz nach der Anmeldung: Schwellen wie im Task-Manager
+    [InlineData(0.1, 4, 50, 3, "hoch")]
+    [InlineData(0.5, 0.1, 50, 3, "mittel")]
+    [InlineData(0.1, 0.1, 500, 3, "gering")]  // beim Start zählt der Speicher nicht
+    [InlineData(30, 500, 350, 120, "hoch")]   // lange gelaufen: Arbeitsspeicher
+    [InlineData(800, 0, 50, 120, "hoch")]     // oder ein Kern zu 11 % im Schnitt
+    [InlineData(10, 0, 150, 120, "mittel")]
+    [InlineData(10, 900, 40, 120, "gering")]
+    public void BremseEinesEintrags(double cpu, double io, double ram, double age, string level) =>
+        Assert.Equal(level, Autostart.Impact(cpu, io, ram, age).Level);
+
+    [Fact]
+    public void EnglischFuerDieBremse()
+    {
+        var english = Sprache.Load(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Englisch.ps1")));
+        Assert.Equal("high impact (1,8 s processor time, 40 MB read/written)", english.T("bremst hoch (1,8 s Rechenzeit, 40 MB gelesen/geschrieben)"));
+        Assert.StartsWith("5 of 7 start with Windows, 2 of them slow things down a lot. The impact", english.T("5 von 7 starten mit Windows, 2 davon bremsen stark. Die Bremse misst wie der Task-Manager Rechenzeit und Datenzugriffe kurz nach der Anmeldung; läuft ein Programm schon länger, zählen Arbeitsspeicher und Dauerlast. Der Schalter wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager. Einträge für alle Benutzer nur mit Adminrechten."));
+    }
+
     [Fact]
     public void ZustandWieImTaskManager()
     {

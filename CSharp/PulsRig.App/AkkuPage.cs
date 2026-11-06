@@ -105,6 +105,13 @@ sealed class AkkuPage : UserControl, IPage
         return new Stand(true, charge, onPower, report, source);
     }
 
+    // für den Gebrauchtkauf-Check: der erste Akku, null ohne Akku; kennt Windows die Kapazität nicht, bleibt die Zelle leer
+    public static AkkuZelle? Cell()
+    {
+        var s = Read();
+        return !s.Has ? null : s.Report.Batteries.FirstOrDefault() ?? new AkkuZelle();
+    }
+
     // ausführlicher Bericht von Windows als Seite im Browser
     void OpenReport()
     {

@@ -16,11 +16,19 @@ using System.Runtime.CompilerServices;
 public static class PulsRigCpuTemp
 {
     static readonly object Gate = new object();
-    static string folder;
+    static string folder = "";
     static bool resolverSet;
     static bool tried;
-    static object computer;      // LibreHardwareMonitor.Hardware.Computer, als object, damit diese Klasse ohne die Bibliothek lädt
-    static object cpu;           // IHardware des Prozessors
+    #if NET
+    static object? computer;
+#else
+    static object computer;
+#endif      // LibreHardwareMonitor.Hardware.Computer, als object, damit diese Klasse ohne die Bibliothek lädt
+    #if NET
+    static object? cpu;
+#else
+    static object cpu;
+#endif           // IHardware des Prozessors
 
     public static string Source = "";
     // none = kein Weg gefunden, noadmin = Treiber da, aber ohne Adminrechte, nodriver = PawnIO fehlt, nolib = Ordner fehlt
@@ -41,12 +49,16 @@ public static class PulsRigCpuTemp
         }
     }
 
+    #if NET
+    static Assembly? Resolve(object? sender, ResolveEventArgs args)
+#else
     static Assembly Resolve(object sender, ResolveEventArgs args)
+#endif
     {
         try
         {
             if (string.IsNullOrEmpty(folder)) return null;
-            string name = new AssemblyName(args.Name).Name;
+            string name = new AssemblyName(args.Name).Name ?? "";
             string path = Path.Combine(folder, name + ".dll");
             return File.Exists(path) ? Assembly.LoadFrom(path) : null;
         }
@@ -109,7 +121,7 @@ public static class PulsRigCpuTemp
     [MethodImpl(MethodImplOptions.NoInlining)]
     static void CloseLibrary()
     {
-        ((LibreHardwareMonitor.Hardware.Computer)computer).Close();
+        if (computer is LibreHardwareMonitor.Hardware.Computer) ((LibreHardwareMonitor.Hardware.Computer)computer).Close();
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -120,7 +132,8 @@ public static class PulsRigCpuTemp
             if (tried) return double.NaN;
             tried = true;
             var created = new LibreHardwareMonitor.Hardware.Computer { IsCpuEnabled = true };
-            created.Open();
+            try { created.Open(); }
+            catch { try { created.Close(); } catch { } throw; }
             computer = created;
             foreach (var hardware in created.Hardware)
                 if (hardware.HardwareType == LibreHardwareMonitor.Hardware.HardwareType.Cpu) { cpu = hardware; break; }

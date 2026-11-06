@@ -8,13 +8,17 @@
   #define VersionName "0.5-Beta"
 #endif
 
+#ifndef BuildId
+  #define BuildId "Entwicklung"
+#endif
+
 [Setup]
 AppId={{8B6C1F0E-5A0D-4B7E-9C55-2F1D7A3E6B11}
 ; ein laufendes PulsRig setzt dieses Kennzeichen (siehe PulsRig.ps1); Setup und Deinstallation bitten dann, es zu schließen
 AppMutex=PulsRig-8B6C1F0E-Laeuft
 AppName=PulsRig
 AppVersion={#AppVersion}
-AppVerName=PulsRig {#AppVersion}
+AppVerName=PulsRig {#AppVersion} · Build {#BuildId}
 AppPublisher=PulsRig
 DefaultDirName={autopf}\PulsRig
 DisableProgramGroupPage=yes
@@ -27,7 +31,7 @@ OutputDir=dist
 OutputBaseFilename=PulsRig-Setup-{#VersionName}
 SetupIconFile=PulsRig.ico
 UninstallDisplayIcon={app}\PulsRig.ico
-UninstallDisplayName=PulsRig {#AppVersion}
+UninstallDisplayName=PulsRig {#AppVersion} · Build {#BuildId}
 InfoBeforeFile=PulsRig-Testzettel.txt
 Compression=lzma2
 SolidCompression=yes

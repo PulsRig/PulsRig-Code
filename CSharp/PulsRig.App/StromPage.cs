@@ -194,7 +194,7 @@ sealed class StromPage : UserControl, IPage
     static Border Part(string title, double? watt, string note, string color, string tint)
     {
         var s = new DockPanel();
-        var head = Ui.Text(title, 12.5, color, bold: true);
+        var head = Ui.Text(title, 12.5, color, bold: true, wrap: true);
         DockPanel.SetDock(head, Dock.Top);
         s.Children.Add(head);
         var v = Ui.Text(watt == null ? "–" : W(watt.Value), 24, "Text", bold: true, mono: true);

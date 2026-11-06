@@ -7,8 +7,13 @@
 // Die Datei wird nach jeder Zeile geschrieben: PulsRig kann eine laufende Sitzung schon ansehen.
 // Kürzer als eine Minute wird nicht behalten (Startprogramme, Abstürze beim Laden), länger als 12 Stunden nicht
 // fortgesetzt; es bleiben die letzten 30 Sitzungen.
+//
+// Für den Ruckler-Detektiv kommen dazu (ohne Adminrechte, aus den Leistungsindikatoren von Windows): das Programm neben
+// dem Spiel, das gerade am meisten Rechenzeit braucht (Stoerer, StoerCpu in % des ganzen Prozessors), wie beschäftigt
+// die Laufwerke sind (Platte), Zeit für Treiber-Unterbrechungen (Dpc) und freier Arbeitsspeicher in MB (RamFrei).
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -16,13 +21,16 @@ using System.Text;
 
 public static class PulsRigRecorder
 {
-    public const string Header = "Sekunde;CpuTemp;CpuLast;CpuTakt;CpuWatt;GpuTemp;GpuLast;GpuWatt;GpuLuefter;GpuTakt";
+    public const string Header = "Sekunde;CpuTemp;CpuLast;CpuTakt;CpuWatt;GpuTemp;GpuLast;GpuWatt;GpuLuefter;GpuTakt;StoerCpu;Platte;Dpc;RamFrei;Stoerer";
     static StreamWriter writer;
     static string path, game;
     static DateTime start;
     static Process smi;
     static volatile string smiLine = "";
-    static PerformanceCounter load, performance;
+    static PerformanceCounter load, performance, diskIdle, dpcTime, interruptTime, ramFree;
+    static Dictionary<string, CounterSample> lastProcesses;
+    // gehören zu PulsRig oder zu Windows selbst und sind nie der Störer
+    static readonly string[] NotOthers = { "_Total", "Idle", "System", "PulsRig", "PulsRig.App", "nvidia-smi", "dwm", "audiodg", "csrss" };
     static double baseMhz;
     static int rows;
 
@@ -64,7 +72,60 @@ public static class PulsRigRecorder
                 baseMhz = key == null ? 0 : Convert.ToDouble(key.GetValue("~MHz", 0));
         }
         catch { performance = null; }
+        diskIdle = Counter("PhysicalDisk", "% Idle Time", "_Total");
+        dpcTime = Counter("Processor", "% DPC Time", "_Total");
+        interruptTime = Counter("Processor", "% Interrupt Time", "_Total");
+        ramFree = Counter("Memory", "Available MBytes", "");
+        lastProcesses = null;
+        try { double ignored; TopOther(out ignored); } catch { }
         StartSmi();
+    }
+
+    static PerformanceCounter Counter(string category, string name, string instance)
+    {
+        try
+        {
+            var counter = new PerformanceCounter(category, name, instance, true);
+            counter.NextValue();
+            return counter;
+        }
+        catch { return null; }
+    }
+
+    static double Next(PerformanceCounter counter)
+    {
+        try { return counter == null ? double.NaN : counter.NextValue(); } catch { return double.NaN; }
+    }
+
+    // das Programm neben dem Spiel mit der meisten Rechenzeit seit dem letzten Aufruf; mehrere Prozesse eines Namens
+    // (Browser) zählen zusammen. Ergebnis in Prozent des ganzen Prozessors.
+    static string TopOther(out double percent)
+    {
+        percent = double.NaN;
+        var data = new PerformanceCounterCategory("Process").ReadCategory();
+        if (!data.Contains("% Processor Time")) return "";
+        var now = new Dictionary<string, CounterSample>();
+        var sums = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        foreach (InstanceData item in data["% Processor Time"].Values)
+        {
+            now[item.InstanceName] = item.Sample;
+            CounterSample old;
+            if (lastProcesses == null || !lastProcesses.TryGetValue(item.InstanceName, out old)) continue;
+            string bare = item.InstanceName.Split('#')[0];
+            if (Array.IndexOf(NotOthers, bare) >= 0 || string.Equals(bare, game, StringComparison.OrdinalIgnoreCase)) continue;
+            double value = CounterSample.Calculate(old, item.Sample) / Environment.ProcessorCount;
+            double sum;
+            sums.TryGetValue(bare, out sum);
+            sums[bare] = sum + value;
+        }
+        bool first = lastProcesses == null;
+        lastProcesses = now;
+        if (first) return "";
+        string best = "";
+        double max = 0;
+        foreach (var pair in sums) if (pair.Value > max) { max = pair.Value; best = pair.Key; }
+        percent = max;
+        return best;
     }
 
     static void StartSmi()
@@ -107,11 +168,19 @@ public static class PulsRigRecorder
         string[] gpu = (smiLine ?? "").Split(',');
         double gpuTemp = double.NaN, gpuLoad = double.NaN, gpuPower = double.NaN, gpuFan = double.NaN, gpuClock = double.NaN;
         if (gpu.Length >= 5) { gpuTemp = Parse(gpu[0]); gpuLoad = Parse(gpu[1]); gpuPower = Parse(gpu[2]); gpuFan = Parse(gpu[3]); gpuClock = Parse(gpu[4]); }
+        double otherLoad = double.NaN;
+        string other = "";
+        try { other = TopOther(out otherLoad); } catch { }
+        double idle = Next(diskIdle);
+        double disk = double.IsNaN(idle) ? double.NaN : Math.Max(0, Math.Min(100, 100 - idle));
+        double dpc = Next(dpcTime) + Next(interruptTime);
+        double free = Next(ramFree);
         try
         {
             writer.WriteLine(string.Join(";", new[] {
                 Number(Math.Round(seconds), "0"), Number(cpuTemp, "0.0"), Number(cpuLoad, "0"), Number(cpuClock, "0"), Number(cpuPower, "0.0"),
-                Number(gpuTemp, "0"), Number(gpuLoad, "0"), Number(gpuPower, "0.0"), Number(gpuFan, "0"), Number(gpuClock, "0") }));
+                Number(gpuTemp, "0"), Number(gpuLoad, "0"), Number(gpuPower, "0.0"), Number(gpuFan, "0"), Number(gpuClock, "0"),
+                Number(otherLoad, "0.0"), Number(disk, "0"), Number(dpc, "0.0"), Number(free, "0"), (other ?? "").Replace(";", "") }));
             rows++;
         }
         catch { return false; }
@@ -128,8 +197,10 @@ public static class PulsRigRecorder
         try { if (smi != null && !smi.HasExited) smi.Kill(); } catch { }
         try { if (smi != null) smi.Dispose(); } catch { }
         smi = null; smiLine = "";
-        try { if (load != null) load.Dispose(); if (performance != null) performance.Dispose(); } catch { }
-        load = null; performance = null;
+        foreach (var counter in new[] { load, performance, diskIdle, dpcTime, interruptTime, ramFree })
+            try { if (counter != null) counter.Dispose(); } catch { }
+        load = null; performance = null; diskIdle = null; dpcTime = null; interruptTime = null; ramFree = null;
+        lastProcesses = null;
         try { PulsRigCpuTemp.Close(); } catch { }
         game = null;
         if (minutes < 1 || rows < 3) { try { File.Delete(path); } catch { } return 0; }

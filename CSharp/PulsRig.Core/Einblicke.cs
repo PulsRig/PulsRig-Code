@@ -172,6 +172,24 @@ namespace PulsRig.Core
             return Quote(name) + "=hex(2):" + string.Join(",", bytes.Select(b => b.ToString("x2")));
         }
 
+        // Wie stark bremst ein Eintrag? Läuft das Programm erst seit kurz nach der Anmeldung (bis 15 Minuten), zählen
+        // wie im Task-Manager CPU-Zeit und gelesene/geschriebene Daten: hoch ab 1 s oder 3 MB, mittel ab 0,3 s oder
+        // 0,3 MB. Läuft es länger, lässt sich der Start nicht mehr herausrechnen – dann zählt, was es dauerhaft kostet:
+        // hoch ab 300 MB Arbeitsspeicher oder 10 % eines Kerns im Schnitt, mittel ab 100 MB oder 2 %.
+        public static (string Level, string Tone) Impact(double cpuSeconds, double ioMb, double ramMb, double ageMinutes)
+        {
+            if (ageMinutes <= 15)
+            {
+                if (cpuSeconds >= 1 || ioMb >= 3) return ("hoch", "warn");
+                if (cpuSeconds >= 0.3 || ioMb >= 0.3) return ("mittel", "");
+                return ("gering", "good");
+            }
+            var share = ageMinutes > 0 ? cpuSeconds / (ageMinutes * 60) : 0;
+            if (ramMb >= 300 || share >= 0.10) return ("hoch", "warn");
+            if (ramMb >= 100 || share >= 0.02) return ("mittel", "");
+            return ("gering", "good");
+        }
+
         // der Name, unter dem man ein Programm kennt: Beschreibung der Programmdatei, sonst der Name des Eintrags
         public static string Title(string name, string? description)
         {
@@ -180,7 +198,7 @@ namespace PulsRig.Core
         }
     }
 
-    public static class Spielcheck
+    public static partial class Spielcheck
     {
         // wie Get-GameScore: grün 2, gelb 1, rot 0; graue Punkte (leer) zählen nicht
         public static int? Score(IEnumerable<string> tones)
@@ -208,7 +226,7 @@ namespace PulsRig.Core
             return m.Success ? (m.Groups[1].Value.ToLowerInvariant(), m.Groups[2].Value.Trim()) : ("", "");
         }
 
-        // nvidia-smi -q -d MEMORY: Größe des Fensters BAR1 in MiB (mit Resizable BAR so groß wie der Grafikspeicher)
+        // nvidia-smi -q -d MEMORY: Größe des BAR1-Adressfensters in MiB, nicht die physische VRAM-Kapazität.
         public static int? Bar1(string? output)
         {
             var m = Regex.Match(output ?? "", @"BAR1 Memory Usage\s+Total\s*:\s*(\d+)\s*MiB");

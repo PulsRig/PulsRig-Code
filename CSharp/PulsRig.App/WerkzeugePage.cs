@@ -19,49 +19,53 @@ sealed class WerkzeugePage : UserControl, IPage
 
     static readonly Absicht[] Absichten =
     {
-        new("repair", "Etwas reparieren", "Kein Ton, kein Netz, falsches Bild, Gerät mit Warnzeichen oder der PC wacht nachts auf.", Beere, "#1F0A19", 2,
+        new("repair", "Etwas reparieren", "Kein Ton, kein Netz, falsches Bild, Geräte mit Warnzeichen oder alte Einträge, oder der PC wacht nachts auf.", Beere, "#1F0A19", 2,
             "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z", new Werkzeug[]
             {
-                new("Was ist los?", "Vom Problem zur Ursache: was PulsRig schon weiß und was als Nächstes zu prüfen ist", Page: "problem"),
-                new("Ton reparieren", "Dienste, Stummschaltung und Ausgabegerät prüfen", "FixAudio"),
-                new("Netzwerk reparieren", "Verbindung testen und in Stufen reparieren", "FixNetwork"),
-                new("Ping-Test", "Verzögerung und Aussetzer zu Router und Internet messen", Page: "ping"),
+                // von A bis Z; der geführte Einstieg ("Was ist los?") steht als Knopf links in der Absicht
                 new("Bildauflösung reparieren", "Grafiktreiber und empfohlene Auflösung prüfen", "FixResolution"),
-                new("Gerätefehler reparieren", "Geräte mit gelbem Warnzeichen neu einrichten", "FixDevices"),
+                new("Gerätedaten bereinigen", "Einträge längst abgesteckter Hardware entfernen", "CleanDevices"),
+                new("Gerätefehler reparieren", "Geräte mit gelbem Warnzeichen neu einrichten, auch die aus dem Treiber-Scan", "FixDevices"),
+                new("Netzwerk reparieren", "Erst per Ping messen, ob es zu Hause oder beim Anbieter hakt, dann in Stufen reparieren", "FixNetwork"),
                 new("Standby-Detektiv", "Warum der PC aufwacht oder wach bleibt", "Standby"),
+                new("Ton reparieren", "Dienste, Stummschaltung und Ausgabegerät prüfen", "FixAudio"),
             }),
-        new("clean", "Aufräumen", "Speicherplatz, Autostart und alte Geräteeinträge.", Gruen, "#10291F", 1,
+        new("clean", "Aufräumen", "Speicherplatz und Autostart.", Gruen, "#10291F", 1,
             "M4 7h16 M10 11v6 M14 11v6 M6 7l1 13h10l1-13 M9 7V4h6v3", new Werkzeug[]
             {
                 new("Speicherplatz freigeben", "Temporäre Dateien, Shader-Cache, alte Treiberpakete", "CleanDisk"),
                 new("Autostart aufräumen", "Programme, die mit Windows starten", "Autostart"),
-                new("Gerätedaten bereinigen", "Einträge längst abgesteckter Hardware entfernen", "CleanDevices"),
             }),
-        new("manage", "Treiber verwalten", "Sichern, zurückholen, Offline-Paket und Kernisolierung.", Lila, "#160D29", 1,
+        new("manage", "Treiber verwalten", "Sichern, zurückholen, Änderungen, Scheckheft und Kernisolierung.", Lila, "#160D29", 1,
             "M5 4h11l3 3v13H5z M8 4v5h7V4 M8 20v-6h8v6", new Werkzeug[]
             {
                 new("Treiber sichern", "Alle Treiber von Drittherstellern sichern, mit ZIP-Datei", Native: true),
                 new("Treiber zurückholen", "Eine Sicherung wieder einspielen", Native: true),
                 new("Einzelnen Treiber sichern", "Das Treiberpaket eines Geräts in einen eigenen Ordner kopieren", Page: "single"),
-                new("Neuinstallation", "Vorher Treiber und Programmliste sichern, danach geführt einspielen", Page: "reinstall"),
-                new("Notfall-Stick", "PulsRig und die Treiber auf einen USB-Stick", Page: "stick"),
-                new("Offline-Paket", "Treiberpaket für eine Neuinstallation ohne Internet", "OfflinePackage"),
-                new("Treiberverlauf", "Was sich wann geändert hat", "DriverHistory"),
-                new("Was hat sich geändert?", "Windows, Programme, Autostart und Treiber mit gestern, vor 7 oder 30 Tagen vergleichen", Page: "changes"),
+                new("Was hat sich geändert?", "Windows, Programme, Autostart und Treiber vergleichen, dazu der Treiberverlauf", Page: "changes"),
+                new("PC-Scheckheft", "Tests, Treiber, Aufrüstungen und Reinigungen über Jahre, als Bericht zum Verkauf", Page: "logbook"),
                 new("Inkompatible Treiber", "Was die Kernisolierung blockiert", "IncompatibleDrivers"),
             }),
-        new("games", "Fürs Spielen", "Spielkomponenten, Gaming-Check und Systeminfos.", Bernstein, "#2A2112", 1,
+        new("games", "Fürs Spielen", "Spiel-Laufzeiten, Gaming-Check, Messen und Systeminfos.", Bernstein, "#2A2112", 1,
             "M7 8h10a4.5 4.5 0 0 1 0 9H7a4.5 4.5 0 0 1 0-9z M8 11v3 M6.5 12.5h3 M15 12h.01 M17 14h.01", new Werkzeug[]
             {
-                new("Spielkomponenten", "Visual C++, DirectX und XNA prüfen und nachinstallieren", Page: "drivers"),
+                new("Spiel-Laufzeiten (VC++, DirectX)", "Visual C++, DirectX und XNA prüfen und nachinstallieren, im Treiber-Scan", Page: "drivers"),
                 new("Benchmark", "Prozessor und Grafikkarte messen und mit früher vergleichen", Page: "bench"),
                 new("Aufrüst-Berater", "Eine Minute im Spiel messen, was bremst, und was sich zum Aufrüsten lohnt", Page: "upgrade"),
                 new("Stromverbrauch", "Watt und Stromkosten im Jahr, dazu der FPS-Limit-Vergleich", Page: "power"),
-                new("Sensoren & Aufzeichnungen", "Temperaturen live und aufgezeichnete Spielsitzungen", Page: "sensors"),
+                new("Temperaturen & Sitzungen", "Sensoren live und aufgezeichnete Spielsitzungen", Page: "sensors"),
+                new("Ruckler-Detektiv", "Was beim Spielen dazwischengefunkt hat: Hintergrundprogramme, Scans, Updates", Page: "stutter"),
                 new("Gaming-Check", "Bildschirm-Hz, Resizable BAR, Spielmodus und mehr", "GamingCheck"),
-                new("Spiele & Aufzeichnung", "Welche Spiele Boost und Aufzeichnung bekommen", "Games"),
+                new("Spieleliste für Boost", "Welche Spiele Boost und Aufzeichnung bekommen", "Games"),
                 new("Controller und Maus", "Tasten, Stick-Drift, Abfragerate und ungewollte Doppelklicks prüfen", Page: "input"),
                 new("Systeminformationen", "Hardware und Windows im Überblick", "SystemInfo"),
+            }),
+        new("rescue", "Neuinstallation & Notfall", "Windows neu aufsetzen, ohne Internet einspielen oder vom USB-Stick retten.", Lila, "#160D29", 3,
+            "M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z M12 8v5 M12 16h.01", new Werkzeug[]
+            {
+                new("Neuinstallation", "Vorher Treiber und Programmliste sichern, danach geführt einspielen", Page: "reinstall"),
+                new("Notfall-Stick", "PulsRig und die Treiber auf einen USB-Stick", Page: "stick"),
+                new("Offline-Paket", "Treiberpaket für eine Neuinstallation ohne Internet", "OfflinePackage"),
             }),
     };
 
@@ -71,6 +75,7 @@ sealed class WerkzeugePage : UserControl, IPage
     bool stopped;
     // zugeklappte Ergebnisse; bleibt beim Seitenwechsel erhalten. Eine neue Prüfung klappt die übrigen zu (wie ein Akkordeon)
     static readonly HashSet<string> Collapsed = new();
+    public static string? FocusTool { get; set; }
 
     void Toggle(string key)
     {
@@ -147,9 +152,10 @@ sealed class WerkzeugePage : UserControl, IPage
 
     void Overview()
     {
-        for (var i = 0; i < 3; i++) root.ColumnDefinitions.Add(new ColumnDefinition());
-        root.RowDefinitions.Add(new RowDefinition());
-        root.RowDefinitions.Add(new RowDefinition());
+        var cards = new Grid();
+        root.Children.Add(new ScrollViewer { Content = cards, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
+        for (var i = 0; i < 3; i++) cards.ColumnDefinitions.Add(new ColumnDefinition());
+        for (var i = 0; i < 3; i++) cards.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         int col = 0, row = 0;
         var tiles = new List<UIElement>();
         foreach (var a in Absichten)
@@ -159,14 +165,14 @@ sealed class WerkzeugePage : UserControl, IPage
             Grid.SetColumn(tile, col);
             Grid.SetRow(tile, row);
             Grid.SetColumnSpan(tile, a.Span);
-            root.Children.Add(tile);
+            cards.Children.Add(tile);
             tiles.Add(tile);
             col += a.Span;
         }
         var reco = Recommendation();
         Grid.SetColumn(reco, 2);
         Grid.SetRow(reco, 1);
-        root.Children.Add(reco);
+        cards.Children.Add(reco);
         tiles.Add(reco);
         if (!arrived) Ui.Arrive(tiles);
         arrived = true;
@@ -174,7 +180,7 @@ sealed class WerkzeugePage : UserControl, IPage
 
     Button IntentTile(Absicht a)
     {
-        var panel = new DockPanel();
+        var panel = new DockPanel { MinHeight = 220 };
         var head = new DockPanel();
         var icon = new Border { Width = 46, Height = 46, CornerRadius = new CornerRadius(14), Background = Ui.Alpha(a.Color, "1A"), BorderBrush = Ui.Alpha(a.Color, "33"), BorderThickness = new Thickness(1),
             Child = Icon(a.Icon, a.Color, 22), HorizontalAlignment = HorizontalAlignment.Left };
@@ -184,7 +190,7 @@ sealed class WerkzeugePage : UserControl, IPage
         if (hint.Length > 0) { var p = Pill(hint, a.Color); p.VerticalAlignment = VerticalAlignment.Top; p.HorizontalAlignment = HorizontalAlignment.Right; head.Children.Add(p); }
         DockPanel.SetDock(head, Dock.Top);
         panel.Children.Add(head);
-        var title = Ui.Text(a.Title, 20, "Text", bold: true);
+        var title = Ui.Text(a.Title, 20, "Text", bold: true, wrap: true);
         title.Margin = new Thickness(0, 14, 0, 0);
         DockPanel.SetDock(title, Dock.Top);
         panel.Children.Add(title);
@@ -217,7 +223,7 @@ sealed class WerkzeugePage : UserControl, IPage
     {
         var last = Werkzeuglauf.BackupFolders().FirstOrDefault();
         var days = last == null ? -1 : (int)(DateTime.Now - last.LastWriteTime).TotalDays;
-        var panel = new DockPanel();
+        var panel = new DockPanel { MinHeight = 220 };
         var label = Ui.Text("EMPFOHLEN", 10, "Leise", mono: true);
         DockPanel.SetDock(label, Dock.Top);
         panel.Children.Add(label);
@@ -257,12 +263,22 @@ sealed class WerkzeugePage : UserControl, IPage
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
 
-        var panel = new DockPanel();
+        var panel = new DockPanel { MinHeight = 220 };
         var icon = new Border { Width = 64, Height = 64, CornerRadius = new CornerRadius(20), Background = Ui.Alpha(a.Color, "1A"), BorderBrush = Ui.Alpha(a.Color, "33"), BorderThickness = new Thickness(1),
             HorizontalAlignment = HorizontalAlignment.Left, Child = Icon(a.Icon, a.Color, 30, 1.8) };
         var title = new TextBlock { Text = a.Title, FontSize = 26, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 20, 0, 0), TextWrapping = TextWrapping.Wrap };
         var sub = new TextBlock { Text = a.Sub, FontSize = 13, Foreground = Ui.Res("Leise"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0), LineHeight = 19.5 };
         foreach (var top in new FrameworkElement[] { icon, title, sub }) { DockPanel.SetDock(top, Dock.Top); panel.Children.Add(top); }
+        // Reparieren: wer die Ursache nicht kennt, geht geführt über "Was ist los?", rechts stehen die Werkzeuge von A bis Z
+        if (a.Id == "repair")
+        {
+            var guided = Small("Weiß nicht, was los ist? Geführt zur Ursache", true, true);
+            guided.HorizontalAlignment = HorizontalAlignment.Left;
+            guided.Margin = new Thickness(0, 16, 0, 16);
+            guided.Click += (_, _) => window.Go("problem");
+            DockPanel.SetDock(guided, Dock.Top);
+            panel.Children.Add(guided);
+        }
         var note = new Border { CornerRadius = new CornerRadius(14), Background = Ui.Brush("#06FFFFFF"), BorderBrush = Ui.Res("KarteRand"), BorderThickness = new Thickness(1), Padding = new Thickness(14, 12, 14, 12) };
         var noteRow = new DockPanel();
         var shield = Icon("M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z M9 12l2 2 4-4", Gruen, 16, 2);
@@ -278,13 +294,22 @@ sealed class WerkzeugePage : UserControl, IPage
         var glow = new RadialGradientBrush { Center = new Point(0.2, 0.1), GradientOrigin = new Point(0.2, 0.1), RadiusX = 0.9, RadiusY = 0.5 };
         glow.GradientStops.Add(new GradientStop(Ui.Hex("#1C" + a.Color.TrimStart('#')), 0));
         glow.GradientStops.Add(new GradientStop(Colors.Transparent, 0.7));
-        var layer = new Grid();
+        var layer = new Grid { VerticalAlignment = VerticalAlignment.Top };
         layer.Children.Add(new Border { CornerRadius = new CornerRadius(24), BorderThickness = new Thickness(1), BorderBrush = Ui.Alpha(a.Color, "2E"), Padding = new Thickness(24), Child = panel, Background = Ui.Tint(a.Tint) });
         layer.Children.Add(new Border { CornerRadius = new CornerRadius(24), Background = glow, IsHitTestVisible = false });
         root.Children.Add(layer);
 
         var list = new StackPanel();
-        foreach (var t in a.Tools) list.Children.Add(Row(a, t));
+        foreach (var t in a.Tools)
+        {
+            var item = Row(a, t);
+            list.Children.Add(item);
+            if (FocusTool == t.Name)
+            {
+                FocusTool = null;
+                item.Loaded += (_, _) => item.Dispatcher.BeginInvoke(() => item.BringIntoView());
+            }
+        }
         var scroll = new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Padding = new Thickness(0, 0, 6, 0) };
         Grid.SetColumn(scroll, 2);
         root.Children.Add(scroll);
@@ -300,7 +325,8 @@ sealed class WerkzeugePage : UserControl, IPage
         var available = t.Native || t.Page != null || t.Bridge != null;
         var result = t.Bridge != null ? Werkzeuglauf.Results.GetValueOrDefault(key) : null;
         var done = !state.Busy && (state.Message.Length > 0 || result != null);
-        var barColor = state.Busy ? a.Color : done ? Gruen : available ? "#22172F" : "#1A1224";
+        var resultColor = t.Bridge != null && state.Message.Length > 0 ? Bernstein : result == null ? "#A397B5" : result.Lines.Any(l => !l.Ok && !l.Unknown) ? Bernstein : result.Lines.Any(l => l.Unknown) ? "#A397B5" : Gruen;
+        var barColor = state.Busy ? a.Color : done ? resultColor : available ? "#22172F" : "#1A1224";
 
         var grid = new Grid { MinHeight = 72 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -309,7 +335,7 @@ sealed class WerkzeugePage : UserControl, IPage
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.Children.Add(new Border { Width = 4, Height = 34, CornerRadius = new CornerRadius(2), Background = Ui.Brush(barColor), Margin = new Thickness(0, 0, 16, 0), Effect = Ui.Glow(barColor, 10) });
         var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 10, 12, 10) };
-        text.Children.Add(Ui.Text(t.Name, 15, available ? "Text" : "Leise", bold: true));
+        text.Children.Add(Ui.Text(t.Name, 15, available ? "Text" : "Leise", bold: true, wrap: true));
         var sub = Ui.Text(state.Message.Length > 0 ? state.Message : available ? t.Sub : t.Sub + " · folgt in der neuen Oberfläche", 12.5, state.Message.Length > 0 ? "Halbleise" : "Leise");
         sub.Margin = new Thickness(0, 3, 0, 0);
         sub.TextWrapping = TextWrapping.Wrap;
@@ -322,20 +348,35 @@ sealed class WerkzeugePage : UserControl, IPage
         var label = state.Busy ? "Läuft …" : !available ? "Folgt" : t.Page != null ? "Öffnen" : t.Bridge != null ? (result != null ? "Erneut prüfen" : "Prüfen") : done ? "Erneut" : "Starten";
         var primary = available && !state.Busy && !done;
         var button = new Button { Style = (Style)Application.Current.FindResource("Flach"), Height = 36, MinWidth = 96, Padding = new Thickness(16, 0, 16, 0), Tag = "18", VerticalAlignment = VerticalAlignment.Center,
-            Background = primary ? (Brush)Application.Current.FindResource("PulsQuer") : done ? Ui.Brush("#10261C") : Ui.Brush("#140C1D"),
-            BorderBrush = done ? Ui.Alpha(Gruen, "33") : Ui.Res("KarteRand"), BorderThickness = new Thickness(primary ? 0 : 1),
+            Background = primary ? (Brush)Application.Current.FindResource("PulsQuer") : done ? Ui.Alpha(resultColor, "14") : Ui.Brush("#140C1D"),
+            BorderBrush = done ? Ui.Alpha(resultColor, "33") : Ui.Res("KarteRand"), BorderThickness = new Thickness(primary ? 0 : 1),
             HorizontalContentAlignment = HorizontalAlignment.Center, VerticalContentAlignment = VerticalAlignment.Center,
-            Content = Ui.Text(label, 12.5, done && !state.Busy ? Gruen : "Text", bold: true), IsEnabled = available && !state.Busy, Opacity = available ? 1 : 0.5 };
+            Content = Ui.Text(label, 12.5, done && !state.Busy ? resultColor : "Text", bold: true), IsEnabled = available && !state.Busy, Opacity = available ? 1 : 0.5 };
         button.Click += (_, _) => Start(key, t);
         var actions = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        if (state.Busy && Werkzeuglauf.CanCancel(key))
+        {
+            var cancel = Small("Abbrechen", false, true);
+            cancel.Click += (_, _) => Werkzeuglauf.Cancel(key);
+            actions.Children.Add(cancel);
+        }
         // nach dem Sichern: Ordner zeigen
-        if (t.Name == "Treiber sichern" && done && Werkzeuglauf.BackupFolders().FirstOrDefault() is { } last)
+        if (t.Name == "Treiber sichern" && done && Werkzeuglauf.LastBackup is { } last)
         {
             var show = new Button { Style = (Style)Application.Current.FindResource("Flach"), Height = 36, Padding = new Thickness(14, 0, 14, 0), Tag = "18", Margin = new Thickness(0, 0, 8, 0),
                 Background = Ui.Brush("#0B0710"), BorderBrush = Ui.Res("KarteRand"), BorderThickness = new Thickness(1), VerticalContentAlignment = VerticalAlignment.Center,
                 Content = Ui.Text("Ordner zeigen", 12.5, "Halbleise") };
-            show.Click += (_, _) => { try { Process.Start(new ProcessStartInfo("explorer.exe", "/select,\"" + last.FullName + ".zip\"") { UseShellExecute = true }); } catch (Exception) { } };
+            show.Click += (_, _) => { try { Process.Start(new ProcessStartInfo("explorer.exe", "/select,\"" + last + ".zip\"") { UseShellExecute = true }); } catch (Exception) { } };
             actions.Children.Add(show);
+        }
+        // Netzwerk: der Ping-Test ist der erste Schritt vor der Reparatur
+        if (t.Bridge == "FixNetwork")
+        {
+            var ping = new Button { Style = (Style)Application.Current.FindResource("Flach"), Height = 36, Padding = new Thickness(14, 0, 14, 0), Tag = "18", Margin = new Thickness(0, 0, 8, 0),
+                Background = Ui.Brush("#0B0710"), BorderBrush = Ui.Res("KarteRand"), BorderThickness = new Thickness(1), VerticalContentAlignment = VerticalAlignment.Center,
+                Content = Ui.Text("1. Ping messen", 12.5, "Halbleise") };
+            ping.Click += (_, _) => window.Go("ping");
+            actions.Children.Add(ping);
         }
         actions.Children.Add(button);
         // Ergebnis auf- und zuklappen: Pfeil rechts neben dem Knopf, ein Klick auf die Kopfzeile tut dasselbe
@@ -397,24 +438,39 @@ sealed class WerkzeugePage : UserControl, IPage
     FrameworkElement Details(Absicht a, Werkzeug t, string key, Werkbefund r, bool busy)
     {
         var panel = new StackPanel { Margin = new Thickness(20, 4, 0, 18) };
+        if (Werkzeuglauf.CheckedAt.TryGetValue(key, out var checkedAt))
+            panel.Children.Add(new TextBlock { Text = "Letzte abgeschlossene Prüfung: " + checkedAt.ToString("dd.MM.yyyy HH:mm:ss")
+                + (busy ? " · Neue Prüfung läuft …" : ""), FontSize = 11.5, Foreground = Ui.Res("Halbleise"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) });
         // Kopf: Ampel-Zähler (grün / zu prüfen), darunter die Zusammenfassung über die ganze Breite
-        var good = r.Lines.Count(l => l.Ok);
-        var todo = r.Lines.Count - good;
+        var good = r.Lines.Count(l => l.Ok && !l.Unknown);
+        var unknown = r.Lines.Count(l => l.Unknown);
+        var todo = r.Lines.Count - good - unknown;
         var counters = new WrapPanel { Margin = new Thickness(0, 0, 0, 8) };
-        if (todo > 0) counters.Children.Add(Counter(todo + " zu prüfen", Bernstein));
+        if (todo > 0) counters.Children.Add(Counter(todo + " Hinweise prüfen", Bernstein));
         if (good > 0) counters.Children.Add(Counter(good + " in Ordnung", Gruen));
+        if (unknown > 0) counters.Children.Add(Counter(unknown + " unbekannt", "#8C819F"));
         if (counters.Children.Count > 0) panel.Children.Add(counters);
         if (r.Summary.Length > 0)
             panel.Children.Add(new TextBlock { Text = r.Summary, FontSize = 12.5, Foreground = Ui.Res("Halbleise"), TextWrapping = TextWrapping.Wrap, LineHeight = 19, Margin = new Thickness(0, 0, 8, 14) });
 
+        var actionable = r.Lines.FirstOrDefault(l => !l.Ok && !l.Unknown && l.Step != null);
+        var next = busy ? "Die Prüfung läuft. Warte auf das vollständige Ergebnis."
+            : actionable != null ? "Nächster Schritt: „" + (actionable.Button.Length > 0 ? actionable.Button : actionable.Step!.Text) + "“ beim markierten Prüfpunkt. Lies vorher die Erklärung darunter."
+            : r.Steps.Any(s => !s.Optional && s.Text != "Wiederherstellungspunkt anlegen") ? "Nächster Schritt: Lies die Hinweise und öffne anschließend die vorgeschlagenen Schritte unter dem Ergebnis."
+            : todo > 0 ? "Nächster Schritt: Gehe zuerst die markierten Hinweise durch. Diese Prüfung bietet dafür keine automatische Behebung an."
+            : unknown > 0 ? "Nächster Schritt: Prüfe die unbekannten Werte. Fehlende Daten erlauben noch keine vollständige Entwarnung."
+            : "Für die geprüften Punkte ist aktuell kein Eingriff nötig.";
+        panel.Children.Add(new TextBlock { Text = next, FontSize = 13, Foreground = Ui.Res("Text"), TextWrapping = TextWrapping.Wrap,
+            LineHeight = 20, Margin = new Thickness(0, 0, 8, 14) });
+
         // eine ruhige Liste in einem Rahmen: was zu prüfen ist zuerst, je Zeile Zeichen, Name, Zustand rechts und die
         // Erklärung darunter; feine Linien trennen die Zeilen
         var list = new StackPanel();
-        var lines = r.Lines.OrderBy(l => l.Ok).ToList();
+        var lines = r.Lines.OrderBy(l => l.Unknown ? 1 : l.Ok ? 2 : 0).ToList();
         for (var i = 0; i < lines.Count; i++)
         {
             var line = lines[i];
-            var color = line.Ok ? Gruen : Bernstein;
+            var color = line.Unknown ? "#8C819F" : line.Ok ? Gruen : Bernstein;
             var row = new Grid { Margin = new Thickness(0, 12, 0, 12) };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(36) });
             row.ColumnDefinitions.Add(new ColumnDefinition());
@@ -422,7 +478,7 @@ sealed class WerkzeugePage : UserControl, IPage
             row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             var mark = new Border { Width = 24, Height = 24, CornerRadius = new CornerRadius(12), Background = Ui.Alpha(color, "1F"), VerticalAlignment = VerticalAlignment.Top, HorizontalAlignment = HorizontalAlignment.Left,
-                Child = new TextBlock { Text = line.Ok ? "✓" : "!", FontSize = 12.5, FontWeight = FontWeights.Bold, Foreground = Ui.Brush(color), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center } };
+                Child = new TextBlock { Text = line.Unknown ? "?" : line.Ok ? "✓" : "!", FontSize = 12.5, FontWeight = FontWeights.Bold, Foreground = Ui.Brush(color), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center } };
             Grid.SetRowSpan(mark, 2);
             row.Children.Add(mark);
             var parts = line.Label.Split(" · ", 2);
@@ -432,7 +488,7 @@ sealed class WerkzeugePage : UserControl, IPage
             if (parts.Length > 1)
             {
                 var state = new Border { CornerRadius = new CornerRadius(999), Padding = new Thickness(10, 3, 10, 4), Background = Ui.Alpha(color, "1A"), VerticalAlignment = VerticalAlignment.Top,
-                    Child = new TextBlock { Text = parts[1], FontSize = 12, FontWeight = FontWeights.SemiBold, Foreground = Ui.Brush(color), MaxWidth = 220, TextTrimming = TextTrimming.CharacterEllipsis } };
+                    Child = new TextBlock { Text = parts[1], FontSize = 12, FontWeight = FontWeights.SemiBold, Foreground = Ui.Brush(color), MaxWidth = 180, TextWrapping = TextWrapping.Wrap } };
                 Grid.SetColumn(state, 2);
                 row.Children.Add(state);
             }
@@ -499,13 +555,25 @@ sealed class WerkzeugePage : UserControl, IPage
             fix.Click += (_, _) => Run(t, key, r.Question, main);
             buttons.Children.Add(fix);
         }
+        if (buttons.Children.Count > 0)
+        {
+            panel.Children.Add(Ui.Text("Empfohlene Schritte", 12.5, "Text", bold: true));
+            panel.Children.Add(buttons);
+        }
+        var optional = new WrapPanel { Margin = new Thickness(0, 6, 0, 0) };
         foreach (var step in r.Steps.Where(s => s.Optional))
         {
             var b = Small(step.Text, false, !busy);
             b.Click += (_, _) => Run(t, key, step.Text + "?", new[] { step });
-            buttons.Children.Add(b);
+            optional.Children.Add(b);
         }
-        if (buttons.Children.Count > 0) panel.Children.Add(buttons);
+        if (optional.Children.Count > 0)
+        {
+            var title = Ui.Text("Optional", 12.5, "Halbleise", bold: true);
+            title.Margin = new Thickness(0, 10, 0, 0);
+            panel.Children.Add(title);
+            panel.Children.Add(optional);
+        }
         return panel;
     }
 
@@ -537,10 +605,10 @@ sealed class WerkzeugePage : UserControl, IPage
         }
         if (t.Name == "Treiber zurückholen")
         {
+            var folder = Bestaetigung.ChooseBackup(this, Werkzeuglauf.BackupFolders(), path => Werkzeuglauf.Import(key, path));
+            if (folder == null) return;
             if (!App.IsAdmin) { Bestaetigung.Ask(this, "Adminrechte nötig", "Zum Einspielen muss PulsRig als Administrator laufen.", "Verstanden"); return; }
-            var folder = Werkzeuglauf.BackupFolders().FirstOrDefault();
-            if (folder == null) { Bestaetigung.Ask(this, "Keine Sicherung", "Es gibt noch keine Sicherung. Lege zuerst mit „Treiber sichern“ eine an – vor Updates sichert PulsRig ersetzte Treiber auch selbst.", "Verstanden"); return; }
-            if (Bestaetigung.Ask(this, "Sicherung einspielen?", "Neueste Sicherung: " + folder.Name + " vom " + folder.LastWriteTime.ToString("dd.MM.yyyy HH:mm") + " Uhr. Windows übernimmt daraus nur Treiber, die besser passen als die installierten – um ein Update zurückzunehmen, hilft der Wiederherstellungspunkt.", "Einspielen"))
+            if (Bestaetigung.Ask(this, "Sicherung einspielen?", "Gewählte Sicherung: " + folder.Name + " vom " + folder.LastWriteTime.ToString("dd.MM.yyyy HH:mm") + " Uhr. Windows übernimmt daraus nur Treiber, die besser passen als die installierten – um ein Update zurückzunehmen, hilft der Wiederherstellungspunkt.", "Einspielen"))
                 Werkzeuglauf.Restore(key, folder);
         }
     }

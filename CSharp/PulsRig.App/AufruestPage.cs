@@ -34,7 +34,7 @@ sealed class AufruestPage : UserControl, IPage
         Hw.Changed += Fill;
         foreach (var what in new[] { "cpu", "gpu", "ram" }) Hw.Load(what);
         Task.Run(() => (Werkzeugpruefung.KnownGames(), Abfragen.Drives()))
-            .ContinueWith(t => Dispatcher.BeginInvoke(() => { if (t.IsCompletedSuccessfully) (games, drives) = t.Result; }));
+            .ContinueWith(t => Dispatcher.BeginInvoke(() => { if (t.IsCompletedSuccessfully) { (games, drives) = t.Result; Fill(); } }));
         timer.Tick += (_, _) => { Finish(); if (System.Windows.Input.Mouse.LeftButton != System.Windows.Input.MouseButtonState.Pressed) Fill(); };
         timer.Start();
         Fill();

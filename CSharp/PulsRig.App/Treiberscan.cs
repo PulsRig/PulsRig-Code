@@ -61,7 +61,7 @@ static class Treiberscan
         var thread = new Thread(() =>
         {
             ScanErgebnis? result = null;
-            try { result = Run(Report); } catch (Exception) { }
+            try { result = Run(Report); } catch (Exception e) { Fehlerprotokoll.Write(e); }
             ui.BeginInvoke(() =>
             {
                 Running = false;
@@ -328,7 +328,7 @@ static class Treiberscan
         dynamic session = Activator.CreateInstance(type)!;
         session.ClientApplicationID = "PulsRig";
         // neu angebotene Treiber geschützter Grafikkarten zuerst verstecken
-        try { Treiberinstallation.ApplyShield(session); } catch (Exception) { }
+        try { Treiberinstallation.ApplyShield(session); } catch (Exception e) { Fehlerprotokoll.Write(e); }
         const string Base = "IsInstalled=0 and IsHidden=0 and Type='Driver'";
         var seen = new HashSet<string>();
         var list = new List<(dynamic, string, bool)>();

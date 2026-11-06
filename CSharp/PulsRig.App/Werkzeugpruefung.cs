@@ -12,7 +12,7 @@ namespace PulsRig.App;
 // Ein Werkzeug prüft zuerst (Check) und schlägt dann Schritte vor; ausgeführt wird erst nach der Rückfrage auf der
 // Seite. Optionale Schritte (riskanter oder meist unnötig) bekommen eine eigene Frage, wie Confirm-Action -Optional.
 // Step: eine Aktion direkt an der Zeile, als Schalter (On = Zustand) oder als Knopf mit der Aufschrift Button
-sealed record Pruefzeile(bool Ok, string Label, string Detail = "", Schritt? Step = null, bool? On = null, string Button = "");
+sealed record Pruefzeile(bool Ok, string Label, string Detail = "", Schritt? Step = null, bool? On = null, string Button = "", bool Unknown = false);
 // Admin: braucht Adminrechte; Ask: vorher fragen (nicht beim bloßen Öffnen einer Seite von Windows)
 sealed record Schritt(string Text, Func<string> Run, bool Optional = false, bool Admin = true, bool Ask = true);
 sealed record Werkbefund(List<Pruefzeile> Lines, string Summary, List<Schritt> Steps, string Question = "Jetzt ausführen?");

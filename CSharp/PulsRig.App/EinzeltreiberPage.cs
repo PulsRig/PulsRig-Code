@@ -66,19 +66,22 @@ sealed class EinzeltreiberPage : UserControl, IPage
 
     void Save(Paket p)
     {
-        var target = Path.Combine(Target, Sicherung.SingleFolderName(p.Inf, DateTime.Now));
+        var target = Target;
         if (!Bestaetigung.Ask(this, "Treiber sichern", p.Names + "\n\nDas Treiberpaket " + p.Inf + (p.Version.Length > 0 ? " (Version " + p.Version + ")" : "") + " wird in einen eigenen Ordner kopiert.\n\nZiel: " + target + "\nAm installierten Treiber ändert sich nichts.", "Sichern")) return;
         busy = p.Inf;
         Changed?.Invoke();
         Task.Run(() =>
         {
-            Directory.CreateDirectory(target);
-            var code = Treiberinstallation.RunTool("pnputil.exe", "/export-driver " + p.Inf + " \"" + target + "\"").Code;
-            return code == 0 ? (true, target) : (false, "Die Sicherung ist fehlgeschlagen (pnputil-Code " + code + ").");
+            var saved = Sicherungsablage.Create(target, work =>
+            {
+                var code = Treiberinstallation.RunTool("pnputil.exe", "/export-driver " + p.Inf + " \"" + work + "\"").Code;
+                if (code != 0) throw new TreiberWerkzeugException(code);
+            }, kind: "single");
+            return (true, saved);
         }).ContinueWith(t => Application.Current.Dispatcher.BeginInvoke(() =>
         {
             busy = "";
-            done[p.Inf] = t.IsCompletedSuccessfully ? t.Result : (false, "Die Sicherung ist fehlgeschlagen: " + t.Exception?.InnerException?.Message);
+            done[p.Inf] = t.IsCompletedSuccessfully ? t.Result : (false, Fehlermeldung.Text((Exception?)t.Exception ?? new InvalidOperationException()));
             Changed?.Invoke();
         }));
     }

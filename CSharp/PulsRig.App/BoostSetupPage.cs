@@ -214,8 +214,8 @@ sealed class BoostSetupPage : UserControl, IPage
         if (box.Child is TextBlock check) { check.HorizontalAlignment = HorizontalAlignment.Center; check.VerticalAlignment = VerticalAlignment.Center; }
         grid.Children.Add(box);
         var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 8, 12, 8) };
-        text.Children.Add(Ui.Text(item.Title, 14, "Text", bold: true));
-        if (item.Sub.Length > 0) { var s = Ui.Text(item.Sub, 12, "Leise"); s.Margin = new Thickness(0, 2, 0, 0); text.Children.Add(s); }
+        text.Children.Add(Ui.Text(item.Title, 14, "Text", bold: true, wrap: true));
+        if (item.Sub.Length > 0) { var s = Ui.Text(item.Sub, 12, "Leise", wrap: true); s.Margin = new Thickness(0, 2, 0, 0); text.Children.Add(s); }
         Grid.SetColumn(text, 1);
         grid.Children.Add(text);
         if (item.Value.Length > 0)

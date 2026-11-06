@@ -8,6 +8,10 @@
 - Die Kacheln bleiben beim Überfahren mit der Maus ruhig, auch auf Seiten mit Live-Werten, und die Optionen zucken beim Klicken nicht mehr.
 - Ist der Helfer neben der Uhr eingeschaltet, startet PulsRig ihn beim Öffnen wieder von selbst.
 
+**PC-Scheckheft und Ruckler-Detektiv**
+- Neu: „PC-Scheckheft“ unter Werkzeuge → Treiber verwalten. PulsRig sammelt über Jahre Benchmarks, Stabilitätstests, Treiberwechsel, Windows-Updates, Temperaturen beim Spielen und getauschte Bauteile; Reinigungen und Reparaturen trägst du selbst ein. Als Bericht zum Verkauf mitgeben – der Käufer lädt ihn im Gebrauchtkauf-Check und prüft die Bauteile gegen den PC.
+- Neu: „Ruckler-Detektiv“ unter Fürs Spielen und bei „Was ist los?“. Beim Aufzeichnen merkt sich der Helfer, welches Programm neben dem Spiel rechnet, ob die Laufwerke voll ausgelastet sind, ob Treiber den Prozessor aufhalten und ob der Arbeitsspeicher knapp wird – dazu Updates und Virenscans zur selben Zeit. Ohne Adminrechte; gemessen wird alle 5 Sekunden, Bilder pro Sekunde misst er nicht.
+
 **Stromverbrauch und Stromkosten**
 - Neues Werkzeug „Stromverbrauch“: zeigt, was der PC gerade zieht und was das im Jahr kostet. Die Grafikkarte misst PulsRig bei NVIDIA direkt, den Prozessor über die freigeschaltete Prozessor-Temperatur, den Rest schätzt es.
 - Strompreis und Nutzung am Tag lassen sich einstellen.

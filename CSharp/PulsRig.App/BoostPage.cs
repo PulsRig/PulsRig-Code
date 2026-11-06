@@ -164,14 +164,14 @@ sealed class BoostPage : UserControl, IPage
         var s = Ui.Text(state, 11, stateColor);
         DockPanel.SetDock(s, Dock.Right);
         top.Children.Add(s);
-        top.Children.Add(Ui.Text(title, 12.5, color, bold: true));
+        top.Children.Add(Ui.Text(title, 12.5, color, bold: true, wrap: true));
         DockPanel.SetDock(top, Dock.Top);
         panel.Children.Add(top);
         var v = Ui.Text(value, 18, "Text", bold: true);
         v.Margin = new Thickness(0, 4, 0, 0);
         DockPanel.SetDock(v, Dock.Top);
         panel.Children.Add(v);
-        var n = new TextBlock { Text = note, FontSize = 11.5, Foreground = Ui.Res("Leise"), TextWrapping = TextWrapping.Wrap, LineHeight = 16, VerticalAlignment = VerticalAlignment.Bottom, TextTrimming = TextTrimming.CharacterEllipsis };
+        var n = new TextBlock { Text = note, FontSize = 11.5, Foreground = Ui.Res("Leise"), TextWrapping = TextWrapping.Wrap, LineHeight = 16, VerticalAlignment = VerticalAlignment.Bottom };
         panel.Children.Add(n);
         var tile = Ui.Tile(color, tint, new Thickness(18, 16, 18, 16));
         tile.CornerRadius = new CornerRadius(22);

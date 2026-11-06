@@ -33,11 +33,9 @@
             <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
-                        <TextBlock Text="SYSTEM-PULS" FontFamily="{DynamicResource Mono}" FontSize="10" Foreground="{StaticResource Leise}" HorizontalAlignment="Right"/>
-                        <TextBlock Style="{StaticResource ZahlGross}" FontSize="24" HorizontalAlignment="Right" Foreground="{StaticResource PulsQuer}">
-                            <Run x:Name="PulseValue"/><Run Text=" bpm" FontSize="11" Foreground="{StaticResource Leise}"/>
-                        </TextBlock>
+                    <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right" Margin="12,0,0,0">
+                        <TextBlock Text="Animation" FontSize="11" Foreground="{StaticResource Halbleise}" HorizontalAlignment="Right"/>
+                        <TextBlock Text="kein Messwert" FontSize="10" Foreground="{StaticResource Leise}" HorizontalAlignment="Right" Margin="0,3,0,0"/>
                     </StackPanel>
                     <StackPanel>
                         <TextBlock x:Name="HomeKicker" FontSize="12.5" Foreground="{StaticResource Leise}"/>
@@ -120,12 +118,14 @@
         </Border>
 
         <!-- Stabil: Spalte 4, Reihe 2 -->
-        <Border x:Name="StabTile" Grid.Column="6" Grid.Row="2" Style="{StaticResource Kachel}" Padding="16">
+        <Border x:Name="StabTile" Grid.Column="6" Grid.Row="2" Style="{StaticResource Kachel}" Padding="16" Cursor="Hand"
+                MouseLeftButtonUp="Stab_Click">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top" Text="Stabil" Style="{StaticResource KachelKopf}" Foreground="{StaticResource Gruen}"/>
                 <TextBlock DockPanel.Dock="Top" Margin="0,2,0,0">
-                    <Run x:Name="StabDays" FontSize="28" FontWeight="SemiBold"/><Run Text=" Tage" FontSize="12" Foreground="{StaticResource Leise}"/>
+                    <Run x:Name="StabDays" FontSize="28" FontWeight="SemiBold"/>
                 </TextBlock>
+                <TextBlock x:Name="StabUnit" DockPanel.Dock="Top" FontSize="11" Foreground="{StaticResource Leise}" TextWrapping="Wrap" Margin="0,0,0,6"/>
                 <UniformGrid x:Name="StabGrid" Columns="10" VerticalAlignment="Bottom"/>
             </DockPanel>
         </Border>
@@ -172,7 +172,7 @@
                     <TextBlock Text="Boost" Style="{StaticResource KachelKopf}" Foreground="{StaticResource LilaHell}" VerticalAlignment="Center"/>
                 </DockPanel>
                 <TextBlock x:Name="BoostText" DockPanel.Dock="Top" FontSize="24" FontWeight="SemiBold" Margin="0,2,0,0"/>
-                <TextBlock x:Name="BoostNote" DockPanel.Dock="Top" FontSize="11" Foreground="{StaticResource Leise}" TextTrimming="CharacterEllipsis"/>
+                <TextBlock x:Name="BoostNote" DockPanel.Dock="Top" FontSize="11" Foreground="{StaticResource Leise}" TextWrapping="Wrap"/>
                 <Button x:Name="BoostSwitch" Style="{StaticResource Flach}" Width="46" Height="26" Tag="13" VerticalAlignment="Bottom"
                         HorizontalAlignment="Left" Click="BoostSwitch_Click" AutomationProperties.Name="Boost umschalten">
                     <Canvas Width="46" Height="26">
@@ -182,15 +182,22 @@
             </DockPanel>
         </Border>
 
-        <!-- Werkzeuge: Spalten 5–6, Reihe 3 -->
-        <Border x:Name="ToolsTile" Grid.Column="8" Grid.ColumnSpan="3" Grid.Row="4" Style="{StaticResource Kachel}" Cursor="Hand"
-                Background="{StaticResource Karte}" BorderBrush="{StaticResource KarteRand}" MouseLeftButtonUp="Tools_Click">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Text="Werkzeuge" Style="{StaticResource KachelKopf}" Foreground="{StaticResource Halbleise}"/>
-                <TextBlock x:Name="ToolHead" DockPanel.Dock="Top" FontSize="15" FontWeight="SemiBold" Margin="0,6,0,0"/>
-                <TextBlock x:Name="ToolSub" DockPanel.Dock="Top" FontSize="12" Foreground="{StaticResource Leise}"/>
-                <TextBlock Text="Alle Werkzeuge →" FontSize="11.5" Foreground="{StaticResource Lila}" VerticalAlignment="Bottom"/>
-            </DockPanel>
+        <!-- Direkter Einstieg von einem Symptom zu passenden Prüfungen -->
+        <Border x:Name="ToolsTile" Grid.Column="8" Grid.ColumnSpan="3" Grid.Row="4" Style="{StaticResource Kachel}"
+                Padding="16" Background="{StaticResource Karte}" BorderBrush="#556D43C9">
+            <StackPanel VerticalAlignment="Center">
+                <Button Style="{StaticResource Flach}" Click="Problem_Click" Padding="0,4" HorizontalContentAlignment="Stretch"
+                        AutomationProperties.Name="Was ist los? Problem wählen">
+                    <StackPanel>
+                        <TextBlock x:Name="ToolHead" FontSize="19" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="ToolSub" FontSize="12.5" Foreground="{StaticResource Halbleise}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                        <TextBlock Text="Problem wählen →" FontSize="12" Foreground="{StaticResource LilaHell}" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource Flach}" Click="Tools_Click" Padding="0,6" Margin="0,4,0,0" HorizontalContentAlignment="Left">
+                    <TextBlock Text="Alle Werkzeuge →" FontSize="12" Foreground="{StaticResource Halbleise}"/>
+                </Button>
+            </StackPanel>
         </Border>
     </Grid>
 </UserControl>

@@ -18,7 +18,7 @@ static class Probezeitlauf
         try { return Read(Ergebnisse.History(Ergebnisse.Read())); } catch (Exception) { return new(); }
     }
 
-    static List<ProbeEintrag> Read(JsonObject history)
+    internal static List<ProbeEintrag> Read(JsonObject history)
     {
         var list = new List<ProbeEintrag>();
         foreach (var n in history["Probation"] as JsonArray ?? new())
@@ -49,6 +49,9 @@ static class Probezeitlauf
         }
         return list;
     }
+
+    // nach einer Installation durch PulsRig noch einmal: sonst kennt die Startseite den neuen Treiber erst beim nächsten Start
+    public static void Refresh() { started = false; Start(); }
 
     // einmal je Start, im Hintergrund
     public static void Start()
@@ -85,6 +88,7 @@ static class Probezeitlauf
                 });
                 ui.BeginInvoke(() => { Entries = result; Changed?.Invoke(); });
                 Tagesbilder.Add(drivers, crashes);
+                Scheckheftdaten.Update();
             }
             catch (Exception) { }
         });

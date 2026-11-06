@@ -55,8 +55,8 @@ namespace PulsRig.Core
         // wie T: genaues Wort, sonst an " · " und Zeilenumbruch zerlegt, sonst das erste passende Muster
         public string T(string? text)
         {
-            if (string.IsNullOrEmpty(text)) return text ?? "";
-            if (words.TryGetValue(text!, out string? found)) return found;
+            if (text == null || text.Length == 0) return text ?? "";
+            if (words.TryGetValue(text, out string? found) && found != null) return found;
             if (!Letters.IsMatch(text)) return text;
             foreach (string separator in new[] { " · ", "\n" })
                 if (text.Contains(separator))

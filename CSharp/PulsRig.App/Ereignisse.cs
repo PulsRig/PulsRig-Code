@@ -36,6 +36,19 @@ static class Ereignisse
         try { return e.FormatDescription() ?? ""; } catch (Exception) { return ""; }
     }
 
+    // für den Ruckler-Detektiv: installierte Updates (WindowsUpdateClient 19) und begonnene Defender-Scans (1000) der
+    // letzten Tage. Das Defender-Protokoll lesen manche PCs nur mit Adminrechten; dann fehlen nur diese Einträge.
+    public static List<RucklerEreignis> StutterEvents(int days)
+    {
+        var list = new List<RucklerEreignis>();
+        var readable = true;
+        foreach (var e in Read("System", "Provider[@Name='Microsoft-Windows-WindowsUpdateClient'] and EventID=19 and " + Since(days), ref readable, 200))
+            if (e.TimeCreated is { } t) list.Add(new RucklerEreignis { When = t, Kind = "update", Text = Prop(e, 0)?.ToString() ?? "Update" });
+        foreach (var e in Read("Microsoft-Windows-Windows Defender/Operational", "EventID=1000 and " + Since(days), ref readable, 200))
+            if (e.TimeCreated is { } t) list.Add(new RucklerEreignis { When = t, Kind = "defender", Text = "Scan" });
+        return list;
+    }
+
     // für die Probezeit: wann Windows zuletzt einen Treiber je Gerät installiert hat (UserPnp 20001, 30 Tage), Ticks
     public static Dictionary<string, long> DriverInstalls()
     {

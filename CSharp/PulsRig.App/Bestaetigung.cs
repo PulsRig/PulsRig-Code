@@ -8,6 +8,45 @@ namespace PulsRig.App;
 
 static class Bestaetigung
 {
+    public static System.IO.DirectoryInfo? ChooseBackup(FrameworkElement owner, IReadOnlyList<System.IO.DirectoryInfo> folders, Action<string>? importZip = null)
+    {
+        var panel = new StackPanel { Width = 460 };
+        panel.Children.Add(Ui.Text("Sicherung auswählen", 20, "Text", bold: true));
+        panel.Children.Add(new TextBlock { Text = "Wähle die passende Sicherung. Automatische Sicherungen und Einzeltreiber enthalten nur einen Teil der Treiber.",
+            TextWrapping = TextWrapping.Wrap, Foreground = Ui.Res("Halbleise"), Margin = new Thickness(0, 10, 0, 14) });
+        var list = new ListBox { MaxHeight = 300, Background = Ui.Res("Karte"), Foreground = Ui.Res("Text"), BorderBrush = Ui.Res("KarteRand") };
+        foreach (var folder in folders)
+        {
+            try
+            {
+                var check = Sicherungsablage.Inspect(folder.FullName);
+                var kind = folder.Name.StartsWith("Auto-", StringComparison.OrdinalIgnoreCase) ? "Automatische Teilsicherung"
+                    : folder.Name.StartsWith("Einzeltreiber_", StringComparison.OrdinalIgnoreCase) ? "Einzelner Treiber" : "Treibersicherung";
+                var label = kind + " · " + check.Packages + " Paket(e)\n" + folder.LastWriteTime.ToString("dd.MM.yyyy HH:mm") + " · "
+                    + (System.IO.File.Exists(System.IO.Path.Combine(folder.FullName, Sicherungsablage.ManifestName)) ? "Mit Prüfsummen" : "Ältere Sicherung ohne Prüfsummen") + "\n" + folder.FullName;
+                list.Items.Add(new ListBoxItem { Tag = folder, Content = new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap, MaxWidth = 410 }, Padding = new Thickness(10) });
+            }
+            catch (Exception) { }
+        }
+        panel.Children.Add(list);
+        if (importZip != null)
+        {
+            var open = new Button { Content = "ZIP-Sicherung öffnen", Margin = new Thickness(0, 12, 0, 0), Padding = new Thickness(12, 8, 12, 8),
+                Style = (Style)Application.Current.FindResource("Flach"), Background = Ui.Res("Karte"), Foreground = Ui.Res("Text") };
+            open.Click += (_, _) =>
+            {
+                var file = new Microsoft.Win32.OpenFileDialog { Filter = "ZIP-Sicherungen (*.zip)|*.zip", Title = "ZIP-Sicherung öffnen", CheckFileExists = true };
+                if (file.ShowDialog(Window.GetWindow(open)) != true) return;
+                Window.GetWindow(open)?.Close();
+                importZip(file.FileName);
+            };
+            panel.Children.Add(open);
+        }
+        panel.Children.Add(new TextBlock { Text = "Windows übernimmt nur passende Pakete. Das ist kein erzwungenes Zurücksetzen auf ältere Treiber.",
+            TextWrapping = TextWrapping.Wrap, Foreground = Ui.Res("Halbleise"), Margin = new Thickness(0, 12, 0, 12) });
+        return Show(owner, panel, new[] { ("Abbrechen", false), ("Auswählen", true) }) && list.SelectedItem is ListBoxItem { Tag: System.IO.DirectoryInfo selected } ? selected : null;
+    }
+
     // reine Hinweise: nur ein Knopf, „Abbrechen“ daneben wäre dasselbe
     static readonly string[] InfoOnly = { "Verstanden", "Schließen", "OK" };
 
@@ -37,6 +76,8 @@ static class Bestaetigung
         name.Children.Add(new TextBlock { Text = "Fassung " + PulsRigInfo.Version, FontSize = 12, FontFamily = Ui.Mono, Foreground = Ui.Res("Leise"), Margin = new Thickness(0, 2, 0, 0) });
         head.Children.Add(name);
         panel.Children.Add(head);
+        panel.Children.Add(new TextBlock { Text = Neuefassung.Identity, FontSize = 12, Foreground = Ui.Res("Halbleise"),
+            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) });
 
         panel.Children.Add(new TextBlock { Text = "Treiber. Boost. Werkzeuge.", FontSize = 15, FontWeight = FontWeights.SemiBold, Foreground = (Brush)Application.Current.FindResource("PulsQuer"), Margin = new Thickness(0, 22, 0, 0) });
         panel.Children.Add(new TextBlock { Text = "Sucht neuere Treiber, beschleunigt den PC fürs Spielen und bringt Werkzeuge für Treiber, Geräte und Spiele mit. Fehler bitte mit Bericht & Diagnose melden.",
@@ -60,7 +101,7 @@ static class Bestaetigung
 
     static bool Show(FrameworkElement owner, StackPanel panel, (string Label, bool Primary)[] choices)
     {
-        var window = new Window { WindowStyle = WindowStyle.None, AllowsTransparency = true, Background = Brushes.Transparent, ResizeMode = ResizeMode.NoResize,
+        var window = new Window { Title = panel.Children.OfType<TextBlock>().FirstOrDefault()?.Text ?? "PulsRig", WindowStyle = WindowStyle.None, AllowsTransparency = true, Background = Brushes.Transparent, ResizeMode = ResizeMode.NoResize,
             SizeToContent = SizeToContent.WidthAndHeight, WindowStartupLocation = WindowStartupLocation.CenterOwner, Owner = Window.GetWindow(owner), ShowInTaskbar = false };
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
         var answer = false;
@@ -73,8 +114,15 @@ static class Bestaetigung
             b.Click += (_, _) => { answer = primary; window.Close(); };
             buttons.Children.Add(b);
         }
-        panel.Children.Add(buttons);
-        window.Content = new Border { CornerRadius = new CornerRadius(24), Background = Ui.Brush("#120A1A"), BorderBrush = Ui.Res("KarteRand"), BorderThickness = new Thickness(1), Padding = new Thickness(26), Child = panel };
+        // Der Text darf bei langen Befunden scrollen; die Schaltflächen bleiben immer sichtbar.
+        var footer = new DockPanel();
+        DockPanel.SetDock(buttons, Dock.Bottom);
+        footer.Children.Add(buttons);
+        var work = SystemParameters.WorkArea;
+        var content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, MaxHeight = Math.Max(100, work.Height - 180) };
+        footer.Children.Add(content);
+        window.Content = new Border { CornerRadius = new CornerRadius(24), Background = Ui.Brush("#120A1A"), BorderBrush = Ui.Res("KarteRand"), BorderThickness = new Thickness(1), Padding = new Thickness(26), Child = footer };
         Texte.Attach(window);
         window.ShowDialog();
         return answer;

@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using PulsRig.Core;
 
 namespace PulsRig.App;
@@ -180,7 +180,7 @@ static partial class Hardwaremodell
             d.Sub = lastBlue != null ? "Letzter Bluescreen am " + lastBlue.When.ToString("dd.MM.", De) : "Zuletzt ausgegangen am " + c.Off[0].When.ToString("dd.MM.", De);
         }
         d.Big = (calm ?? 30) + (calm == null ? "+" : "");
-        d.Unit = "Tage stabil";
+        d.Unit = calm == 1 ? "Tag stabil" : "Tage stabil";
         d.Color = card?.Tone == "bad" ? "#C0608F" : "#5EE0A0";
         d.Light = card?.Tone == "bad" ? "#E59AC0" : "#A7F3CC";
         // 30 Kästchen, links vor 30 Tagen, rechts heute
@@ -266,6 +266,7 @@ static partial class Hardwaremodell
         {
             new("ZIP speichern", saved.Length > 0 ? "gespeichert " + savedAt : "Bericht + Diagnose", SaveZip),
             missing != null ? new("Nachholen", missing.Name, () => main.Go(missing.Go)) : new Act("Nachholen", "nichts offen", null, "Alle Prüfungen sind gelaufen."),
+            new("Gebrauchtkauf-Check", "PC vor dem Kauf prüfen", () => main.Go("usedcheck")),
             saved.Length > 0 ? new("Ordner zeigen", Diagnosepaket.Place(saved), () => Diagnosepaket.ShowInFolder(saved))
                 : new("Neu einlesen", "alle Bereiche", () => { foreach (var what in new[] { "drives", "ram", "crash" }) Hw.Load(what, again: true); }),
         };

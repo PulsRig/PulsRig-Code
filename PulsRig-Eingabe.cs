@@ -44,6 +44,190 @@ public static class PulsRigPad
     }
 }
 
+// PS4- und PS5-Controller über Raw Input (HID): ein unsichtbares Fenster bekommt jede Meldung des Controllers, auch
+// wenn PulsRig nicht vorn ist; ausgewertet wird sie in PulsRig.Core.Playstation. Die Abfragerate ist die höchste Zahl
+// an Meldungen in einer Sekunde. Steam liest mit, das stört nicht; versteckt DS4Windows/HidHide den Controller, sieht
+// PulsRig ihn nur als den Xbox-Controller, den DS4Windows nachbildet. Vibrieren geht nur per Kabel (per Bluetooth
+// braucht jede Meldung eine Prüfsumme und schaltet den Controller in einen anderen Modus).
+public static class PulsRigPlaystation
+{
+    [StructLayout(LayoutKind.Sequential)]
+    struct Device { public ushort UsagePage, Usage; public uint Flags; public IntPtr Target; }
+    [StructLayout(LayoutKind.Sequential)]
+    struct HidCaps
+    {
+        public ushort Usage, UsagePage, InputReportByteLength, OutputReportByteLength, FeatureReportByteLength;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 17)] public ushort[] Reserved;
+        public ushort A, B, C, D, E, F, G, H, I, J;
+    }
+    [DllImport("user32.dll", SetLastError = true)] static extern bool RegisterRawInputDevices(Device[] devices, uint count, uint size);
+    [DllImport("user32.dll")] static extern uint GetRawInputData(IntPtr input, uint command, IntPtr data, ref uint size, uint headerSize);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern uint GetRawInputDeviceInfo(IntPtr device, uint command, IntPtr data, ref uint size);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    static extern Microsoft.Win32.SafeHandles.SafeFileHandle CreateFile(string name, uint access, uint share, IntPtr security, uint creation, uint flags, IntPtr template);
+    [DllImport("kernel32.dll", SetLastError = true)] static extern bool WriteFile(Microsoft.Win32.SafeHandles.SafeFileHandle file, byte[] data, int size, out int written, IntPtr overlapped);
+    [DllImport("hid.dll")] static extern bool HidD_GetPreparsedData(Microsoft.Win32.SafeHandles.SafeFileHandle file, out IntPtr data);
+    [DllImport("hid.dll")] static extern bool HidD_FreePreparsedData(IntPtr data);
+    [DllImport("hid.dll")] static extern int HidP_GetCaps(IntPtr data, out HidCaps caps);
+
+    class Sink : NativeWindow
+    {
+        public Sink() { CreateHandle(new CreateParams()); }
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == 0x00FF) { try { Take(m.LParam); } catch { } }
+            // ein Gerät wurde getrennt (wParam 2): war es unser Controller, gilt er als weg
+            if (m.Msg == 0x00FE && m.WParam.ToInt64() == 2) { lock (gate) { known.Remove(m.LParam.ToInt64()); if (m.LParam == current) current = IntPtr.Zero; } }
+            base.WndProc(ref m);
+        }
+    }
+
+    static Sink? sink;
+    static readonly object gate = new object();
+    static readonly Stopwatch clock = Stopwatch.StartNew();
+    // je Gerät: Hersteller und Produkt (0 = kein PlayStation-Controller)
+    static readonly Dictionary<long, int> known = new Dictionary<long, int>();
+    static IntPtr current;
+    static int product;
+    static int[] state = new int[8];
+    static string link = "";
+    static readonly Queue<double> times = new Queue<double>();
+    static int bestRate;
+    static double lastReport = -1;
+
+    static readonly ushort[] Usages = { 4, 5 };        // Joystick und Gamepad
+
+    public static bool Start()
+    {
+        if (sink != null) return true;
+        sink = new Sink();
+        var devices = new Device[Usages.Length];
+        for (int i = 0; i < Usages.Length; i++) devices[i] = new Device { UsagePage = 1, Usage = Usages[i], Flags = 0x100 | 0x2000, Target = sink.Handle };   // auch im Hintergrund, mit Trennen-Meldung
+        if (!RegisterRawInputDevices(devices, (uint)devices.Length, (uint)Marshal.SizeOf(typeof(Device)))) { sink.DestroyHandle(); sink = null; return false; }
+        return true;
+    }
+
+    public static void Stop()
+    {
+        if (sink == null) return;
+        var devices = new Device[Usages.Length];
+        for (int i = 0; i < Usages.Length; i++) devices[i] = new Device { UsagePage = 1, Usage = Usages[i], Flags = 0x1, Target = IntPtr.Zero };
+        RegisterRawInputDevices(devices, (uint)devices.Length, (uint)Marshal.SizeOf(typeof(Device)));
+        try { sink.DestroyHandle(); }
+        finally { sink = null; lock (gate) { current = IntPtr.Zero; known.Clear(); } }
+    }
+
+    public static void ResetRate() { lock (gate) { times.Clear(); bestRate = 0; } }
+
+    static int Product(IntPtr device)
+    {
+        long key = device.ToInt64();
+        if (known.TryGetValue(key, out var p)) return p;
+        p = 0;
+        uint size = 32;
+        IntPtr info = Marshal.AllocHGlobal(32);
+        try
+        {
+            Marshal.WriteInt32(info, 0, 32);
+            if (GetRawInputDeviceInfo(device, 0x2000000b, info, ref size) != unchecked((uint)-1) && Marshal.ReadInt32(info, 4) == 2)
+            {
+                int vendor = Marshal.ReadInt32(info, 8), id = Marshal.ReadInt32(info, 12);
+                if (PulsRig.Core.Playstation.Model(vendor, id).Length > 0) p = id;
+            }
+        }
+        finally { Marshal.FreeHGlobal(info); }
+        known[key] = p;
+        return p;
+    }
+
+    static void Take(IntPtr handle)
+    {
+        uint headerSize = (uint)(8 + 2 * IntPtr.Size);
+        uint size = 0;
+        GetRawInputData(handle, 0x10000003, IntPtr.Zero, ref size, headerSize);
+        if (size == 0) return;
+        IntPtr buffer = Marshal.AllocHGlobal((int)size);
+        try
+        {
+            if (GetRawInputData(handle, 0x10000003, buffer, ref size, headerSize) != size) return;
+            if (Marshal.ReadInt32(buffer, 0) != 2) return;                     // kein HID-Gerät
+            IntPtr device = Marshal.ReadIntPtr(buffer, 8);
+            lock (gate)
+            {
+                int id = Product(device);
+                if (id == 0) return;
+                int at = (int)headerSize;
+                int each = Marshal.ReadInt32(buffer, at), count = Marshal.ReadInt32(buffer, at + 4);
+                if (each <= 0 || count <= 0) return;
+                var report = new byte[each];
+                Marshal.Copy(buffer + at + 8 + (count - 1) * each, report, 0, each);
+                var read = PulsRig.Core.Playstation.Read(report, id);
+                if (read == null) return;
+                // ein zweiter Controller zählt erst, wenn der erste eine Sekunde still war
+                double now = clock.Elapsed.TotalMilliseconds;
+                if (current != IntPtr.Zero && current != device && now - lastReport < 1000) return;
+                if (current != device) { times.Clear(); bestRate = 0; }
+                current = device; product = id; state = read; link = PulsRig.Core.Playstation.Link(report, id); lastReport = now;
+                for (int i = 0; i < count; i++) times.Enqueue(now);
+                while (times.Count > 0 && now - times.Peek() > 1000) times.Dequeue();
+                // erst ab einer vollen Sekunde Messung
+                if (times.Count > 1 && clock.Elapsed.TotalMilliseconds - times.Peek() >= 950 && times.Count > bestRate) bestRate = times.Count;
+            }
+        }
+        finally { Marshal.FreeHGlobal(buffer); }
+    }
+
+    // wie PulsRigPad.Read; dazu Produktkennung (0 = keiner verbunden)
+    public static int[] Read(out int productId)
+    {
+        lock (gate)
+        {
+            productId = current == IntPtr.Zero ? 0 : product;
+            return current == IntPtr.Zero ? new int[8] : (int[])state.Clone();
+        }
+    }
+
+    public static string Link { get { lock (gate) return current == IntPtr.Zero ? "" : link; } }
+    // gemessene Meldungen je Sekunde (höchster Wert seit dem Verbinden), 0 = noch zu wenig
+    public static int Rate { get { lock (gate) return bestRate; } }
+
+    // Vibrieren per Kabel: DualSense Meldung 0x02 (Rumpel-Nachbildung an), DualShock 4 Meldung 0x05
+    public static bool Vibrate(bool on)
+    {
+        IntPtr device; int id; string how;
+        lock (gate) { device = current; id = product; how = link; }
+        if (device == IntPtr.Zero || how != "Kabel") return false;
+        try
+        {
+            uint size = 0;
+            GetRawInputDeviceInfo(device, 0x20000007, IntPtr.Zero, ref size);
+            if (size == 0) return false;
+            IntPtr text = Marshal.AllocHGlobal((int)size * 2);
+            string path;
+            try { GetRawInputDeviceInfo(device, 0x20000007, text, ref size); path = Marshal.PtrToStringUni(text) ?? ""; }
+            finally { Marshal.FreeHGlobal(text); }
+            using (var file = CreateFile(path, 0x40000000, 3, IntPtr.Zero, 3, 0, IntPtr.Zero))
+            {
+                if (file.IsInvalid) return false;
+                int length = PulsRig.Core.Playstation.IsDualSense(id) ? 48 : 32;
+                IntPtr parsed;
+                if (HidD_GetPreparsedData(file, out parsed))
+                {
+                    try { HidCaps caps; if (HidP_GetCaps(parsed, out caps) == 0x00110000 && caps.OutputReportByteLength > 0) length = caps.OutputReportByteLength; }
+                    finally { HidD_FreePreparsedData(parsed); }
+                }
+                var data = new byte[length];
+                byte strength = (byte)(on ? 200 : 0);
+                if (PulsRig.Core.Playstation.IsDualSense(id)) { data[0] = 0x02; data[1] = 0x03; data[3] = strength; data[4] = strength; }
+                else { data[0] = 0x05; data[1] = 0x01; data[4] = strength; data[5] = strength; }
+                int written;
+                return WriteFile(file, data, data.Length, out written, IntPtr.Zero);
+            }
+        }
+        catch { return false; }
+    }
+}
+
 public static class PulsRigMouse
 {
     [StructLayout(LayoutKind.Sequential)]
@@ -61,7 +245,7 @@ public static class PulsRigMouse
         }
     }
 
-    static Sink sink;
+    static Sink? sink;
     static readonly Stopwatch clock = Stopwatch.StartNew();
     // Bewegungsmeldungen und Punkte Bewegung je 100-ms-Abschnitt, die letzten 50 Abschnitte (5 Sekunden)
     static readonly Queue<long[]> buckets = new Queue<long[]>();
@@ -93,8 +277,8 @@ public static class PulsRigMouse
         if (sink == null) return;
         var device = new[] { new Device { UsagePage = 1, Usage = 2, Flags = 0x1, Target = IntPtr.Zero } };      // abmelden
         RegisterRawInputDevices(device, 1, (uint)Marshal.SizeOf(typeof(Device)));
-        sink.DestroyHandle();
-        sink = null;
+        try { sink.DestroyHandle(); }
+        finally { sink = null; }
     }
 
     public static void Reset()

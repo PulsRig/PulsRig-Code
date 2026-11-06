@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -16,7 +16,7 @@ public partial class MainWindow : Window
         ["home"] = "Scan", ["boost"] = "Boost", ["tools"] = "Werkzeuge", ["hw"] = "Hardware", ["opt"] = "Optionen", ["boostsetup"] = "Einrichten", ["ping"] = "Ping-Test", ["power"] = "Stromverbrauch", ["bench"] = "Benchmark", ["sensors"] = "Sensoren",
         ["drives"] = "Laufwerke", ["gpu"] = "Grafikkarte", ["cpu"] = "Prozessor", ["ram"] = "Arbeitsspeicher", ["stress"] = "Stabilitätstest",
         ["display"] = "Bildschirm", ["crash"] = "Abstürze", ["report"] = "Bericht & Diagnose", ["drivers"] = "Treiber",
-        ["repair"] = "Etwas reparieren", ["problem"] = "Was ist los?", ["input"] = "Controller und Maus", ["battery"] = "Akku", ["reinstall"] = "Neuinstallation", ["stick"] = "Notfall-Stick",["upgrade"] = "Aufrüst-Berater",["clean"] = "Aufräumen", ["manage"] = "Treiber verwalten", ["games"] = "Fürs Spielen", ["changes"] = "Was hat sich geändert?", ["single"] = "Einzelnen Treiber sichern",
+        ["repair"] = "Etwas reparieren", ["problem"] = "Was ist los?", ["input"] = "Controller und Maus", ["battery"] = "Akku", ["reinstall"] = "Neuinstallation", ["stick"] = "Notfall-Stick", ["usedcheck"] = "Gebrauchtkauf-Check",["upgrade"] = "Aufrüst-Berater",["clean"] = "Aufräumen", ["manage"] = "Treiber verwalten", ["games"] = "Fürs Spielen", ["rescue"] = "Neuinstallation & Notfall", ["changes"] = "Was hat sich geändert?", ["logbook"] = "PC-Scheckheft", ["stutter"] = "Ruckler-Detektiv", ["single"] = "Einzelnen Treiber sichern",
     };
 
     static readonly (string Id, string Label, string Icon)[] RailDefs =
@@ -37,7 +37,14 @@ public partial class MainWindow : Window
     {
         this.demo = demo;
         InitializeComponent();
+        Closing += (_, e) => { if (Werkzeuglauf.BackupBusy || PulsRig.Core.Sicherungsablage.ActiveCount > 0) { e.Cancel = true; Bestaetigung.Ask(this, "Sicherung läuft", "Bitte warte, bis die Treibersicherung abgeschlossen ist.", "Verstanden"); } };
         Texte.Attach(this);
+        Loaded += (_, _) => FitWorkArea();
+        DpiChanged += (_, _) => Dispatcher.BeginInvoke(FitWorkArea);
+        Surface.ScrollChanged += (_, e) =>
+        {
+            if (e.ViewportWidthChange != 0 || e.ViewportHeightChange != 0) FitSurface();
+        };
         foreach (var r in RailDefs) Rail.Children.Add(RailButton(r.Id, r.Label, r.Icon));
         RailBottom.Children.Add(RailButton("opt", "Optionen", OptIcon));
         ((Storyboard)FindResource("Blinken")).Begin(WatchDot, true);
@@ -113,9 +120,9 @@ public partial class MainWindow : Window
             "home" => new HomePage(this, demo),
             "hw" => new HardwarePage(this, demo),
             "drives" => new DrivesPage(demo),
-            "drivers" => new TreiberPage(demo),
+            "drivers" => new TreiberPage(this, demo),
             "tools" => new WerkzeugePage(this, null),
-            "repair" or "clean" or "manage" or "games" => new WerkzeugePage(this, cur),
+            "repair" or "clean" or "manage" or "games" or "rescue" => new WerkzeugePage(this, cur),
             "boost" => new BoostPage(this),
             "opt" => new OptionenPage(this),
             "boostsetup" => new BoostSetupPage(this),
@@ -125,12 +132,15 @@ public partial class MainWindow : Window
             "sensors" => new SensorPage(),
             "problem" => new ProblemPage(this),
             "changes" => new AenderungenPage(this, demo),
+            "logbook" => new ScheckheftPage(demo),
+            "stutter" => new RucklerPage(this, demo),
             "single" => new EinzeltreiberPage(demo),
             "input" => new EingabePage(),
             "battery" => new AkkuPage(),
             "upgrade" => new AufruestPage(),
             "reinstall" => new NeuinstallPage(this),
             "stick" => new NeuinstallPage(this, 2),
+            "usedcheck" => new GebrauchtkaufPage(),
             "gpu" or "cpu" or "ram" or "stress" or "display" or "crash" or "report" => new DetailPage(cur, this, demo),
             _ => new Platzhalter(Names.GetValueOrDefault(cur, cur)),
         };

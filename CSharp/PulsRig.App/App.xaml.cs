@@ -26,9 +26,9 @@ public partial class App : Application
         // unerwartete Fehler nicht stumm abstürzen lassen: ins Fehlerprotokoll schreiben, Fenster-Fehler melden und weiterlaufen
         DispatcherUnhandledException += (_, x) =>
         {
-            Fehlerprotokoll.Write(x.Exception);
             x.Handled = true;
-            try { MessageBox.Show("Da ist etwas schiefgegangen. PulsRig läuft weiter, der Fehler steht im Fehlerprotokoll (" + Fehlerprotokoll.File + ").\n\n" + x.Exception.Message, "PulsRig", MessageBoxButton.OK, MessageBoxImage.Warning); } catch (Exception) { }
+            var text = Fehlermeldung.Text(x.Exception);
+            try { MessageBox.Show(text, "PulsRig", MessageBoxButton.OK, MessageBoxImage.Warning); } catch (Exception) { }
         };
         AppDomain.CurrentDomain.UnhandledException += (_, x) => { if (x.ExceptionObject is Exception ex) Fehlerprotokoll.Write(ex); };
         TaskScheduler.UnobservedTaskException += (_, x) => { Fehlerprotokoll.Write(x.Exception); x.SetObserved(); };
@@ -53,7 +53,7 @@ public partial class App : Application
                 try
                 {
                     var r = Werkzeugpruefung.Check(tool)!;
-                    foreach (var l in r.Lines) text.AppendLine((l.Ok ? "  ok  " : "  !!  ") + l.Label + (l.Detail.Length > 0 ? " · " + l.Detail : ""));
+                    foreach (var l in r.Lines) text.AppendLine((l.Unknown ? "  ?   " : l.Ok ? "  ok  " : "  !!  ") + l.Label + (l.Detail.Length > 0 ? " · " + l.Detail : ""));
                     if (r.Summary.Length > 0) text.AppendLine("  " + r.Summary);
                     foreach (var s in r.Steps) text.AppendLine((s.Optional ? "  (optional) " : "  Schritt: ") + s.Text);
                 }

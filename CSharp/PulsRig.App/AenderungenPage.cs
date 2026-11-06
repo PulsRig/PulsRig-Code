@@ -6,6 +6,7 @@ namespace PulsRig.App;
 
 // "Was hat sich geändert?" wie Open-ChangesSheet: Reiter seit gestern, 7 und 30 Tage, die Unterschiede in einfachen
 // Sätzen (Core.Aenderungen), Abstürze ganz oben. Die Bilder schreibt die Prüfung beim Start (Tagesbilder).
+// Vierter Reiter: der Treiberverlauf (Werkzeugpruefung "DriverHistory"), einmal je Programmlauf gelesen.
 sealed class AenderungenPage : UserControl, IPage
 {
     const string Lila = "#8C6BD6";
@@ -14,6 +15,8 @@ sealed class AenderungenPage : UserControl, IPage
     readonly MainWindow main;
     readonly bool demo;
     readonly Grid root = new();
+    static Werkbefund? history;
+    static bool historyBusy;
     int tab = lastTab;
     bool stopped;
 
@@ -48,7 +51,7 @@ sealed class AenderungenPage : UserControl, IPage
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
 
-        var days = new[] { 1, 7, 30 }[tab];
+        var days = new[] { 1, 7, 30, 30 }[tab];
         var snaps = Tagesbilder.Snaps;
         Tagesbild? old;
         List<Aenderung> changes;
@@ -70,10 +73,10 @@ sealed class AenderungenPage : UserControl, IPage
             b.Click += (_, _) => { tab = lastTab = i; Fill(); };
             left.Children.Add(b);
         }
-        var history = NeuinstallPage.Big("Treiberverlauf", false);
-        history.Margin = new Thickness(0, 18, 0, 0);
-        history.Click += (_, _) => { main.GoTop("tools"); main.Go("manage"); };
-        left.Children.Add(history);
+        var drivers = NeuinstallPage.Big("Treiberverlauf", tab == 3);
+        drivers.Margin = new Thickness(0, 18, 0, 0);
+        drivers.Click += (_, _) => { tab = lastTab = 3; Fill(); };
+        left.Children.Add(drivers);
         var state = old == null ? "Mitgeschrieben wird bei jedem Start von PulsRig"
             : demo || Aenderungen.Exact(old, days, DateTime.Now) ? "Verglichen mit dem " + Aenderungen.Day(old.D) + " · mitgeschrieben seit " + first
             : "Mitgeschrieben erst seit " + first + ": verglichen mit diesem Tag";
@@ -81,7 +84,8 @@ sealed class AenderungenPage : UserControl, IPage
         root.Children.Add(new Border { CornerRadius = new CornerRadius(24), BorderThickness = new Thickness(1), BorderBrush = Ui.Alpha(Lila, "2E"), Padding = new Thickness(24), Background = Ui.Tint("#160D29"), Child = left });
 
         var list = new StackPanel();
-        if (old == null)
+        if (tab == 3) History(list);
+        else if (old == null)
         {
             list.Children.Add(NeuinstallPage.Row("PulsRig schreibt ab jetzt mit",
                 "Seit " + first + " merkt sich PulsRig einmal am Tag Windows-Stand, Programme, Autostart, wichtige Treiber und Energieplan. Ab morgen steht hier, was sich seitdem geändert hat.", ("ab heute", "accent")));
@@ -106,6 +110,47 @@ sealed class AenderungenPage : UserControl, IPage
         var scroll = new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Padding = new Thickness(0, 0, 6, 0) };
         Grid.SetColumn(scroll, 2);
         root.Children.Add(scroll);
+    }
+
+    // Windows Update und Treiberpakete zu lesen dauert, deshalb im Hintergrund und danach neu aufbauen
+    void History(StackPanel list)
+    {
+        if (demo)
+        {
+            list.Children.Add(NeuinstallPage.Head("WINDOWS UPDATE · 1 Treiber"));
+            list.Children.Add(NeuinstallPage.Row(DateTime.Now.AddDays(-3).ToString("dd.MM.yyyy HH:mm"), "NVIDIA - Display - 32.0.15.8157 · erfolgreich", null));
+            return;
+        }
+        if (history == null && !historyBusy)
+        {
+            historyBusy = true;
+            Task.Run(() =>
+            {
+                Werkbefund? found;
+                try { found = Werkzeugpruefung.Check("DriverHistory"); } catch (Exception) { found = null; }
+                Dispatcher.BeginInvoke(() =>
+                {
+                    history = found ?? new(new() { new(false, "Treiberverlauf", "Der Verlauf ließ sich nicht lesen") }, "", new());
+                    historyBusy = false;
+                    Fill();
+                });
+            });
+        }
+        if (history == null)
+        {
+            list.Children.Add(NeuinstallPage.Row("Treiberverlauf wird gelesen …", "Windows Update und die eingespielten Treiberpakete", ("läuft", "accent")));
+            return;
+        }
+        foreach (var line in history.Lines)
+        {
+            var label = line.Label.Trim();
+            if (label.Length > 0 && label == label.ToUpperInvariant() && !char.IsDigit(label[0]))
+                list.Children.Add(NeuinstallPage.Head(label + (line.Detail.Length > 0 ? " · " + line.Detail : "")));
+            else
+                list.Children.Add(NeuinstallPage.Row(label, line.Detail, line.Ok ? null : ("", "warn")));
+        }
+        if (history.Summary.Length > 0)
+            list.Children.Add(new TextBlock { Text = history.Summary, FontSize = 12, Foreground = Ui.Res("Halbleise"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 8, 0, 0) });
     }
 
     public void Stop()

@@ -22,7 +22,7 @@ public static class PulsRigBench
     public static double Single, Multi, Copy, Latency, Fill;
     public static string GpuName = "", GpuError = "";
     static volatile bool cancel;
-    static Thread runner;
+    static Thread? runner;
     static double scale = 1.0;
 
     public static bool Running { get { return runner != null && runner.IsAlive; } }
@@ -133,7 +133,7 @@ public static class PulsRigBench
     static void MeasureMemory(int from, int to)
     {
         const int size = 128 << 20;                // 128 MB je Puffer
-        byte[] source = new byte[size], target = new byte[size];
+        byte[]? source = new byte[size], target = new byte[size];
         for (int i = 0; i < size; i += 4096) { source[i] = 1; target[i] = 1; }   // Seiten anlegen
         int parts = Math.Max(1, Math.Min(8, Environment.ProcessorCount / 2));
         int chunk = size / parts;
@@ -161,7 +161,7 @@ public static class PulsRigBench
 
         // Wartezeit: ein zufälliger Rundgang durch 128 MB (Sattolo), jeder Schritt hängt vom vorigen ab
         int count = 32 << 20;
-        int[] next = new int[count];
+        int[]? next = new int[count];
         for (int i = 0; i < count; i++) next[i] = i;
         var random = new Random(4711);
         for (int i = count - 1; i > 0; i--) { int j = random.Next(i); int swap = next[i]; next[i] = next[j]; next[j] = swap; }
@@ -213,10 +213,10 @@ public static class PulsRigBench
 
     static void MeasureGpu(double seconds, int from, int to)
     {
-        Exception failure = null;
+        Exception? failure = null;
         var thread = new Thread(delegate ()
         {
-            Form form = null; IntPtr dc = IntPtr.Zero, context = IntPtr.Zero;
+            Form? form = null; IntPtr dc = IntPtr.Zero, context = IntPtr.Zero;
             try
             {
                 int width = 1280, height = 720;
@@ -240,7 +240,7 @@ public static class PulsRigBench
                 context = wglCreateContext(dc);
                 if (context == IntPtr.Zero || !wglMakeCurrent(dc, context)) throw new InvalidOperationException("Die Grafikkarte stellt keine Zeichenfläche bereit");
                 IntPtr name = glGetString(0x1F01);
-                if (name != IntPtr.Zero) GpuName = Marshal.PtrToStringAnsi(name);
+                if (name != IntPtr.Zero) GpuName = Marshal.PtrToStringAnsi(name) ?? "";
                 glViewport(0, 0, width, height);
                 glEnable(0x0BE2);
                 glBlendFunc(0x0302, 0x0303);

@@ -32,17 +32,26 @@ sealed class HardwarePage : UserControl, IPage
         var head = new DockPanel();
         DockPanel.SetDock(state, Dock.Right);
         head.Children.Add(state);
-        head.Children.Add(Ui.Text(t.Group, 12.5, t.Color, bold: true));
+        var group = Ui.Text(t.Group, 12.5, t.Color, bold: true);
+        group.TextTrimming = TextTrimming.None;
+        group.TextWrapping = TextWrapping.Wrap;
+        head.Children.Add(group);
         var value = Ui.Text(t.Value, 30, "Text", bold: true, mono: true);
         var bar = new Border { Margin = new Thickness(0, 6, 0, 0) };
         var note = Ui.Text(t.Note, 11.5, "Leise");
         note.Margin = new Thickness(0, 6, 0, 0);
+        note.TextTrimming = TextTrimming.None;
+        note.TextWrapping = TextWrapping.Wrap;
+        // Auch bei schmalen Karten Platz für zwei Zeilen reservieren: Live-Werte verschieben das Layout nicht.
+        note.MinHeight = 32;
         var bottom = new StackPanel { VerticalAlignment = VerticalAlignment.Bottom };
         bottom.Children.Add(value);
         bottom.Children.Add(bar);
         bottom.Children.Add(note);
         var name = Ui.Text(t.Name, 16, "Text", bold: true);
         name.Margin = new Thickness(0, 4, 0, 0);
+        name.TextTrimming = TextTrimming.None;
+        name.TextWrapping = TextWrapping.Wrap;
         var body = new DockPanel();
         DockPanel.SetDock(head, Dock.Top);
         DockPanel.SetDock(name, Dock.Top);

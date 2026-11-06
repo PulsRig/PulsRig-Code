@@ -17,6 +17,8 @@ static class Neuefassung
 
     public static Hinweis? Found { get; private set; }
     public static string State { get; private set; } = "";
+    public static string Identity => Fassung.BuildId(Build) is { Length: > 0 } id ? "Build " + id
+        : Build.Length > 0 ? "Bau vom " + Build.Split(" · ")[0] : "Entwicklungsfassung";
 
     // Baudatum aus PulsRig-Bau.txt, das PulsRig-Paket.ps1 neben die App legt
     public static string Build

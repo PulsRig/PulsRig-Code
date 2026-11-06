@@ -7,7 +7,7 @@
     <Color x:Key="LilaDunkel">#6D43C9</Color>
     <Color x:Key="Beere">#A8326F</Color>
     <SolidColorBrush x:Key="Text" Color="#E2DCEB"/>
-    <SolidColorBrush x:Key="Leise" Color="#8C819F"/>
+    <SolidColorBrush x:Key="Leise" Color="#A397B5"/>
     <SolidColorBrush x:Key="Halbleise" Color="#B3A8C4"/>
     <SolidColorBrush x:Key="Lila" Color="#8C6BD6"/>
     <SolidColorBrush x:Key="LilaHell" Color="#B19FE0"/>

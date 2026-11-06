@@ -59,6 +59,8 @@ static class Treiberinstallation
     public static string LastMessage { get; private set; } = "";
     public static bool RebootRequired { get; private set; }
     public static event Action? Changed;
+    // nur der Text des Fortschritts hat sich geändert (Prozente beim Laden): die Seite muss sich nicht neu aufbauen
+    public static event Action? StageChanged;
 
     static readonly HttpClient Web = new() { Timeout = TimeSpan.FromMinutes(30) };
     static string Downloads => Path.Combine(Belastung.Folder, "Downloads");
@@ -72,20 +74,20 @@ static class Treiberinstallation
         LastMessage = "";
         Changed?.Invoke();
         var ui = System.Windows.Application.Current.Dispatcher;
-        void Report(string text) => ui.BeginInvoke(() => { Stage = text; Changed?.Invoke(); });
+        void Report(string text) => ui.BeginInvoke(() => { Stage = text; StageChanged?.Invoke(); });
         var thread = new Thread(() =>
         {
             string message;
             try { message = work(Report); }
-            catch (COMException e) { message = ScanText.UpdateError(e.HResult, e.Message); }
-            catch (Exception e) { message = e.Message; }
+            catch (COMException e) { Fehlerprotokoll.Write(e); message = ScanText.UpdateError(e.HResult, "Windows Update konnte den Vorgang nicht abschließen.") + "\nPrüfe Windows Update und versuche es später erneut."; }
+            catch (Exception e) { message = Fehlermeldung.Text(e); }
             ui.BeginInvoke(() =>
             {
                 Busy = false;
                 Stage = "";
                 LastMessage = message;
                 Changed?.Invoke();
-                if (rescan) Treiberscan.Start();
+                if (rescan) { Treiberscan.Start(); Probezeitlauf.Refresh(); }
             });
         }) { IsBackground = true };
         thread.SetApartmentState(ApartmentState.STA);
@@ -154,6 +156,8 @@ static class Treiberinstallation
                 if (percent != shown && percent >= 0) { shown = percent; report("Lade " + label + " … " + percent + " %"); }
             }
         }
+        // die Prüfung liest die ganze Datei (beim NVIDIA-Treiber fast 1 GB) und fragt die Sperrlisten ab
+        report("Prüfe die Signatur von " + label + " …");
         if (!HasSigner(file, signer))
         {
             System.IO.File.Delete(file);
@@ -265,9 +269,8 @@ static class Treiberinstallation
         if (packages.Length == 0) return "";
         var originals = Sicherung.ParsePackages(RunTool("pnputil.exe", "/enum-drivers").Output.Split('\n').Select(l => l.TrimEnd('\r')))
             .GroupBy(p => p.Published.ToLowerInvariant()).ToDictionary(g => g.Key, g => g.First().Original);
-        var target = Path.Combine(Belastung.Folder, "Sicherungen", Sicherung.AutoFolderName(DateTime.Now));
         var store = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), @"System32\DriverStore\FileRepository");
-        var saved = 0;
+        var eligible = new List<string>();
         foreach (var package in packages)
         {
             if (!originals.TryGetValue(package, out var original) || original.Length == 0) continue;
@@ -280,11 +283,24 @@ static class Treiberinstallation
             }
             catch (Exception) { }
             if (bytes > 300L * 1024 * 1024) continue;
-            var folder = Path.Combine(target, Sicherung.FolderName(original));
-            Directory.CreateDirectory(folder);
-            if (RunTool("pnputil.exe", "/export-driver " + package + " \"" + folder + "\"").Code == 0) saved++;
+            eligible.Add(package);
         }
-        return saved > 0 ? "Bisherige Treiber gesichert (" + saved + " Paket(e)). " : "";
+        if (eligible.Count == 0) return "Keine bisherigen Treiber gesichert: alle Pakete wurden übersprungen. ";
+        Sicherungsablage.Create(Werkzeuglauf.Backups, work =>
+        {
+            foreach (var package in eligible)
+            {
+                // Mehrere installierte Fassungen mit gleichem Originalnamen bleiben getrennt.
+                var folder = Path.Combine(work, package);
+                Directory.CreateDirectory(folder);
+                var code = RunTool("pnputil.exe", "/export-driver " + package + " \"" + folder + "\"").Code;
+                if (code != 0) throw new TreiberWerkzeugException(code);
+                if (Directory.GetFiles(folder, "*.inf", SearchOption.AllDirectories).Length == 0)
+                    throw new InvalidOperationException("Ein Treiberpaket fehlt in der automatischen Sicherung. Das Update wurde angehalten.");
+            }
+        }, kind: "automatic");
+        return "Bisherige Treiber gesichert (" + eligible.Count + " Paket(e)). "
+            + (eligible.Count < packages.Length ? (packages.Length - eligible.Count) + " Paket(e) nicht gesichert (Größenlimit oder Zuordnung). " : "");
     }
 
     internal static (int Code, string Output) RunTool(string file, string arguments)
@@ -364,7 +380,7 @@ static class Treiberinstallation
                 0 => "Installiert: " + row.Title + ".",
                 3010 => "Installiert: " + row.Title + ". Bitte den PC neu starten.",
                 259 => "Das Paket ist hinzugefügt, aber kein Gerät hat es übernommen.",
-                _ => "pnputil meldet Code " + code + ".",
+                _ => throw new TreiberWerkzeugException(code),
             });
         }
         finally { try { Directory.Delete(folder, true); } catch (Exception) { } }
@@ -390,7 +406,9 @@ static class Treiberinstallation
         Probezeitlauf.MarkInstall();
         var name = Path.GetFileName(new Uri(offer.Url).LocalPath);
         var file = Download(offer.Url, name, "O=NVIDIA Corporation", new[] { "*.nvidia.com" }, report, "NVIDIA " + offer.Latest);
+        if (TreiberEinstellungen.Current.RestorePoint) report("Lege einen Wiederherstellungspunkt an – das kann eine Minute dauern …");
         var message = RestorePoint();
+        report("Starte den NVIDIA-Installer – er entpackt sich zuerst, das dauert etwas …");
         report("NVIDIA-Installer läuft – bitte dem Assistenten folgen …");
         var code = StartSigned(file, "O=NVIDIA Corporation");
         return message + (code == 0 ? "NVIDIA-Installer beendet." : "NVIDIA-Installer beendet (Code " + code + ").");

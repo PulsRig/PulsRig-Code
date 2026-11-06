@@ -42,7 +42,7 @@ sealed class OptionenPage : UserControl, IPage
         var tiles = new List<UIElement>();
         void Put(UIElement e, int c, int r, int cs = 1, int rs = 1) { Ui.Place(root, e, c, r, cs, rs); tiles.Add(e); }
         Put(Look(), 0, 0, 2);
-        Put(Language(), 2, 0);
+        Put(LanguageSection(), 2, 0);
         Put(Motion(), 0, 1, 2);
         Put(Watch(), 2, 1, 1, 2);
         Put(Quick(), 0, 2, 2);
@@ -112,7 +112,7 @@ sealed class OptionenPage : UserControl, IPage
     }
 
     // wie Set-AppLanguage: speichern und das Fenster neu starten - die Texte kommen beim Start
-    Border Language()
+    Border LanguageSection()
     {
         var list = new StackPanel { VerticalAlignment = VerticalAlignment.Bottom };
         var current = Texte.IsEnglish ? "en" : "de";
@@ -198,7 +198,7 @@ sealed class OptionenPage : UserControl, IPage
         var note = new TextBlock { Text = Helfer.Exe == null ? "Den Helfer gibt es nur im installierten Programm." : "Die Schalter des Helfers wirken, solange er läuft.",
             FontSize = 11, Foreground = Ui.Res("Leise"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) };
         list.Children.Add(note);
-        return Section("Überwachung", Gruen, "#10291F", list);
+        return Section("Überwachung", Gruen, "#10291F", new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
     }
 
     static Button Switch(string name, string sub, bool on, bool enabled, Action<bool> flip)
@@ -209,7 +209,10 @@ sealed class OptionenPage : UserControl, IPage
         DockPanel.SetDock(track, Dock.Right);
         row.Children.Add(track);
         var text = new StackPanel();
-        text.Children.Add(Ui.Text(name, 13, "Text", bold: true));
+        var label = Ui.Text(name, 13, "Text", bold: true);
+        label.TextWrapping = TextWrapping.Wrap;
+        label.TextTrimming = TextTrimming.None;
+        text.Children.Add(label);
         var s = new TextBlock { Text = sub, FontSize = 11, Foreground = Ui.Res("Leise"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) };
         text.Children.Add(s);
         row.Children.Add(text);
@@ -225,7 +228,7 @@ sealed class OptionenPage : UserControl, IPage
         var grid = new Grid { VerticalAlignment = VerticalAlignment.Bottom };
         var items = new (string Name, string Icon, Action Do)[]
         {
-            ("Treiberverlauf", "M12 8v4l3 2 M3 12a9 9 0 1 0 3-6.7 M3 4v4h4", () => { window.GoTop("tools"); window.Go("manage"); }),
+            ("Treiberverlauf", "M12 8v4l3 2 M3 12a9 9 0 1 0 3-6.7 M3 4v4h4", () => { window.GoTop("tools"); window.Go("changes"); }),
             ("Zielordner", "M3 6h6l2 2h10v11H3z", () => { try { System.IO.Directory.CreateDirectory(Werkzeuglauf.Backups); Process.Start(new ProcessStartInfo("explorer.exe", "\"" + Werkzeuglauf.Backups + "\"") { UseShellExecute = true }); } catch (Exception) { } }),
             ("Kurzanleitung", "M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z M20 4h-4a2 2 0 0 0-2 2", () => Bestaetigung.Ask(this, "PulsRig in Kürze",
                 "Scan: fragt Windows Update, NVIDIA, AMD und den Microsoft-Katalog nach neueren Treibern; installiert wird nur nach Rückfrage, vorher entsteht ein Wiederherstellungspunkt.\n\n" +
@@ -251,7 +254,10 @@ sealed class OptionenPage : UserControl, IPage
             Grid.SetColumn(b, i);
             grid.Children.Add(b);
         }
-        var tile = Section("Schnellzugriff", "#B3A8C4", "#0B0710", grid, "PulsRig " + PulsRigInfo.Version.ToLowerInvariant());
+        var body = new StackPanel();
+        body.Children.Add(grid);
+        body.Children.Add(new TextBlock { Text = Neuefassung.Identity, FontSize = 11, Foreground = Ui.Res("Halbleise"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) });
+        var tile = Section("Schnellzugriff", "#B3A8C4", "#0B0710", body, "PulsRig " + PulsRigInfo.Version.ToLowerInvariant());
         tile.Background = Ui.Brush("#0B0710");
         tile.BorderBrush = Ui.Brush("#22172F");
         return tile;

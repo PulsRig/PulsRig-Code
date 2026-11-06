@@ -13,6 +13,41 @@ static class Werkzeuglauf
     public static string Backups => Path.Combine(Belastung.Folder, "Sicherungen");
     public static Dictionary<string, (bool Busy, string Message)> State { get; } = new();
     public static event Action? Changed;
+    public static bool BackupBusy { get; private set; }
+    public static string? LastBackup { get; private set; }
+    static readonly Dictionary<string, CancellationTokenSource> Transfers = new();
+    public static bool CanCancel(string key) => Transfers.ContainsKey(key);
+    public static void Cancel(string key)
+    {
+        if (!Transfers.TryGetValue(key, out var source)) return;
+        source.Cancel();
+        State[key] = (true, "Abbruch angefordert – laufender Schritt wird beendet.");
+        Changed?.Invoke();
+    }
+
+    static void Transfer(string key, Func<CancellationToken, Action<string>, string> work)
+    {
+        if (BackupBusy || State.TryGetValue(key, out var current) && current.Busy) return;
+        BackupBusy = true;
+        var source = new CancellationTokenSource();
+        Transfers[key] = source;
+        var token = source.Token;
+        var dispatcher = System.Windows.Application.Current.Dispatcher;
+        void Progress(string text) => dispatcher.BeginInvoke(() =>
+        {
+            if (State.TryGetValue(key, out var state) && state.Busy && !token.IsCancellationRequested) { State[key] = (true, text); Changed?.Invoke(); }
+        });
+        Run(key, () =>
+        {
+            try { return work(source.Token, Progress); }
+            catch (OperationCanceledException) { return "Abgebrochen. Es wurde keine neue Sicherung freigegeben."; }
+            finally
+            {
+                dispatcher.Invoke(() => { Transfers.Remove(key); BackupBusy = false; });
+                source.Dispose();
+            }
+        });
+    }
 
     static void Run(string key, Func<string> work)
     {
@@ -23,7 +58,7 @@ static class Werkzeuglauf
         var thread = new Thread(() =>
         {
             string message;
-            try { message = work(); } catch (Exception e) { message = e.Message; }
+            try { message = work(); } catch (Exception e) { message = Fehlermeldung.Text(e); }
             ui.BeginInvoke(() => { State[key] = (false, message); Changed?.Invoke(); });
         }) { IsBackground = true };
         // Windows Update (Treiberverlauf) und WScript.Shell (Autostart) sprechen COM und wollen einen STA-Thread
@@ -41,36 +76,44 @@ static class Werkzeuglauf
     }
 
     // wie Backup-InstalledDrivers: alle Pakete von Drittherstellern exportieren, dazu eine ZIP-Datei daneben
-    public static void Backup(string key) => Run(key, () =>
+    public static void Backup(string key)
     {
-        var target = Path.Combine(Backups, "Backup_" + DateTime.Now.ToString("yyyy-MM-dd_HHmm"));
-        Directory.CreateDirectory(target);
-        var code = Tool("pnputil.exe", "/export-driver * \"" + target + "\"").Code;
-        if (code != 0) throw new InvalidOperationException("Die Sicherung ist fehlgeschlagen (pnputil-Code " + code + ").");
-        var count = Directory.GetFiles(target, "*.inf", SearchOption.AllDirectories).Length;
-        var zip = target + ".zip";
-        if (File.Exists(zip)) File.Delete(zip);
-        ZipFile.CreateFromDirectory(target, zip, CompressionLevel.Optimal, false);
-        return count + " Treiberpakete gesichert · " + Path.GetFileName(zip);
-    });
+        if (BackupBusy || State.TryGetValue(key, out var active) && active.Busy) return;
+        LastBackup = null;
+        Transfer(key, (token, progress) =>
+        {
+                var target = Sicherungsablage.Create(Backups, folder =>
+                {
+                    var code = Tool("pnputil.exe", "/export-driver * \"" + folder + "\"").Code;
+                    if (code != 0) throw new TreiberWerkzeugException(code);
+                }, progress: progress, cancellationToken: token);
+                var count = Sicherungsablage.Inspect(target).Packages;
+                System.Windows.Application.Current.Dispatcher.Invoke(() => LastBackup = target);
+                return count + " Treiberpakete gesichert · " + Path.GetFileName(target + ".zip");
+        });
+    }
 
     // Sicherungen, die PulsRig angelegt hat (von Hand oder automatisch vor einem Update), neueste zuerst
     public static List<DirectoryInfo> BackupFolders()
     {
         try
         {
-            return Directory.Exists(Backups)
-                ? new DirectoryInfo(Backups).GetDirectories().Where(d => Sicherung.IsBackupFolder(d.Name)).OrderByDescending(d => d.LastWriteTime).ToList()
-                : new();
+            return Sicherungsablage.Find(Backups, Altdaten.Folder);
         }
         catch (Exception) { return new(); }
     }
 
+    public static void Import(string key, string archive) => Transfer(key, (token, progress) =>
+    {
+        var target = Sicherungsablage.Import(archive, Backups, progress, token);
+        return "ZIP-Sicherung geprüft und abgelegt. Zum Einspielen die Sicherung erneut auswählen. · " + Path.GetFileName(target);
+    });
+
     // wie Invoke-RestoreTool: Windows übernimmt nur Treiber, die besser passen als die installierten
     public static void Restore(string key, DirectoryInfo folder) => Run(key, () =>
     {
-        var infs = Directory.GetFiles(folder.FullName, "*.inf", SearchOption.AllDirectories).Length;
-        if (infs == 0) throw new InvalidOperationException("In dieser Sicherung liegen keine Treiberpakete.");
+        Sicherungsablage.Inspect(folder.FullName, verify: true);
+        if (!App.IsAdmin) throw new InvalidOperationException("Zum Einspielen muss PulsRig als Administrator laufen.");
         var message = "";
         if (TreiberEinstellungen.Current.RestorePoint)
             try
@@ -80,29 +123,32 @@ static class Werkzeuglauf
                 args["Description"] = "PulsRig (vor Treiberwiederherstellung)";
                 args["RestorePointType"] = 10;
                 args["EventType"] = 100;
-                restore.InvokeMethod("CreateRestorePoint", args, null);
+                var result = restore.InvokeMethod("CreateRestorePoint", args, null);
+                var status = Convert.ToInt32(result?["ReturnValue"] ?? -1);
+                Sicherungsablage.RequireRestorePoint(status);
                 message = "Wiederherstellungspunkt erstellt. ";
             }
-            catch (Exception) { message = "Kein Wiederherstellungspunkt. "; }
+            catch (Exception e) { throw new InvalidOperationException("Kein bestätigter Wiederherstellungspunkt. Die Treiber wurden nicht eingespielt. " + e.Message); }
         // 259 = nichts Neueres dabei, 3010 = Neustart nötig
         var code = Tool("pnputil.exe", "/add-driver \"" + Path.Combine(folder.FullName, "*.inf") + "\" /subdirs /install").Code;
-        return message + code switch
+        return message + (code switch
         {
-            0 => infs + " Pakete eingespielt.",
-            3010 => infs + " Pakete eingespielt – bitte den PC neu starten.",
+            0 => "Windows hat die Treiberpakete verarbeitet. Bereits passende Treiber können unverändert bleiben.",
+            3010 => "Windows hat die Treiberpakete verarbeitet – bitte den PC neu starten.",
             259 => "Windows hat nichts übernommen: die installierten Treiber passen gleich gut oder besser.",
-            _ => "pnputil meldet Code " + code + ".",
-        };
+            _ => throw new TreiberWerkzeugException(code),
+        });
     });
 
     // Ergebnis der letzten Prüfung je Werkzeug und was die ausgeführten Schritte gemeldet haben
     public static Dictionary<string, Werkbefund> Results { get; } = new();
+    public static Dictionary<string, DateTime> CheckedAt { get; } = new();
     public static Dictionary<string, List<string>> Log { get; } = new();
 
     public static void Check(string key, string tool) => Run(key, () =>
     {
         var result = Werkzeugpruefung.Check(tool) ?? throw new InvalidOperationException("Unbekanntes Werkzeug.");
-        System.Windows.Application.Current.Dispatcher.Invoke(() => Results[key] = result);
+        System.Windows.Application.Current.Dispatcher.Invoke(() => { Results[key] = result; CheckedAt[key] = DateTime.Now; });
         return "";
     });
 
@@ -113,11 +159,11 @@ static class Werkzeuglauf
         foreach (var step in steps)
         {
             try { var text = step.Run(); log.Add("✓ " + step.Text + (text.Length > 0 && text != "ok" ? " – " + text : "")); }
-            catch (Exception e) { log.Add("✕ " + step.Text + " – fehlgeschlagen (" + e.Message.Trim() + ")"); }
+            catch (Exception e) { log.Add("✕ " + step.Text + " – " + Fehlermeldung.Text(e)); }
         }
         Werkbefund? again = null;
         try { again = Werkzeugpruefung.Check(tool); } catch (Exception) { }
-        System.Windows.Application.Current.Dispatcher.Invoke(() => { Log[key] = log; if (again != null) Results[key] = again; });
+        System.Windows.Application.Current.Dispatcher.Invoke(() => { Log[key] = log; if (again != null) { Results[key] = again; CheckedAt[key] = DateTime.Now; } });
         return "";
     });
 }

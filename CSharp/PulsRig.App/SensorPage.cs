@@ -144,7 +144,7 @@ sealed class SensorPage : UserControl, IPage
             var text = Helfer.Exe == null ? "Aufgezeichnet wird im Helfer neben der Uhr. Den gibt es nur im installierten Programm."
                 : !Altdaten.Flag(settings, "Helper", false) ? "Aufgezeichnet wird im Helfer neben der Uhr. Er ist ausgeschaltet – einschalten unter Optionen → Überwachung."
                 : !Altdaten.Flag(settings, "RecordGames", true) ? "Die Aufzeichnung beim Spielen ist ausgeschaltet – einschalten unter Optionen → Überwachung."
-                : "Sobald ein Boost-Spiel oder ein unter „Spiele & Aufzeichnung“ gewähltes Spiel läuft, schreibt der Helfer alle 5 Sekunden mit.";
+                : "Sobald ein Boost-Spiel oder ein unter „Spieleliste für Boost“ gewähltes Spiel läuft, schreibt der Helfer alle 5 Sekunden mit.";
             list.Children.Add(Card(Ui.Text("Noch keine Spielsitzung", 16, "Text", bold: true), Para(text)));
             list.Children.Add(Card(Ui.Text("Was aufgezeichnet wird", 14, "Text", bold: true), Para("Alle 5 Sekunden Temperatur, Last und Takt von Prozessor und Grafikkarte, dazu Leistung und Lüfter der Grafikkarte. Es bleiben die letzten 30 Sitzungen.")));
             return list;
@@ -201,7 +201,8 @@ sealed class SensorPage : UserControl, IPage
                 {
                     try { Verschleissdaten.Update(); } catch (Exception) { }
                     var points = Verschleissdaten.Points();
-                    return (new List<Verschleissbefund> { Verschleiss.Trend(points, 'G'), Verschleiss.Trend(points, 'C') }, Verschleissdaten.Ssds(Hw.Drives ?? Abfragen.Drives()), points.Count(p => p.Src != "kurz"));
+                    var cleaned = Verschleissdaten.LastCleaning();
+                    return (new List<Verschleissbefund> { Verschleiss.Trend(points, 'G', cleaned), Verschleiss.Trend(points, 'C', cleaned) }, Verschleissdaten.Ssds(Hw.Drives ?? Abfragen.Drives()), points.Count(p => p.Src != "kurz"));
                 }).ContinueWith(t => Dispatcher.BeginInvoke(() => { wearLoading = false; if (t.IsCompletedSuccessfully) wear = t.Result; if (tab == 2) Fill(); }));
             }
             return list;

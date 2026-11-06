@@ -51,12 +51,13 @@ sealed class ProblemPage : UserControl, IPage
     {
         0 => new Zeile[]
         {
-            new("Gaming-Check", "Bildwiederholrate, Energieplan, voller Takt des Speichers: sieben Einstellungen, die fürs Spielen zählen", "games", "Prüfen"),
+            new("Gaming-Check", "Bildwiederholrate, Energieplan, voller Takt des Speichers: sieben Einstellungen, die fürs Spielen zählen", "gamingcheck", "Prüfen"),
             new("Grafiktreiber aktuell?", "Ein Scan prüft NVIDIA, AMD und Windows Update auf neuere Treiber", "scan", "Scan starten", "scan"),
             new("Wird es zu heiß?", "Der Stabilitätstest lastet Prozessor und Grafikkarte voll aus und misst, ob der Takt einbricht", "stress", "Testen", "stress"),
+            new("Woher kommen die Ruckler?", "Der Ruckler-Detektiv zeigt, welches Programm, welcher Scan oder welches Update beim Spielen dazwischengefunkt hat", "stutter", "Ansehen"),
             new("Wie warm wird es beim Spielen?", "Der Helfer neben der Uhr zeichnet jede Spielsitzung auf: Temperaturen, Takt und ob etwas drosselt", "recordings", "Ansehen"),
             new("Lässt die Kühlung nach?", "Vergleicht Temperaturen bei gleicher Leistung über Wochen: Wird es wärmer, ist es Zeit zum Entstauben", "wear", "Ansehen", "cooling"),
-            new("Programme im Hintergrund", "Der Boost schaltet vor dem Spielen Dienste und speicherhungrige Programme ab", "boost", "Zum Boost"),
+            new("Programme im Hintergrund", "Der Boost hält ausgewählte Dienste an; Programme schließt du bei Bedarf selbst", "boost", "Zum Boost"),
             new("Was startet mit Windows?", "Jedes Programm im Autostart kostet Speicher und Rechenzeit, auch beim Spielen", "clean", "Ansehen"),
         },
         1 => new Zeile[]
@@ -107,7 +108,7 @@ sealed class ProblemPage : UserControl, IPage
         switch (name)
         {
             case "scan":
-                if (Treiberscan.Last is { } s) return s.Newer > 0 ? (s.Newer + " offen", "warn") : ("aktuell", "good");
+                if (Treiberscan.Last is { } s) return s.Problems.Count > 0 ? (s.Problems.Count + " Gerätefehler", "warn") : s.Newer > 0 ? (s.Newer + " offen", "warn") : ("aktuell", "good");
                 break;
             case "stress":
                 if (Belastung.Last is { } b) return (b.Title.Split(" – ")[0], b.Tone);
@@ -117,7 +118,7 @@ sealed class ProblemPage : UserControl, IPage
                 if (Probezeitlauf.Entries.Count > 0) return ("unauffällig", "good");
                 break;
             case "cooling":
-                try { return Verschleiss.CoolingState(Verschleissdaten.Points()); } catch (Exception) { }
+                try { return Verschleiss.CoolingState(Verschleissdaten.Points(), Verschleissdaten.LastCleaning()); } catch (Exception) { }
                 break;
             case "crashes":
                 if (Hw.Crashes is { } c && Abstuerze.Card(c, DateTime.Today) is { } card) return (card.Text, card.Tone);
@@ -143,6 +144,7 @@ sealed class ProblemPage : UserControl, IPage
     {
         switch (to)
         {
+            case "gamingcheck": WerkzeugePage.FocusTool = "Gaming-Check"; main.Go("games"); Werkzeuglauf.Check("games:Gaming-Check", "GamingCheck"); break;
             case "scan": main.GoTop("home"); Treiberscan.Start(); break;
             case "recordings": SensorPage.Next = 1; main.Go("sensors"); break;
             case "wear": SensorPage.Next = 2; main.Go("sensors"); break;
@@ -228,13 +230,15 @@ sealed class ProblemPage : UserControl, IPage
     {
         var color = state?.Tone switch { "good" => Gruen, "warn" => Bernstein, "bad" => Beere, _ => Lila };
         var grid = new Grid { MinHeight = 64 };
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition());
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.Children.Add(new Border { Width = 4, Height = 30, CornerRadius = new CornerRadius(2), Background = Ui.Brush(state == null ? "#22172F" : color), Margin = new Thickness(0, 0, 16, 0) });
         var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 10, 12, 10) };
-        text.Children.Add(Ui.Text(title, 14.5, "Text", bold: true));
+        text.Children.Add(Ui.Text(title, 14.5, "Text", bold: true, wrap: true));
         if (sub.Length > 0)
         {
             var s = Ui.Text(sub, 12.5, "Leise");
@@ -247,9 +251,9 @@ sealed class ProblemPage : UserControl, IPage
         if (state is { } st && st.Text.Length > 0)
         {
             var pill = new Border { CornerRadius = new CornerRadius(999), Padding = new Thickness(10, 4, 10, 4), Background = Ui.Alpha(color, "1A"), VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 12, 0), Child = Ui.Text(st.Text, 11, st.Tone.Length > 0 ? color : "Leise") };
-            Grid.SetColumn(pill, 2);
-            grid.Children.Add(pill);
+                Margin = new Thickness(0, 0, 12, 10), HorizontalAlignment = HorizontalAlignment.Left, MaxWidth = 150, Child = Ui.Text(st.Text, 11, st.Tone.Length > 0 ? color : "Leise", wrap: true) };
+            Grid.SetColumn(pill, 1);
+            Grid.SetRow(pill, 1); grid.Children.Add(pill);
         }
         if (action.Length > 0)
         {
@@ -257,7 +261,7 @@ sealed class ProblemPage : UserControl, IPage
                 Background = Ui.Brush("#140C1D"), BorderBrush = Ui.Res("KarteRand"), BorderThickness = new Thickness(1), HorizontalContentAlignment = HorizontalAlignment.Center,
                 Content = Ui.Text(action, 12.5, "Text", bold: true), IsEnabled = run != null, Opacity = run != null ? 1 : 0.5 };
             if (run != null) b.Click += (_, _) => run();
-            Grid.SetColumn(b, 3);
+            Grid.SetColumn(b, 2);
             grid.Children.Add(b);
         }
         return new Border { CornerRadius = new CornerRadius(16), Background = Ui.Brush("#0B0710"), BorderBrush = Ui.Res("KarteRand"), BorderThickness = new Thickness(1),

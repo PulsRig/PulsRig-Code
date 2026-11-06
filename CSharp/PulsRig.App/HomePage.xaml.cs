@@ -24,8 +24,6 @@ public partial class HomePage : UserControl, IPage
     bool watching;
     bool boost;
     Ellipse scanBase = null!;
-    // Schläge je Minute für die Puls-Kachel
-    const int Beat = 60;
 
     public HomePage(MainWindow main, bool demo)
     {
@@ -43,8 +41,8 @@ public partial class HomePage : UserControl, IPage
         ((Storyboard)FindResource("Blinken")).Begin(GpuLiveDot, true);
         SetBoost(!demo && Spielboost.IsOn);
         Fill();
-        Loaded += (_, _) => StartLive();
-        Unloaded += (_, _) => Stop();
+        Loaded += (_, _) => { StartLive(); if (!demo) { Hw.Changed += FillStability; Hw.Load("crash", again: true); FillStability(); } };
+        Unloaded += (_, _) => { Stop(); Hw.Changed -= FillStability; };
         Loaded += (_, _) => Probezeitlauf.Changed += FillScanResult;
         Unloaded += (_, _) => Probezeitlauf.Changed -= FillScanResult;
     }
@@ -70,20 +68,15 @@ public partial class HomePage : UserControl, IPage
     void Fill()
     {
         SetGreeting();
-        // ruhiger Puls, der zum Ring passt: ein Schlag je Sekunde, auch während des Scans
-        PulseValue.Text = Beat.ToString();
         ScanSub.Text = demo ? "letzter: vor 2 Tagen" : "Treiber und System prüfen";
         SetGameScore(demo ? 92 : Werkzeugpruefung.GameScore);
         // Gaming-Check im Hintergrund, wenn noch keiner lief (fragt WMI und nvidia-smi, dauert ein, zwei Sekunden)
         if (!demo && Werkzeugpruefung.GameScore == null)
             Task.Run(() => { try { Werkzeugpruefung.Check("GamingCheck"); } catch (Exception) { } })
                 .ContinueWith(_ => SetGameScore(Werkzeugpruefung.GameScore), TaskScheduler.FromCurrentSynchronizationContext());
-        StabDays.Text = demo ? "19" : "–";
-        for (var i = 0; i < 30; i++)
-            StabGrid.Children.Add(new Rectangle { Height = 9, Margin = new Thickness(1.5), RadiusX = 2, RadiusY = 2,
-                Fill = new SolidColorBrush(demo && i == 11 ? Hex("#F2B661") : Hex("#555EE0A0")) });
-        ToolHead.Text = "Speicherplatz freigeben";
-        ToolSub.Text = demo ? "9,6 GB Shader-Cache möglich" : "Temporäre Dateien und Caches";
+        FillStability();
+        ToolHead.Text = "Was ist los?";
+        ToolSub.Text = "Problem wählen und passende Prüfungen finden";
         FillScanResult();
         FillDrives();
         if (demo) for (var i = 0; i < 40; i++) gpuHistory.Add(46 + Math.Sin(i / 4.0) * 2);
@@ -94,6 +87,18 @@ public partial class HomePage : UserControl, IPage
 
     // Treiber-Kachel und "Was sich geändert hat" aus dem letzten Scan; die Änderungen sind die zuletzt
     // installierten Treiber von Drittherstellern (der Livelinie mit Tagesbildern kommt mit den Werkzeugen)
+    void FillStability()
+    {
+        var data = demo ? new AbsturzDaten { Blue = new() { new Vorfall { When = DateTime.Today.AddDays(-19) } } } : Hw.Crashes;
+        var state = Stabilitaetsanzeige.From(data, DateTime.Today);
+        StabDays.Text = state.Value;
+        StabDays.FontSize = state.Value.Length > 4 ? 13 : 28;
+        StabUnit.Text = " " + state.Label;
+        StabGrid.Children.Clear();
+        for (var i = 29; i >= 0; i--)
+            StabGrid.Children.Add(new Rectangle { Height = 9, Margin = new Thickness(1.5), RadiusX = 2, RadiusY = 2,
+                Fill = new SolidColorBrush(Hex(!state.Known ? "#333A3160" : state.Days.Contains(i) ? "#F2B661" : "#555EE0A0")) });
+    }
     void FillScanResult()
     {
         var s = demo ? null : Treiberscan.Last;
@@ -111,8 +116,7 @@ public partial class HomePage : UserControl, IPage
         var changes = demo
             ? new[] { ("09:14", "NVIDIA-Treiber neu", true), ("gestern", "Windows-Update", false), ("15.10.", "Discord im Autostart", false) }
             : s == null ? new[] { ("–", "zeigt der erste Scan", false) }
-            : s.Drivers.Where(d => d.ThirdParty && d.When != null).OrderByDescending(d => d.When).Take(3)
-                .Select(d => (Day(d.When!.Value), Hw.Short(d.Name) + " · " + (d.Provider.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase) && d.Class.Equals("Display", StringComparison.OrdinalIgnoreCase) ? Hersteller.NvidiaVersion(d.Version) ?? d.Version : d.Version),DateTime.Now - d.When!.Value < TimeSpan.FromDays(2))).ToArray();
+            : Recent(s);
         // Probezeit: ein neuer Treiber, seit dem es öfter abstürzt, steht ganz oben (Klick: Abstürze, × blendet ihn aus)
         if (!demo && Probezeitlauf.Warning() is { } warn)
         {
@@ -128,6 +132,23 @@ public partial class HomePage : UserControl, IPage
             row.MouseLeftButtonUp += (_, e) => { e.Handled = true; main.Go("crash"); };
             ChangesList.Children.Add(row);
         }
+        // Staub und Verschleiß: Kühlung lässt bei gleichen Lasttests nach (Klick: Sensoren → Verschleiß, × bis zur nächsten Messung)
+        (string Title, string Key)? cool = null;
+        if (!demo) try { cool = Verschleiss.Warning(Verschleissdaten.Points(), Verschleissdaten.LastCleaning()); } catch (Exception) { }
+        if (cool is { } cw && Altdaten.Text(Altdaten.Settings(), "CoolingWarnHidden", "") != cw.Key)
+        {
+            var row = new DockPanel { Margin = new Thickness(0, 0, 0, 8), Background = Brushes.Transparent, ToolTip = "Bei gleichen Lasttests wird es wärmer oder die Lüfter drehen schneller. Details unter Sensoren → Verschleiß." };
+            var hide = new TextBlock { Text = "×", FontSize = 14, Foreground = (Brush)FindResource("Leise"), Padding = new Thickness(6, 0, 0, 0), ToolTip = "Ausblenden" };
+            hide.MouseLeftButtonUp += (_, e) => { e.Handled = true; Altdaten.Change(st => st["CoolingWarnHidden"] = cw.Key); FillScanResult(); };
+            DockPanel.SetDock(hide, Dock.Right);
+            row.Children.Add(hide);
+            var sign = new TextBlock { Text = "⚠", FontSize = 12.5, Foreground = new SolidColorBrush(Hex("#F6C989")), Margin = new Thickness(0, 0, 6, 0) };
+            DockPanel.SetDock(sign, Dock.Left);
+            row.Children.Add(sign);
+            row.Children.Add(new TextBlock { Text = cw.Title, FontSize = 12.5, Foreground = new SolidColorBrush(Hex("#F6C989")), TextWrapping = TextWrapping.Wrap });
+            row.MouseLeftButtonUp += (_, e) => { e.Handled = true; SensorPage.Next = 2; main.Go("sensors"); };
+            ChangesList.Children.Add(row);
+        }
         // Zeitleiste: Punkt an einer feinen Linie, Name hell, Fassung leise, Tag als Plakette rechts
         for (var i = 0; i < changes.Length; i++)
         {
@@ -141,7 +162,7 @@ public partial class HomePage : UserControl, IPage
             row.Children.Add(new Ellipse { Width = 8, Height = 8, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 5, 0, 0),
                 Fill = fresh ? (Brush)FindResource("Indigo") : new SolidColorBrush(Hex("#3A3160")) });
             var parts = what.Split(" · ", 2);
-            var text = new TextBlock { FontSize = 12.5, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Top };
+            var text = new TextBlock { FontSize = 11.5, TextWrapping = TextWrapping.Wrap, LineHeight = 15, VerticalAlignment = VerticalAlignment.Top };
             text.Inlines.Add(new Run(parts[0]) { Foreground = (Brush)FindResource("Text") });
             if (parts.Length > 1) text.Inlines.Add(new Run("  " + parts[1]) { Foreground = (Brush)FindResource("Leise"), FontSize = 11.5 });
             Grid.SetColumn(text, 1);
@@ -154,6 +175,30 @@ public partial class HomePage : UserControl, IPage
             row.Children.Add(day);
             ChangesList.Children.Add(row);
         }
+    }
+
+    // Zeitleiste: zuerst Treiberwechsel mit echter Installationszeit (Probezeit), dann die neuesten Treiber des Scans.
+    // Das Treiberdatum des Scans ist das Veröffentlichungsdatum des Herstellers – ein gerade installierter Treiber
+    // von vor drei Wochen stünde sonst nicht oben und nicht als „heute“.
+    static (string, string, bool)[] Recent(ScanErgebnis s)
+    {
+        static string Ver(string name, string cls, string provider, string version) =>
+            provider.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase) && cls.Equals("Display", StringComparison.OrdinalIgnoreCase) ? Hersteller.NvidiaVersion(version) ?? version : version;
+        var list = new List<(DateTime When, string Name, string Text)>();
+        foreach (var e in Probezeitlauf.Entries.Where(e => e.Since > 0).OrderByDescending(e => e.Since))
+        {
+            var when = new DateTime(e.Since);
+            if (DateTime.Now - when > TimeSpan.FromDays(30) || list.Any(x => x.Name == e.Name)) continue;
+            var nv = e.Class.Equals("Display", StringComparison.OrdinalIgnoreCase) && e.Name.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase);
+            list.Add((when, e.Name, Hw.Short(e.Name) + " · " + (nv ? Hersteller.NvidiaVersion(e.New) ?? e.New : e.New)));
+        }
+        foreach (var d in s.Drivers.Where(d => d.ThirdParty && d.When != null).OrderByDescending(d => d.When))
+        {
+            if (list.Count >= 3) break;
+            if (list.Any(x => x.Name == d.Name)) continue;
+            list.Add((d.When!.Value, d.Name, Hw.Short(d.Name) + " · " + Ver(d.Name, d.Class, d.Provider, d.Version)));
+        }
+        return list.OrderByDescending(x => x.When).Take(3).Select(x => (Day(x.When), x.Text, DateTime.Now - x.When < TimeSpan.FromDays(2))).ToArray();
     }
 
     static string Day(DateTime when) => when.Date == DateTime.Today ? "heute" : when.Date == DateTime.Today.AddDays(-1) ? "gestern" : when.ToString("dd.MM.");
@@ -331,7 +376,9 @@ public partial class HomePage : UserControl, IPage
     void BoostSwitch_Click(object sender, RoutedEventArgs e) { e.Handled = true; if (demo) SetBoost(!boost); else main.Go("boost"); }
     void Hw_Click(object sender, MouseButtonEventArgs e) => main.GoTop("hw");
     void Drives_Click(object sender, MouseButtonEventArgs e) { main.GoTop("hw"); main.Go("drives"); }
-    void Tools_Click(object sender, MouseButtonEventArgs e) => main.Go("tools");
+    void Tools_Click(object sender, RoutedEventArgs e) => main.Go("tools");
+    void Problem_Click(object sender, RoutedEventArgs e) => main.Go("problem");
     void Game_Click(object sender, MouseButtonEventArgs e) => main.Go("games");
+    void Stab_Click(object sender, MouseButtonEventArgs e) { main.GoTop("hw"); main.Go("stress"); }
     void Boost_Click(object sender, RoutedEventArgs e) { e.Handled = true; main.Go("boost"); }
 }

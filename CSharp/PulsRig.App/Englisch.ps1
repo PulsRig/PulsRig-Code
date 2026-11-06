@@ -6,6 +6,188 @@
 # Zusammengesetzte Texte ("3 Laufwerke · 1,15 TB frei") zerlegt das Programm selbst und fragt jeden Teil einzeln an.
 @{
     Words    = @(
+        'beim Neustart', 'at restart'
+        # --- Durchsicht für 1.0 (06.11.2026): Reste aus dem Probelauf auf Englisch
+        'Gewählte Programme schließt der Boost nach Rückfrage, wenn du ihn selbst einschaltest – der automatische Boost schließt nie Programme.', 'When you turn on the boost yourself, it closes the chosen programs after asking – the automatic boost never closes programs.'
+        'läuft nicht', 'not running'
+        'Misst …', 'Measuring …'
+        'Größter Verbraucher', 'Biggest consumer'
+        'Zweiter Bildschirm', 'Second display'
+        'Skalierung', 'Scaling'
+        'Unerwartete Neustarts', 'Unexpected restarts'
+        'Takt gehalten', 'Clock held'
+        'Tage ohne Vorfall', 'days without incident'
+        'Tag ohne Vorfall', 'day without incident'
+        'Dein PC ist in Form.', 'Your PC is in good shape.'
+        'Störungen ansehen', 'View faults'
+        'Verlauf ansehen', 'View history'
+        'frühere Tests', 'earlier tests'
+        'frühere Berichte', 'earlier reports'
+        'Updates bereit', 'Updates ready'
+        'NEUER VERFÜGBAR', 'NEWER AVAILABLE'
+        'Treiber-Update', 'Driver update'
+        'Bild reparieren', 'Fix picture'
+        'Bildschirm-Infos', 'Display info'
+        'alle Einstellungen', 'all settings'
+        'kopieren', 'copy'
+        'Verbraucher', 'Consumers'
+        'wer belegt was', 'who uses what'
+        'Absturz', 'Crash'
+        'als ZIP speichern', 'save as ZIP'
+        'Systembericht', 'System report'
+        'Prüft 7 Bereiche und packt alles in eine ZIP-Datei', 'Checks 7 areas and packs everything into a ZIP file'
+        'ohne persönliche Dateien', 'without personal files'
+        'ohne Absturz', 'without a crash'
+        'kühl genug', 'cool enough'
+        'leise', 'quiet'
+        'live', 'live'
+        'gestern', 'yesterday'
+        'keiner', 'none'
+        'behoben', 'fixed'
+        'Daten', 'Data'
+        'Ausbalanciert', 'Balanced'
+        'Boost stellt auf Höchstleistung', 'Boost switches to high performance'
+        'gestochen scharf', 'perfectly sharp'
+        'nur ein Anzeigegerät', 'only one display'
+        'empfohlen für 27 Zoll', 'recommended for 27 inches'
+        'Maximum des Bildschirms', 'maximum of the display'
+        'über DisplayPort', 'via DisplayPort'
+        'G-Sync an', 'G-Sync on'
+        'HDR aus', 'HDR off'
+        '10-Bit Farbe', '10-bit color'
+        'kein Stromausfall erkannt', 'no power loss detected'
+        'keine Drosselung durch Hitze', 'no thermal throttling'
+        'reicht für jedes Spiel', 'enough for any game'
+        'beide Module arbeiten zusammen', 'both modules work together'
+        'richtig gesteckt in A2 und B2', 'correctly installed in A2 and B2'
+        'Festplatte älter – Daten sichern', 'Hard disk getting old – back up your data'
+        'Discord neu dazugekommen', 'Discord newly added'
+        'Volllast-Test von heute', 'Full load test from today'
+        '°C höchste Temperatur', '°C highest temperature'
+        'Letzter Bluescreen am 29.09.', 'Last blue screen on 29.09.'
+        'vom 29.09. ansehen', 'view from 29.09.'
+        'Probezeit bestanden', 'Trial period passed'
+        'Vier Treiber sind neuer.', 'Four drivers are newer.'
+        'Letzte Sicherung: 05.11.2026 23:15 Uhr.', 'Last backup: 05.11.2026 23:15.'
+        'Temperaturen im September 2026', 'Temperatures in September 2026'
+        'Staub entfernt, Wärmeleitpaste erneuert', 'Dust removed, thermal paste renewed'
+        'Arbeitsspeicher −8 %.', 'Memory −8 %.'
+        'Speichertakt 3066 → 3000 MHz.', 'Memory clock 3066 → 3000 MHz.'
+        'Stand: gerade eben', 'As of: just now'
+        'gerade eben', 'just now'
+        'Dual', 'Dual'
+        'E: ansehen', 'Check E:'
+        'E: zwei Aussetzer', 'E: two dropouts'
+        'Festplatte älter', 'Hard disk getting old'
+        'Bis etwa 80 °C im Spiel ist alles normal. Der Treiber ist eine Version älter – das Update bringt Fehlerkorrekturen für neue Spiele.', 'Up to about 80 °C while gaming is normal. The driver is one version behind – the update brings fixes for new games.'
+        'Beide Riegel stecken richtig in A2 und B2 – so arbeiten sie zusammen im Dual-Channel. XMP ist an, der Speicher läuft so schnell, wie er gebaut ist.', 'Both modules sit correctly in A2 and B2, so they work together in dual channel. XMP is on, the memory runs as fast as it was built to.'
+        'Der Bluescreen kam vom Grafiktreiber. Nach dem Update ist er nicht wieder aufgetreten – das Problem gilt als gelöst.', 'The blue screen came from the graphics driver. It has not happened again since the update – the problem counts as solved.'
+        'Die ZIP-Datei enthält Bericht und Diagnose in einem. Du kannst sie bei Fragen einfach weitergeben – persönliche Dateien sind nicht dabei.', 'The ZIP file contains report and diagnostics in one. You can simply pass it on if you have questions – no personal files are included.'
+        'Viele Bildschirme laufen nach dem Kauf nur mit 60 Hz. Deiner nutzt die vollen 165 Hz – Bewegungen wirken dadurch flüssiger.', 'Many displays run at only 60 Hz after purchase. Yours uses the full 165 Hz, so motion looks smoother.'
+        'Der Virenschutz prüft Dateien, oft während das Spiel nachlädt. In Windows-Sicherheit lässt sich der geplante Scan auf eine Zeit legen, zu der du nicht spielst.', 'The antivirus checks files, often while the game is loading. In Windows Security you can move the scheduled scan to a time when you are not gaming.'
+        'Der Virenschutz prüft Dateien, oft während das Spiel nachlädt.', 'The antivirus checks files, often while the game is loading.'
+        'Der Virenschutz prüft den Netzwerkverkehr.', 'The antivirus checks network traffic.'
+        'Windows hat während des Spielens Updates eingerichtet. Unter Nutzungszeit legst du fest, wann Windows das nicht tun soll.', 'Windows installed updates while you were gaming. Under active hours you set when Windows should not do that.'
+        'Windows hat während des Spielens Updates eingerichtet.', 'Windows installed updates while you were gaming.'
+        'Windows hat nach Updates gesucht oder sie geladen.', 'Windows searched for or downloaded updates.'
+        'Die Suche hat neue Dateien eingelesen, etwa nach einem Spiel-Update.', 'Windows Search indexed new files, for example after a game update.'
+        'Die Suche hat neue Dateien eingelesen.', 'Windows Search indexed new files.'
+        'Windows sammelt Angaben über installierte Programme; läuft meist nur selten.', 'Windows collects information about installed programs; usually runs only rarely.'
+        'OneDrive hat Dateien abgeglichen. Beim Spielen lässt es sich anhalten (Symbol neben der Uhr → Synchronisierung anhalten).', 'OneDrive synced files. You can pause it while gaming (icon next to the clock → pause syncing).'
+        'Dropbox hat Dateien abgeglichen.', 'Dropbox synced files.'
+        'Google Drive hat Dateien abgeglichen.', 'Google Drive synced files.'
+        'Offene Tabs oder ein Video im Hintergrund kosten Rechenzeit.', 'Open tabs or a video in the background cost processing time.'
+        'Overlay, Bildschirmübertragung oder animierte Inhalte kosten Rechenzeit.', 'Overlay, screen sharing or animated content cost processing time.'
+        'Das Steam-Fenster oder Overlay hat gerechnet.', 'The Steam window or overlay was busy.'
+        'Steam hat geladen oder Shader vorbereitet. Downloads lassen sich beim Spielen pausieren.', 'Steam was downloading or preparing shaders. Downloads can be paused while gaming.'
+        'Der Launcher hat geladen oder aktualisiert.', 'The launcher was downloading or updating.'
+        'Die EA App hat geladen oder aktualisiert.', 'The EA app was downloading or updating.'
+        'Battle.net hat geladen oder aktualisiert.', 'Battle.net was downloading or updating.'
+        'Ubisoft Connect hat geladen oder aktualisiert.', 'Ubisoft Connect was downloading or updating.'
+        'Die Aufnahme braucht Rechenzeit; bei Rucklern auf Aufnahme über die Grafikkarte (NVENC/AMF) stellen.', 'Recording costs processing time; if it stutters, switch to recording on the graphics card (NVENC/AMF).'
+        'Ein Programm neben dem Spiel hat viel gerechnet. Beim Spielen schließen oder den Boost nutzen, der Hintergrundprogramme zurückstellt.', 'A program next to the game used a lot of processing time. Close it while gaming or use the boost, which holds back background programs.'
+        'Liegt das Spiel auf einer Festplatte (HDD), ruckelt es beim Nachladen; auf einer SSD nicht. Auch Downloads und Virenscans im Hintergrund lasten das Laufwerk aus.', 'If the game is on a hard disk (HDD), it stutters while loading; on an SSD it does not. Downloads and virus scans in the background also keep the drive busy.'
+        'Typisch für veraltete WLAN-, Netzwerk- oder Tontreiber: Ein Treiber-Scan zeigt neuere.', 'Typical for outdated Wi-Fi, network or audio drivers: a driver scan shows newer ones.'
+        'Dann lagert Windows auf das Laufwerk aus – das ruckelt. Programme neben dem Spiel schließen; dauerhaft hilft mehr Arbeitsspeicher.', 'Then Windows swaps to the drive, which stutters. Close programs next to the game; more memory helps for good.'
+        'Der geplante Scan lässt sich in Windows-Sicherheit auf eine andere Zeit legen.', 'The scheduled scan can be moved to another time in Windows Security.'
+        'Unter Nutzungszeit legst du fest, wann Windows das nicht tun soll.', 'Under active hours you set when Windows should not do that.'
+        'unter einer Minute', 'less than a minute'
+        'rund eine Minute', 'about a minute'
+        # --- Fehlerhilfe und Build-Kennung
+        'Entwicklungsfassung', 'Development build'
+        'Der Vorgang wurde abgebrochen. Du kannst ihn bei Bedarf erneut starten.', 'The operation was cancelled. You can start it again if needed.'
+        'Der Zugriff wurde verweigert. Wähle einen zugänglichen Ordner. Für Treibereingriffe starte PulsRig als Administrator.', 'Access was denied. Choose an accessible folder. Run PulsRig as administrator for driver changes.'
+        'Die benötigte Datei oder der Ordner wurde nicht gefunden. Prüfe, ob das Laufwerk verbunden ist, und wähle die Datei oder Sicherung erneut aus.', 'The required file or folder was not found. Check that the drive is connected and select the file or backup again.'
+        'Der Dateipfad ist zu lang. Kopiere die Sicherung in einen Ordner mit kürzerem Pfad und versuche es erneut.', 'The file path is too long. Copy the backup to a folder with a shorter path and try again.'
+        'Auf dem Ziellaufwerk ist nicht genug Platz frei. Gib Speicherplatz frei oder wähle ein anderes Ziel und starte den Vorgang erneut.', 'There is not enough space on the destination drive. Free up space or choose another destination and restart the operation.'
+        'Eine benötigte Datei wird gerade verwendet. Schließe das Programm, das auf die Datei zugreift, und versuche es erneut.', 'A required file is in use. Close the program using the file and try again.'
+        'Das Laufwerk ist nicht erreichbar. Verbinde es erneut und prüfe, ob du den Ordner im Datei-Explorer öffnen kannst.', 'The drive is unavailable. Reconnect it and check that you can open the folder in File Explorer.'
+        'Windows hat keinen Wiederherstellungspunkt bestätigt. Die Treiber wurden nicht eingespielt. Prüfe den Computerschutz von Windows und versuche es danach erneut.', 'Windows did not confirm a restore point. No drivers were restored. Check Windows System Protection and try again.'
+        'Die Sicherung oder ZIP-Datei ist beschädigt oder nicht lesbar.', 'The backup or ZIP file is damaged or unreadable.'
+        'Verwende eine unveränderte Sicherung oder erstelle sie erneut. Vorhandene Sicherungen werden nicht überschrieben.', 'Use an unmodified backup or create it again. Existing backups are not overwritten.'
+        'Die Verbindung konnte nicht abgeschlossen werden. Prüfe deine Internetverbindung und versuche es später erneut.', 'The connection could not be completed. Check your internet connection and try again later.'
+        'Windows konnte den Treiberauftrag nicht erfolgreich abschließen. Prüfe die Geräte im Geräte-Manager. Weitere Einzelheiten stehen im Fehlerprotokoll von PulsRig.', 'Windows could not complete the driver operation successfully. Check the devices in Device Manager. More details are available in the PulsRig error log.'
+        'Die Datei konnte nicht gelesen oder geschrieben werden. Prüfe Laufwerk, freien Speicherplatz und Zugriffsrechte und versuche es erneut.', 'The file could not be read or written. Check the drive, free space and access permissions, then try again.'
+        'Prüfe die Angaben und versuche es erneut. Wenn der Fehler bleibt, erstelle unter „Bericht & Diagnose“ ein Diagnosepaket.', 'Check the information and try again. If the error persists, create a diagnostic package under “Report & diagnostics”.'
+        'Der Vorgang konnte nicht abgeschlossen werden. Versuche es erneut. Wenn der Fehler bleibt, erstelle unter „Bericht & Diagnose“ ein Diagnosepaket; die technischen Einzelheiten stehen im Fehlerprotokoll.', 'The operation could not be completed. Try again. If the error persists, create a diagnostic package under “Report & diagnostics”; technical details are available in the error log.'
+        'Windows hat die Treiberpakete verarbeitet. Bitte den PC danach neu starten.', 'Windows has processed the driver packages. Please restart the PC afterwards.'
+        'Windows Update konnte den Vorgang nicht abschließen.', 'Windows Update could not complete the operation.'
+        'Prüfe Windows Update und versuche es später erneut.', 'Check Windows Update and try again later.'
+        # --- ZIP-Import und Sicherungsfortschritt
+        'ZIP-Sicherung öffnen', 'Open a ZIP backup'
+        'Treiber werden exportiert …', 'Exporting drivers …'
+        'Dateien werden geprüft …', 'Verifying files …'
+        'Archiv wird erstellt …', 'Creating archive …'
+        'Archiv wird geprüft …', 'Verifying archive …'
+        'Archiv wird entpackt …', 'Extracting archive …'
+        'Abbruch angefordert – laufender Schritt wird beendet.', 'Cancellation requested – finishing the current step.'
+        'Abgebrochen. Es wurde keine neue Sicherung freigegeben.', 'Cancelled. No new backup was published.'
+        'ZIP-Sicherung geprüft und abgelegt. Zum Einspielen die Sicherung erneut auswählen.', 'ZIP backup checked and saved. Select the backup again to restore it.'
+        'Empfohlene Schritte', 'Recommended steps'
+        'Optional', 'Optional'
+        'Neue Prüfung läuft …', 'New check in progress …'
+        'Das Archiv enthält zu viele Dateien.', 'The archive contains too many files.'
+        'Das Archiv enthält einen unsicheren oder doppelten Dateipfad.', 'The archive contains an unsafe or duplicate file path.'
+        'Das entpackte Archiv ist größer als 32 GB.', 'The extracted archive exceeds 32 GB.'
+        'Zum Entpacken ist nicht genug freier Speicherplatz vorhanden.', 'There is not enough free space to extract the archive.'
+        'Die entpackte Dateigröße stimmt nicht.', 'The extracted file size does not match.'
+        'Die Sicherungsbeschreibung fehlt im Archiv.', 'The backup manifest is missing from the archive.'
+        'Die Sicherungsbeschreibung ist zu groß.', 'The backup manifest is too large.'
+        # --- Sichere Treibersicherung
+        'Sicherung auswählen', 'Choose a backup'
+        'Wähle die passende Sicherung. Automatische Sicherungen und Einzeltreiber enthalten nur einen Teil der Treiber.', 'Choose the appropriate backup. Automatic and single-driver backups contain only some of the drivers.'
+        'Automatische Teilsicherung', 'Automatic partial backup'
+        'Einzelner Treiber', 'Single driver'
+        'Treibersicherung', 'Driver backup'
+        'Mit Prüfsummen', 'With checksums'
+        'Ältere Sicherung ohne Prüfsummen', 'Older backup without checksums'
+        'Windows übernimmt nur passende Pakete. Das ist kein erzwungenes Zurücksetzen auf ältere Treiber.', 'Windows only applies suitable packages. This does not force a downgrade to older drivers.'
+        'Auswählen', 'Select'
+        'Sicherung läuft', 'Backup in progress'
+        'Bitte warte, bis die Treibersicherung abgeschlossen ist.', 'Please wait until the driver backup is complete.'
+        'Der Sicherungsordner ist nicht mehr vorhanden.', 'The backup folder no longer exists.'
+        'Diese Sicherung wurde nicht abgeschlossen.', 'This backup was not completed.'
+        'Die Sicherung ist unvollständig oder hat ein unbekanntes Format.', 'The backup is incomplete or uses an unknown format.'
+        'Die Sicherung ist unvollständig oder wurde verändert.', 'The backup is incomplete or has been modified.'
+        'Die Prüfsumme einer Sicherungsdatei stimmt nicht.', 'A backup file checksum does not match.'
+        'Die Sicherungsbeschreibung ist beschädigt.', 'The backup manifest is damaged.'
+        'Es wurden keine Treiberpakete exportiert. Die Sicherung wurde nicht abgeschlossen.', 'No driver packages were exported. The backup was not completed.'
+        'Das Sicherungsarchiv ist unvollständig.', 'The backup archive is incomplete.'
+        'Die Archivprüfung ist fehlgeschlagen.', 'The archive verification failed.'
+        'Die Sicherung enthält einen verknüpften Ordner.', 'The backup contains a linked folder.'
+        'Die Sicherung enthält eine verknüpfte Datei.', 'The backup contains a linked file.'
+        'Windows hat die Treiberpakete verarbeitet. Bereits passende Treiber können unverändert bleiben.', 'Windows has processed the driver packages. Suitable existing drivers may remain unchanged.'
+        'Windows hat die Treiberpakete verarbeitet – bitte den PC neu starten.', 'Windows has processed the driver packages – please restart the PC.'
+        # --- Geführter Einstieg und Ergebnis-Einordnung
+        'Problem wählen und passende Prüfungen finden', 'Choose a problem and find suitable checks'
+        'Problem wählen →', 'Choose a problem →'
+        'Was ist los? Problem wählen', 'What''s wrong? Choose a problem'
+        'Der Boost hält ausgewählte Dienste an; Programme schließt du bei Bedarf selbst', 'Boost pauses selected services; close programs yourself if needed'
+        'Die Prüfung läuft. Warte auf das vollständige Ergebnis.', 'The check is running. Wait for the complete result.'
+        'Nächster Schritt: Lies die Hinweise und öffne anschließend die vorgeschlagenen Schritte unter dem Ergebnis.', 'Next step: Read the guidance, then open the suggested steps below the result.'
+        'Nächster Schritt: Gehe zuerst die markierten Hinweise durch. Diese Prüfung bietet dafür keine automatische Behebung an.', 'Next step: Review the highlighted guidance first. This check offers no automatic fix for these findings.'
+        'Nächster Schritt: Prüfe die unbekannten Werte. Fehlende Daten erlauben noch keine vollständige Entwarnung.', 'Next step: Review the unknown values. Missing data prevents a complete all-clear.'
+        'Für die geprüften Punkte ist aktuell kein Eingriff nötig.', 'No action is currently needed for the checked items.'
         # --- Seitenleiste, Kopf, Allgemeines
         'Scan', 'Scan'
         'Boost', 'Boost'
@@ -885,6 +1067,7 @@
         'Ignoriert', 'Ignored'
         'enthält keinen Treibercode', 'contains no driver code'
         'nicht geprüft', 'not checked'
+        'mehr als angegeben', 'more than listed'
         'Katalog', 'Catalog'
         'Audio', 'Audio'
         'Netzwerk', 'Network'
@@ -911,6 +1094,8 @@
         'Punkt und Sicherung', 'Restore point and backup'
         'danach evtl. Neustart', 'restart may follow'
         'Der NVIDIA-Installer öffnet sich als eigenes Fenster.', 'The NVIDIA installer opens in its own window.'
+        'Lege einen Wiederherstellungspunkt an – das kann eine Minute dauern …', 'Creating a restore point – this can take a minute …'
+        'Starte den NVIDIA-Installer – er entpackt sich zuerst, das dauert etwas …', 'Starting the NVIDIA installer – it unpacks itself first, which takes a while …'
         'Ohne Adminrechte läuft das als Probelauf: Es wird nichts geladen und nichts installiert.', 'Without admin rights this is a dry run: nothing is downloaded or installed.'
 
         # --- Boost
@@ -1176,12 +1361,38 @@
         'Tasten, Stick-Drift, Abfragerate und Doppelklick-Fehler', 'Buttons, stick drift, polling rate and double-click faults'
         'Linker Stick', 'Left stick'
         'Rechter Stick', 'Right stick'
+        'Gebrauchtkauf-Check', 'Used PC check'
+        'GEBRAUCHTKAUF-CHECK', 'USED PC CHECK'
+        'Einen gebrauchten PC beim Verkäufer gegen die Anzeige prüfen', 'Check a used PC at the seller against the listing'
+        'Was steht in der Anzeige?', 'What does the listing say?'
+        'Trag ein, was der Verkäufer verspricht. Leere Felder werden nicht geprüft.', 'Enter what the seller promises. Empty fields are not checked.'
+        'Arbeitsspeicher (z. B. 16 GB)', 'Memory (e.g. 16 GB)'
+        'Größtes Laufwerk (z. B. 1 TB)', 'Largest drive (e.g. 1 TB)'
+        'Größtes Laufwerk', 'Largest drive'
+        'Angaben der Laufwerke und Teile des Ereignisprotokolls können fehlen. Für die volle Prüfung PulsRig als Administrator starten.', 'Drive details and parts of the event log may be missing. Start PulsRig as administrator for the full check.'
+        'Prüfen mit 5 Minuten Stabilitätstest', 'Check with 5 minute stability test'
+        'Prüfen ohne Stabilitätstest', 'Check without stability test'
+        'Stabilitätstest läuft', 'Stability test running'
+        'Test abbrechen', 'Cancel test'
+        'Werte die Prüfung aus …', 'Evaluating the check …'
+        'Nicht gelaufen.', 'Not run.'
+        'Bericht speichern und öffnen', 'Save and open report'
+        'Neu beginnen', 'Start over'
+        'Windows gibt die Kapazität nicht heraus.', 'Windows does not report the capacity.'
+        'Keine Auffälligkeiten gefunden', 'No issues found'
+        'Keine Auffälligkeiten gefunden, aber nicht alles prüfbar', 'No issues found, but not everything could be checked'
+        'Das ist keine Garantie: Die Prüfung sieht nur, was sich in wenigen Minuten messen lässt.', 'This is no guarantee: the check only sees what can be measured in a few minutes.'
         'Suche einen Controller …', 'Looking for a controller …'
         'Drift messen', 'Measure drift'
         'Vibrieren', 'Vibrate'
-        'Xbox-kompatible Controller (XInput). PlayStation-Controller nur über Steam oder DS4Windows.', 'Xbox-compatible controllers (XInput). PlayStation controllers only via Steam or DS4Windows.'
+        'Xbox-kompatible Controller (XInput) und PS4-/PS5-Controller (DualShock 4, DualSense, DualSense Edge) per Kabel oder Bluetooth.', 'Xbox-compatible controllers (XInput) and PS4/PS5 controllers (DualShock 4, DualSense, DualSense Edge) by cable or Bluetooth.'
         'Maus jetzt ein paar Sekunden schnell im Kreis bewegen', 'Move the mouse quickly in circles for a few seconds'
         'Abfragerate', 'Polling rate'
+        'Abfragerate: Sticks ein paar Sekunden bewegen', 'Polling rate: move the sticks for a few seconds'
+        'Vibrieren nur per Kabel', 'Vibration only by cable'
+        'Per Bluetooth lässt sich der PlayStation-Controller von PulsRig nicht ansteuern. Zum Testen per USB-Kabel verbinden.', 'PulsRig cannot control the PlayStation controller over Bluetooth. Connect it by USB cable to test.'
+        'Kabel', 'cable'
+        'Bluetooth (einfach)', 'Bluetooth (simple mode)'
         'Links', 'Left'
         'Rechts', 'Right'
         'Mitte', 'Middle'
@@ -1195,7 +1406,7 @@
         'Sticks nicht berühren …', 'Do not touch the sticks …'
         'Gemessen wird 3 Sekunden lang, wie weit sie in Ruhe von der Mitte abweichen.', 'For 3 seconds it measures how far they rest from the center.'
         'Kein Controller gefunden', 'No controller found'
-        'Controller per Kabel, Funk oder Bluetooth verbinden. Erkannt werden Xbox-kompatible Controller (XInput).', 'Connect a controller by cable, wireless or Bluetooth. Xbox-compatible controllers (XInput) are detected.'
+        'Controller per Kabel, Funk oder Bluetooth verbinden. Erkannt werden Xbox-kompatible Controller und PS4-/PS5-Controller.', 'Connect a controller by cable, wireless or Bluetooth. Xbox-compatible controllers and PS4/PS5 controllers are recognized.'
         'leichter Drift', 'slight drift'
         'Drift', 'drift'
         'Beide kehren sauber in die Mitte zurück.', 'Both return cleanly to the center.'
@@ -1214,6 +1425,17 @@
         'über 10 Jahre', 'over 10 years'
         'Zeit zum Entstauben: Lüfter, Kühlrippen und Filter reinigen. Hilft das nicht, kann die Wärmeleitpaste eingetrocknet sein.', 'Time to dust: clean fans, heat sinks and filters. If that does not help, the thermal paste may have dried out.'
         'Die Kühlung hält mit: kein Nachlassen zu sehen.', 'The cooling keeps up: no decline visible.'
+        'Gleicher Test: Stabilitätstest Grafikkarte.', 'Same test: stability test graphics card.'
+        'Gleicher Test: Stabilitätstest Prozessor.', 'Same test: stability test processor.'
+        'Gleicher Test: Stabilitätstest beide.', 'Same test: stability test both.'
+        'Gleicher Test: Spielsitzungen.', 'Same test: game sessions.'
+        'neu gestartet', 'restarted'
+        'seit Reinigung neu', 'restarted after cleaning'
+        ', einer davon bremst stark.', ', one of them slows things down a lot.'
+        'läuft gerade nicht', 'not running right now'
+        'Grafikkarte: Kühlung lässt nach – entstauben?', 'Graphics card: cooling is declining – time to dust?'
+        'Prozessor: Kühlung lässt nach – entstauben?', 'Processor: cooling is declining – time to dust?'
+        'Bei gleichen Lasttests wird es wärmer oder die Lüfter drehen schneller. Details unter Sensoren → Verschleiß.', 'Under the same load tests it gets warmer or the fans spin faster. Details under Sensors → Wear.'
         'Die Abnutzung liest Windows nur mit Adminrechten. PulsRig einmal als Admin starten.', 'Windows only reports wear with admin rights. Start PulsRig once as admin.'
         'Seit Beginn der Aufzeichnung unverändert: Für eine Schätzung ist sie noch zu jung oder wird wenig beschrieben.', 'Unchanged since recording began: it is too new or written too little for an estimate.'
         'Lässt die Kühlung nach?', 'Is the cooling declining?'
@@ -1936,13 +2158,37 @@
         'SPEICHER & ANZEIGE', 'MEMORY & DISPLAY'
         'SPIEL-BESCHLEUNIGUNG', 'GAME BOOST'
         'STABILITÄTSTEST', 'STABILITY TEST'
-        'SYSTEM-PULS', 'SYSTEM PULSE'
+        'Animation', 'Animation'
+        'kein Messwert', 'not a measurement'
         'Schafft vor dem Spielen Platz: Energieplan, entbehrliche Dienste und die Programme, die du dafür gewählt hast.', 'Makes room before gaming: power plan, dispensable services and the programs you chose for it.'
         'Sichern, zurückholen, Offline-Paket und Kernisolierung.', 'Back up, restore, offline package and core isolation.'
         'Sieben Einstellungen, die fürs Spielen zählen – Tippen prüft', 'Seven settings that matter for gaming – tap to check'
         'Speicher & Anzeige', 'Memory & display'
         'Spiele & Aufzeichnung', 'Games & recording'
         'Spielkomponenten, Gaming-Check und Systeminfos.', 'Game components, gaming check and system info.'
+        # --- Werkzeug-Gruppen neu geordnet
+        'Neuinstallation & Notfall', 'Reinstall & emergency'
+        'Speicherplatz und Autostart.', 'Disk space and startup apps.'
+        'Kein Ton, kein Netz, falsches Bild, Geräte mit Warnzeichen oder alte Einträge, oder der PC wacht nachts auf.', 'No sound, no network, wrong picture, devices with warning signs or old entries, or the PC wakes up at night.'
+        'Geräte mit gelbem Warnzeichen neu einrichten, auch die aus dem Treiber-Scan', 'Set up devices with a yellow warning sign again, including those from the driver scan'
+        'Reparieren', 'Repair'
+        'Weiß nicht, was los ist? Geführt zur Ursache', 'Not sure what is wrong? Guided to the cause'
+        'Windows neu aufsetzen, ohne Internet einspielen oder vom USB-Stick retten.', 'Reinstall Windows, install without internet or rescue from a USB stick.'
+        'Sichern, zurückholen, Änderungen und Kernisolierung.', 'Back up, restore, changes and core isolation.'
+        'Windows, Programme, Autostart und Treiber vergleichen, dazu der Treiberverlauf', 'Compare Windows, programs, startup apps and drivers, plus the driver history'
+        'Spiel-Laufzeiten, Gaming-Check, Messen und Systeminfos.', 'Game runtimes, gaming check, measuring and system info.'
+        'Spiel-Laufzeiten (VC++, DirectX)', 'Game runtimes (VC++, DirectX)'
+        'Visual C++, DirectX und XNA prüfen und nachinstallieren, im Treiber-Scan', 'Check and install Visual C++, DirectX and XNA, in the driver scan'
+        'Temperaturen & Sitzungen', 'Temperatures & sessions'
+        'Sensoren live und aufgezeichnete Spielsitzungen', 'Live sensors and recorded game sessions'
+        'Spieleliste für Boost', 'Game list for boost'
+        'Erst per Ping messen, ob es zu Hause oder beim Anbieter hakt, dann in Stufen reparieren', 'First measure with ping whether the problem is at home or with the provider, then repair step by step'
+        '1. Ping messen', '1. Measure ping'
+        'PC vor dem Kauf prüfen', 'Check a PC before buying'
+        'Treiberverlauf wird gelesen …', 'Reading driver history …'
+        'Windows Update und die eingespielten Treiberpakete', 'Windows Update and the installed driver packages'
+        'Der Verlauf ließ sich nicht lesen', 'The history could not be read'
+        'Sobald ein Boost-Spiel oder ein unter „Spieleliste für Boost“ gewähltes Spiel läuft, schreibt der Helfer alle 5 Sekunden mit.', 'As soon as a boost game or a game chosen under “Game list for boost” is running, the helper records every 5 seconds.'
         'Stabil', 'Stable'
         'Strom, Netzteil oder Hitze', 'Power, PSU or heat'
         'Stärkster Kern', 'Strongest core'
@@ -2204,8 +2450,70 @@
         'hält den Bildschirm an', 'keeps the display on'
         'hält den PC wach', 'keeps the PC awake'
         'verhindert den Standby', 'prevents standby'
+        # --- PC-Scheckheft
+        'PC-Scheckheft', 'PC service record'
+        'Tests, Treiber, Aufrüstungen und Reinigungen über Jahre, als Bericht zum Verkauf', 'Tests, drivers, upgrades and cleanings over the years, as a report for selling'
+        'Sichern, zurückholen, Änderungen, Scheckheft und Kernisolierung.', 'Back up, restore, changes, service record and core isolation.'
+        'Tests, Temperaturen, Treiberwechsel, Aufrüstungen und Reinigungen über die ganze Lebenszeit des PCs – zum Mitgeben beim Verkauf.', 'Tests, temperatures, driver changes, upgrades and cleanings over the whole life of the PC – to hand over when selling.'
+        'Eintrag hinzufügen', 'Add entry'
+        'Verkaufsbericht speichern', 'Save report for selling'
+        'Was wurde gemacht?', 'What was done?'
+        'Einzelheiten (freiwillig)', 'Details (optional)'
+        'Speichern', 'Save'
+        'Löschen', 'Delete'
+        'Diesen Eintrag löschen?', 'Delete this entry?'
+        'Eintragen', 'Add'
+        'Reinigung', 'Cleaning'
+        'Aufrüstung', 'Upgrade'
+        'Reparatur', 'Repair'
+        'Notiz', 'Note'
+        'Bauteile', 'Components'
+        'Temperaturen', 'Temperatures'
+        'Noch keine Einträge', 'No entries yet'
+        'Bei jedem Start übernimmt PulsRig neue Benchmarks, Stabilitätstests, Treiberwechsel, Windows-Updates, die Temperaturen beim Spielen und getauschte Bauteile. Reinigungen und Reparaturen trägst du von Hand ein.', 'On every start PulsRig adds new benchmarks, stability tests, driver changes, Windows updates, gaming temperatures and swapped components. You add cleanings and repairs by hand.'
+        'Die letzte Reinigung ist über ein Jahr her – Zeit zum Entstauben?', 'The last cleaning was more than a year ago – time to dust?'
+        'Noch keine Reinigung eingetragen. Nach dem Entstauben hier festhalten, das zählt beim Verkauf.', 'No cleaning recorded yet. Note it here after dusting – it counts when selling.'
+        'Scheckheft begonnen', 'Service record started'
+        'Stabilitätstest bestanden', 'Stability test passed'
+        'Windows aktualisiert', 'Windows updated'
+        'Grafikkarte getauscht', 'Graphics card replaced'
+        'Prozessor getauscht', 'Processor replaced'
+        'Arbeitsspeicher erweitert', 'Memory expanded'
+        'Arbeitsspeicher verkleinert', 'Memory reduced'
+        'Neues Laufwerk', 'New drive'
+        'Laufwerk entfernt', 'Drive removed'
+        'Speichere den Bericht …', 'Saving the report …'
+        'PC-Scheckheft des Verkäufers', 'Seller''s PC service record'
+        'Hat der Verkäufer ein Scheckheft aus PulsRig mitgegeben, lade es hier: Die Bauteile darin werden gegen den PC gehalten.', 'If the seller handed over a PulsRig service record, load it here: its components are checked against the PC.'
+        'Scheckheft laden', 'Load service record'
+        'Anderes Scheckheft laden', 'Load another service record'
+        # --- Ruckler-Detektiv
+        'Ruckler-Detektiv', 'Stutter detective'
+        'Was beim Spielen dazwischengefunkt hat: Hintergrundprogramme, Scans, Updates', 'What interfered while gaming: background programs, scans, updates'
+        'Was beim Spielen dazwischengefunkt hat: Programme im Hintergrund, Virenscans, Updates, volle Laufwerke, Treiber und knapper Arbeitsspeicher.', 'What interfered while gaming: background programs, virus scans, updates, busy drives, drivers and low memory.'
+        'Gemessen wird alle 5 Sekunden ohne Adminrechte. Wie viele Bilder pro Sekunde das Spiel schafft, sieht PulsRig dabei nicht.', 'Measured every 5 seconds without admin rights. PulsRig does not see how many frames per second the game reaches.'
+        'Woher kommen die Ruckler?', 'Where does the stutter come from?'
+        'Der Ruckler-Detektiv zeigt, welches Programm, welcher Scan oder welches Update beim Spielen dazwischengefunkt hat', 'The stutter detective shows which program, scan or update interfered while gaming'
+        'Sobald ein Spiel aus der Spieleliste läuft, schreibt der Helfer mit. Danach steht hier, was dazwischengefunkt hat.', 'As soon as a game from the game list runs, the helper records. Afterwards this page shows what interfered.'
+        'Spieleliste', 'Game list'
+        'Ältere Aufzeichnung', 'Older recording'
+        'Diese Sitzung wurde vor dem Ruckler-Detektiv aufgezeichnet. Ab der nächsten Spielsitzung schreibt der Helfer mit, was neben dem Spiel läuft.', 'This session was recorded before the stutter detective. From the next gaming session on, the helper records what runs alongside the game.'
+        'Nichts gefunden', 'Nothing found'
+        'Nutzungszeit', 'Active hours'
+        'Laufwerk ausgelastet', 'Drive fully busy'
+        'Treiber haben den Prozessor aufgehalten', 'Drivers held up the processor'
+        'Arbeitsspeicher knapp', 'Memory running low'
+        'Windows Update während des Spielens', 'Windows Update while gaming'
+        'Virenscan während des Spielens', 'Virus scan while gaming'
+        '1 möglicher Grund für Ruckler', '1 possible cause of stutter'
     )
     Patterns = @(
+        @{ R = '^(\d+) mögliche Gründe für Ruckler, der häufigste zuerst$'; F = '$1 possible causes of stutter, most frequent first' }
+        @{ R = '^(.+) hat dazwischengefunkt$'; F = '$1 interfered' }
+        @{ R = '^(\d+) Hinweise prüfen$'; F = 'Review $1 findings' }
+        @{ R = '^Letzte abgeschlossene Prüfung: (.+)$'; F = 'Last completed check: $1' }
+        @{ R = '^Nächster Schritt: „(.+)“ beim markierten Prüfpunkt\. Lies vorher die Erklärung darunter\.$'; F = 'Next step: Choose “{T:1}” for the highlighted check. Read the explanation below it first.' }
+        @{ R = '^(\d+) Gerätefehler$'; F = '$1 device errors' }
         # --- Ping-Test
         @{ R = '^Internet (.+)$'; F = 'Internet {T:1}' }
         @{ R = '^Router (.+ ms)$'; F = 'Router {T:1}' }
@@ -2588,6 +2896,20 @@
         @{ R = '^seitdem (\d+) Abstürze oder Aussetzer$'; F = '$1 crashes or dropouts since' }
         @{ R = '^davor (\d+) in (\d+) Tagen$'; F = 'before: $1 in $2 days' }
         @{ R = '^Probezeit: (.+)$'; F = 'Trial period: $1' }
+        @{ R = '^Gleicher Test: (.+)\.$'; F = 'Same test: $1.' }
+        @{ R = '^Reinigung am (\S+): bei gleicher Leistung (\d+) °C kühler \(vorher (\d+) °C, danach (\d+) °C\)\.$'; F = 'Cleaning on $1: $2 °C cooler at the same power (before $3 °C, after $4 °C).' }
+        @{ R = '^Reinigung am (\S+): kaum Unterschied \(vorher (\d+) °C, danach (\d+) °C\)\. Wird es trotzdem wärmer, kann die Wärmeleitpaste eingetrocknet sein\.$'; F = 'Cleaning on $1: hardly any difference (before $2 °C, after $3 °C). If it still gets warmer, the thermal paste may have dried out.' }
+        @{ R = '^Der Vergleich beginnt seit der Reinigung am (\S+) neu: erst (\d+) von vier Messpunkten\.$'; F = 'The comparison restarts after the cleaning on $1: only $2 of four measurements so far.' }
+        @{ R = '^Der Vergleich beginnt seit der Reinigung am (\S+) neu: (\d+) Messpunkte, verglichen wird ab dem (\S+)\.$'; F = 'The comparison restarts after the cleaning on $1: $2 measurements, compared from $3.' }
+        @{ R = '^Abfragerate ([\d.]+) Hz$'; F = 'Polling rate $1 Hz' }
+        @{ R = '^(DualSense|DualSense Edge|DualShock 4) verbunden$'; F = '$1 connected' }
+        @{ R = '^(DualSense|DualSense Edge|DualShock 4) ([\d.]+) Hz$'; F = '$1 $2 Hz' }
+        @{ R = '^, (\d+) davon bremsen stark\.$'; F = ', $1 of them slow things down a lot.' }
+        @{ R = '^bremst hoch \((.+)\)$'; F = 'high impact ({T:1})' }
+        @{ R = '^bremst mittel \((.+)\)$'; F = 'medium impact ({T:1})' }
+        @{ R = '^bremst gering \((.+)\)$'; F = 'low impact ({T:1})' }
+        @{ R = '^([\d,.]+) s Rechenzeit, ([\d.]+) MB gelesen/geschrieben$'; F = '$1 s processor time, $2 MB read/written' }
+        @{ R = '^([\d.]+) MB Arbeitsspeicher$'; F = '$1 MB memory' }
         @{ R = '^Bluescreen: (.+)$'; F = 'Blue screen: {T:1}' }
         @{ R = '^1-mal, zuletzt (.+) Uhr$'; F = 'once, last on $1' }
         @{ R = '^(\d+)-mal, zuletzt (.+) Uhr$'; F = '$1 times, last on $2' }
@@ -2663,6 +2985,7 @@
         @{ R = '^(P?[\w.]+) vom (\d\d\.\d\d\.\d{4})$'; F = '$1 from $2' }
         @{ R = '^PulsRig lädt die Setup-Datei \(([\d,]+) MB\) von GitHub, prüft sie und startet die Installation\. Das Programm schließt sich dabei und öffnet sich danach wieder\.$'; F = 'PulsRig downloads the setup file ($1 MB) from GitHub, verifies it and starts the installation. The program closes and reopens afterwards.' }
         @{ R = '^Lade die Setup-Datei: ([\d,]+) von ([\d,]+) MB$'; F = 'Downloading the setup file: $1 of $2 MB' }
+        @{ R = '^Prüfe die Signatur von (.+) …$'; F = 'Checking the signature of $1 …' }
         @{ R = '^PulsRig (.+), gebaut am (\S+) um (\S+) Uhr$'; F = 'PulsRig $1, built on $2 at $3' }
         # --- Dialog der Werkzeuge
         @{ R = '^\[ ok \] (.+)$'; F = '[ ok ] {T:1}' }
@@ -2676,6 +2999,16 @@
         @{ R = '^Energieplan - (.+)$'; F = 'Power plan - $1' }
         @{ R = '^Spielmodus von Windows - eingeschaltet$'; F = 'Windows game mode - on' }
         @{ R = '^Lautstärke - (\d+) %$'; F = 'Volume - $1 %' }
+        # --- Gebrauchtkauf-Check
+        @{ R = '^Anzeige: (.+)$'; F = 'Listing: $1' }
+        @{ R = '^gefunden: (.+)$'; F = 'found: $1' }
+        @{ R = '^Fasst noch (\d+) % von neu, ([\d.]+) Ladezyklen\.$'; F = 'Still holds $1 % of new, $2 charge cycles.' }
+        @{ R = '^Fasst noch (\d+) % von neu\.$'; F = 'Still holds $1 % of new.' }
+        @{ R = '^1 Problem gefunden: vor dem Kauf klären$'; F = '1 problem found: clarify before buying' }
+        @{ R = '^(\d+) Probleme gefunden: vor dem Kauf klären$'; F = '$1 problems found: clarify before buying' }
+        @{ R = '^1 Auffälligkeit gefunden$'; F = '1 issue found' }
+        @{ R = '^(\d+) Auffälligkeiten gefunden$'; F = '$1 issues found' }
+        @{ R = '^(.*) ?Prozessor und Grafikkarte laufen 5 Minuten unter Volllast\.$'; F = '{T:1} CPU and GPU run at full load for 5 minutes.' }
         @{ R = '^Ausgewählte Dienste, die gerade laufen: (.+)$'; F = 'Selected services currently running: $1' }
         @{ R = '^Gewählt: (.+)$'; F = 'Selected: {T:1}' }
         @{ R = '^(\d+) weitere$'; F = '$1 more' }
@@ -2905,9 +3238,9 @@
         @{ R = '^Temporäre Dateien und alte Downloads löschen \((.+)\)(\??)$'; F = 'Delete temporary files and old downloads ($1)$2' }
         @{ R = '^Shader-Cache löschen \((.+)\) – Spiele ruckeln danach beim ersten Start kurz, während sie neu übersetzen$'; F = 'Delete shader cache ($1) – games stutter briefly on first start afterwards while they recompile' }
         @{ R = '^(.+), läuft seit (.+)$'; F = '$1, running since $2' }
-        @{ R = '^(\d+) von (\d+) starten mit Windows\. Der Schalter wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager\. Einträge für alle Benutzer nur mit Adminrechten\.$'; F = '$1 of $2 start with Windows. The switch takes effect at the next sign-in and can be undone at any time, also in Task Manager. Entries for all users need admin rights.' }
-        @{ R = '^(\d+) von (\d+) starten mit Windows\. Der Schalter wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager\. Einträge für alle Benutzer nur mit Adminrechten\. Ein Eintrag ist der Rest eines deinstallierten Programms\. Entfernen löscht nur den Autostart-Eintrag und legt vorher eine Sicherung an; Programmdateien bleiben unberührt\.$'; F = '$1 of $2 start with Windows. The switch takes effect at the next sign-in and can be undone at any time, also in Task Manager. Entries for all users need admin rights. One entry is left over from an uninstalled program. Remove deletes only the startup entry and makes a backup first; program files stay untouched.' }
-        @{ R = '^(\d+) von (\d+) starten mit Windows\. Der Schalter wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager\. Einträge für alle Benutzer nur mit Adminrechten\. (\d+) Einträge sind Reste deinstallierter Programme\. Entfernen löscht nur den Autostart-Eintrag und legt vorher eine Sicherung an; Programmdateien bleiben unberührt\.$'; F = '$1 of $2 start with Windows. The switch takes effect at the next sign-in and can be undone at any time, also in Task Manager. Entries for all users need admin rights. $3 entries are left over from uninstalled programs. Remove deletes only the startup entry and makes a backup first; program files stay untouched.' }
+        @{ R = '^(\d+) von (\d+) starten mit Windows(\.|, einer davon bremst stark\.|, \d+ davon bremsen stark\.) Die Bremse misst wie der Task-Manager Rechenzeit und Datenzugriffe kurz nach der Anmeldung; läuft ein Programm schon länger, zählen Arbeitsspeicher und Dauerlast\. Der Schalter wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager\. Einträge für alle Benutzer nur mit Adminrechten\.$'; F = '$1 of $2 start with Windows{T:3} The impact is measured like Task Manager does: processor time and disk access shortly after sign-in; for programs running longer, memory and constant load count. The switch takes effect at the next sign-in and can be undone at any time, also in Task Manager. Entries for all users need admin rights.' }
+        @{ R = '^(\d+) von (\d+) starten mit Windows(\.|, einer davon bremst stark\.|, \d+ davon bremsen stark\.) Die Bremse misst wie der Task-Manager Rechenzeit und Datenzugriffe kurz nach der Anmeldung; läuft ein Programm schon länger, zählen Arbeitsspeicher und Dauerlast\. Der Schalter wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager\. Einträge für alle Benutzer nur mit Adminrechten\. Ein Eintrag ist der Rest eines deinstallierten Programms\. Entfernen löscht nur den Autostart-Eintrag und legt vorher eine Sicherung an; Programmdateien bleiben unberührt\.$'; F = '$1 of $2 start with Windows{T:3} The impact is measured like Task Manager does: processor time and disk access shortly after sign-in; for programs running longer, memory and constant load count. The switch takes effect at the next sign-in and can be undone at any time, also in Task Manager. Entries for all users need admin rights. One entry is left over from an uninstalled program. Remove deletes only the startup entry and makes a backup first; program files stay untouched.' }
+        @{ R = '^(\d+) von (\d+) starten mit Windows(\.|, einer davon bremst stark\.|, \d+ davon bremsen stark\.) Die Bremse misst wie der Task-Manager Rechenzeit und Datenzugriffe kurz nach der Anmeldung; läuft ein Programm schon länger, zählen Arbeitsspeicher und Dauerlast\. Der Schalter wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager\. Einträge für alle Benutzer nur mit Adminrechten\. (\d+) Einträge sind Reste deinstallierter Programme\. Entfernen löscht nur den Autostart-Eintrag und legt vorher eine Sicherung an; Programmdateien bleiben unberührt\.$'; F = '$1 of $2 start with Windows{T:3} The impact is measured like Task Manager does: processor time and disk access shortly after sign-in; for programs running longer, memory and constant load count. The switch takes effect at the next sign-in and can be undone at any time, also in Task Manager. Entries for all users need admin rights. $4 entries are left over from uninstalled programs. Remove deletes only the startup entry and makes a backup first; program files stay untouched.' }
         @{ R = '^Ordner (.+) liegt noch da$'; F = 'folder $1 is still there' }
         @{ R = '^(.+) aus dem Autostart entfernen(\??)$'; F = 'Remove $1 from startup$2' }
         @{ R = '^Alle (\d+) Reste entfernen(\??)$'; F = 'Remove all $1 leftovers$2' }
@@ -2945,5 +3278,37 @@
         @{ R = '^gespeichert: (.+)$'; F = 'saved: $1' }
         # --- neue Oberfläche: Verschleiß, Probezeit, Was ist los?, Controller und Maus
         @{ R = '^(\d+) Messpunkte seit dem (\S+) – verglichen wird ab drei Wochen Abstand, ab dem (\S+)$'; F = '$1 data points since $2 – comparison starts after three weeks, from $3' }
+        # --- Durchsicht für 1.0 (06.11.2026): Ruckler-Detektiv und Zeitangaben
+        @{ R = '^rund (\d+) Minuten$'; F = 'about $1 minutes' }
+        @{ R = '^(unter einer Minute|rund eine Minute|rund \d+ Minuten) lang bis zu (\d+) % des Prozessors, um (.+?)\. (.+)$'; F = 'For {T:1}, up to $2 % of the processor, at $3. {T:4}' }
+        @{ R = '^(unter einer Minute|rund eine Minute|rund \d+ Minuten) lang waren die Laufwerke fast durchgehend beschäftigt, um (.+?)\. (.+)$'; F = 'For {T:1}, the drives were busy almost all the time, at $2. {T:3}' }
+        @{ R = '^(unter einer Minute|rund eine Minute|rund \d+ Minuten) lang gingen bis zu ([\d,]+) % der Rechenzeit an Treiber-Unterbrechungen \(sonst unter 2 %\), um (.+?)\. (.+)$'; F = 'For {T:1}, up to $2 % of processing time went to driver interrupts (usually under 2 %), at $3. {T:4}' }
+        @{ R = '^(unter einer Minute|rund eine Minute|rund \d+ Minuten) lang waren weniger als ([\d.]+) MB frei \(zuletzt ([\d.]+) MB\), um (.+?)\. (.+)$'; F = 'For {T:1}, less than $2 MB was free (last $3 MB), at $4. {T:5}' }
+        @{ R = '^Um (.+) hat Windows Updates eingerichtet: (.+)\. (Unter Nutzungszeit .+)$'; F = 'At $1 Windows installed updates: $2. {T:3}' }
+        @{ R = '^Um (.+) hat Windows Defender einen Scan begonnen\. (.+)$'; F = 'At $1 Windows Defender started a scan. {T:2}' }
+        @{ R = '^(.+) und (\d+) weitere Male$'; F = '$1 and $2 more times' }
+        @{ R = '^vor (\d+) s$'; F = '$1 s ago' }
+        @{ R = '^Neuer verfügbar: (.+)$'; F = 'Newer available: $1' }
+        @{ R = '^Treiber (.+)$'; F = 'Driver $1' }
+        @{ R = '^(\d+) Sicherungen$'; F = '$1 backups' }
+        @{ R = '^(\d+) Aussetzer$'; F = '$1 dropouts' }
+        @{ R = '^Laufwerk ([\d.]+) MB/s$'; F = 'Drive $1 MB/s' }
+        @{ R = '^Grenze (\d+) °C$'; F = 'Limit $1 °C' }
+        @{ R = '^(\d+) Laufwerk\(e\)$'; F = '$1 drive(s)' }
+        @{ R = '^Geführt seit (.+)$'; F = 'Kept since $1' }
+        @{ R = '^(\d+) Reinigung(en)?$'; F = '$1 cleaning(s)' }
+        @{ R = '^(\d+) Tests?$'; F = '$1 test(s)' }
+        @{ R = '^(\d+) Sitzungen$'; F = '$1 sessions' }
+        @{ R = '^(.+) Tabs$'; F = '$1 tabs' }
+        @{ R = '^danach (\d+) °C kühler$'; F = '$1 °C cooler afterwards' }
+        @{ R = '^max\. (.+ GHz)$'; F = 'max. $1' }
+        @{ R = '^(\d+) % der Rechenzeit$'; F = '$1 % of processing time' }
+        @{ R = '^(.+) im Autostart$'; F = '$1 in startup' }
+        @{ R = '^(.+)-Treiber neu$'; F = 'New $1 driver' }
+        @{ R = '^vor (\d+) Tagen$'; F = '$1 days ago' }
+        @{ R = '^auf ([\d.]+)$'; F = 'to $1' }
+        @{ R = '^Prozessor (\d.*)$'; F = 'Processor $1' }
+        @{ R = '^(.+) – seitdem aktualisiert$'; F = '$1 – updated since' }
+        @{ R = '^(.+) \(von Windows\)$'; F = '$1 (from Windows)' }
     )
 }

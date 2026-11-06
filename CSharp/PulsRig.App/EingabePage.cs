@@ -8,6 +8,8 @@ using System.Windows.Threading;
 namespace PulsRig.App;
 
 // Controller und Maus wie PulsRig-Eingabe.ps1; gemessen wird mit PulsRig-Eingabe.cs (XInput und Raw Input).
+// PS4- und PS5-Controller kommen über Raw Input (PulsRigPlaystation), sobald kein Xbox-Controller verbunden ist;
+// die Tasten heißen dann wie auf dem Controller, dazu die gemessene Abfragerate.
 // Reiter Controller: Tasten leuchten beim Drücken auf und bleiben als getestet markiert, beide Sticks als Punkt im
 // Kreis, die Trigger als Balken; "Drift messen" misst 3 Sekunden, wie weit die losgelassenen Sticks von der Mitte
 // abweichen; "Vibrieren" lässt beide Motoren eine Sekunde laufen.
@@ -29,7 +31,9 @@ sealed class EingabePage : UserControl, IPage
     readonly HashSet<int> seen = new();
     (DateTime Until, double L, double R)? drift;
     (string Title, string Text, string Tone, double L, double R)? driftResult;
-    int hz;
+    int hz, ps, padHz;
+    string psName = "";
+    readonly List<TextBlock> triggerLabels = new();
     bool hzMin, stopped;
 
     // Teile, die der Takt fortschreibt
@@ -45,6 +49,7 @@ sealed class EingabePage : UserControl, IPage
     {
         Content = root;
         try { PulsRigMouse.Start(); } catch (Exception) { }
+        try { PulsRigPlaystation.Start(); } catch (Exception) { }
         timer.Tick += (_, _) => { try { if (tab == 0) UpdatePad(); else UpdateMouse(); } catch (Exception) { } };
         timer.Start();
         Fill();
@@ -64,7 +69,7 @@ sealed class EingabePage : UserControl, IPage
             tabs.Children.Add(b);
         }
         root.Children.Add(tabs);
-        chips.Clear(); triggers.Clear(); sticks.Clear(); mouseChips.Clear();
+        chips.Clear(); triggers.Clear(); triggerLabels.Clear(); sticks.Clear(); mouseChips.Clear();
         var body = new StackPanel();
         if (tab == 0) PadView(body); else MouseView(body);
         var scroll = new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Padding = new Thickness(0, 0, 6, 0) };
@@ -170,13 +175,14 @@ sealed class EingabePage : UserControl, IPage
         var middle = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
         Grid.SetColumn(middle, 1);
         var keys = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Center };
-        foreach (var (bit, name) in PadButtons) { var k = Key(name); keys.Children.Add(k); chips[bit] = k; }
+        foreach (var (bit, name) in PadButtons) { var k = Key(ps > 0 ? Core.Playstation.ButtonName(name, ps) : name); keys.Children.Add(k); chips[bit] = k; }
         middle.Children.Add(keys);
         foreach (var name in new[] { "LT", "RT" })
         {
             var row = new DockPanel { Margin = new Thickness(20, 8, 20, 0) };
-            var label = Ui.Text(name, 12, "Text");
+            var label = Ui.Text(ps > 0 ? Core.Playstation.ButtonName(name, ps) : name, 12, "Text");
             label.Width = 28;
+            triggerLabels.Add(label);
             row.Children.Add(label);
             var track = new Grid { Height = 8, VerticalAlignment = VerticalAlignment.Center };
             track.Children.Add(new Border { CornerRadius = new CornerRadius(4), Background = Ui.Res("KarteRand") });
@@ -189,7 +195,7 @@ sealed class EingabePage : UserControl, IPage
         grid.Children.Add(middle);
         body.Children.Add(Card(grid));
         body.Children.Add(StateRow("Suche einen Controller …", "", ("Drift messen", StartDrift), ("Vibrieren", Rumble)));
-        body.Children.Add(Ui.Text("Xbox-kompatible Controller (XInput). PlayStation-Controller nur über Steam oder DS4Windows.", 11.5, "Leise"));
+        body.Children.Add(Ui.Text("Xbox-kompatible Controller (XInput) und PS4-/PS5-Controller (DualShock 4, DualSense, DualSense Edge) per Kabel oder Bluetooth.", 11.5, "Leise"));
     }
 
     void MouseView(StackPanel body)
@@ -226,9 +232,17 @@ sealed class EingabePage : UserControl, IPage
 
     void Rumble()
     {
-        PulsRigPad.Vibrate(pad, true);
+        if (ps > 0)
+        {
+            if (!PulsRigPlaystation.Vibrate(true))
+            {
+                SetRow("Vibrieren nur per Kabel", "Per Bluetooth lässt sich der PlayStation-Controller von PulsRig nicht ansteuern. Zum Testen per USB-Kabel verbinden.", "");
+                return;
+            }
+        }
+        else PulsRigPad.Vibrate(pad, true);
         var off = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-        off.Tick += (_, _) => { off.Stop(); PulsRigPad.Vibrate(pad, false); };
+        off.Tick += (_, _) => { off.Stop(); if (ps > 0) PulsRigPlaystation.Vibrate(false); else PulsRigPad.Vibrate(pad, false); };
         off.Start();
     }
 
@@ -241,6 +255,16 @@ sealed class EingabePage : UserControl, IPage
     void UpdatePad()
     {
         var state = PulsRigPad.Read(pad);
+        var found = 0;
+        if (state[0] == 0) state = PulsRigPlaystation.Read(out found);
+        // ein anderer Controller: Tastennamen neu beschriften (Kreuz, Kreis … oder A, B …)
+        if (found != ps)
+        {
+            ps = found;
+            psName = ps > 0 ? Core.Playstation.Model(Core.Playstation.Sony, ps) : "";
+            foreach (var (bit, name) in PadButtons) if (chips.TryGetValue(bit, out var k)) ((TextBlock)k.Child).Text = Texte.T(ps > 0 ? Core.Playstation.ButtonName(name, ps) : name);
+            for (var i = 0; i < triggerLabels.Count; i++) triggerLabels[i].Text = ps > 0 ? Core.Playstation.ButtonName(i == 0 ? "LT" : "RT", ps) : i == 0 ? "LT" : "RT";
+        }
         if (state[0] == 0)
         {
             // nicht verbunden: einmal pro Sekunde die vier Plätze absuchen
@@ -249,7 +273,7 @@ sealed class EingabePage : UserControl, IPage
                 next = Environment.TickCount + 1000;
                 for (var i = 0; i < 4; i++) if (PulsRigPad.Read(i)[0] != 0) { pad = i; break; }
             }
-            SetRow("Kein Controller gefunden", "Controller per Kabel, Funk oder Bluetooth verbinden. Erkannt werden Xbox-kompatible Controller (XInput).", "");
+            SetRow("Kein Controller gefunden", "Controller per Kabel, Funk oder Bluetooth verbinden. Erkannt werden Xbox-kompatible Controller und PS4-/PS5-Controller.", "");
             return;
         }
         foreach (var (bit, key) in chips)
@@ -285,8 +309,14 @@ sealed class EingabePage : UserControl, IPage
             };
             driftResult = (worst.Tone == "good" ? "Kein Stick-Drift" : "Stick-Drift gemessen", text, worst.Tone, Math.Round(d.L), Math.Round(d.R));
         }
-        if (driftResult is { } r) SetRow(r.Title, r.Text + "\n" + seen.Count + " von " + PadButtons.Length + " Tasten getestet.", r.Tone);
-        else SetRow("Controller " + (pad + 1) + " verbunden", "Jede Taste einmal drücken: getestete werden grün umrandet (" + seen.Count + " von " + PadButtons.Length + "). Für den Drift die Sticks loslassen und „Drift messen“ wählen.", "good");
+        var rateLine = "";
+        if (ps > 0)
+        {
+            padHz = Core.Playstation.Rate(PulsRigPlaystation.Rate);
+            rateLine = "\n" + (padHz > 0 ? "Abfragerate " + padHz.ToString("N0", Ui.De) + " Hz" : "Abfragerate: Sticks ein paar Sekunden bewegen") + " · " + PulsRigPlaystation.Link;
+        }
+        if (driftResult is { } r) SetRow(r.Title, r.Text + "\n" + seen.Count + " von " + PadButtons.Length + " Tasten getestet." + rateLine, r.Tone);
+        else SetRow((ps > 0 ? psName : "Controller " + (pad + 1)) + " verbunden", "Jede Taste einmal drücken: getestete werden grün umrandet (" + seen.Count + " von " + PadButtons.Length + "). Für den Drift die Sticks loslassen und „Drift messen“ wählen." + rateLine, "good");
     }
 
     void UpdateMouse()
@@ -338,7 +368,7 @@ sealed class EingabePage : UserControl, IPage
         var clicks = PulsRigMouse.Clicks.Sum();
         var bounces = Enumerable.Range(0, 5).Where(b => PulsRigMouse.Bounces[b] > 0).Select(b => MouseButtons[b] + " " + PulsRigMouse.Bounces[b] + "×").ToList();
         var bounceMax = PulsRigMouse.Bounces.Max();
-        if (hz == 0 && clicks < 20 && driftResult == null && seen.Count == 0) return;
+        if (hz == 0 && clicks < 20 && driftResult == null && seen.Count == 0 && padHz == 0) return;
         Ergebnisse.Change(results =>
         {
             var cards = results["Cards"] as JsonObject ?? (JsonObject)(results["Cards"] = new JsonObject());
@@ -346,6 +376,7 @@ sealed class EingabePage : UserControl, IPage
             if (hz > 0) { state["Hz"] = hz; state["HzMin"] = hzMin; }
             if (clicks >= 20) { state["Clicks"] = clicks; state["Bounces"] = string.Join(", ", bounces); state["BounceMax"] = bounceMax; }
             if (driftResult is { } r) { state["DriftL"] = (int)r.L; state["DriftR"] = (int)r.R; state["DriftTone"] = r.Tone; }
+            if (padHz > 0) { state["PadHz"] = padHz; state["Pad"] = psName; }
             if (seen.Count > 0) state["Buttons"] = seen.Count + " von " + PadButtons.Length;
             var tone = "good";
             if (Altdaten.Text(state, "Bounces", "").Length > 0 && (state["BounceMax"] is not JsonValue bm || bm.GetValue<int>() >= 2)) tone = "warn";
@@ -353,6 +384,7 @@ sealed class EingabePage : UserControl, IPage
             if (driftTone is "warn" or "bad") tone = driftTone;
             var parts = new List<string>();
             if (state["Hz"] is JsonValue h) parts.Add("Maus " + (Altdaten.Flag(state, "HzMin", false) ? "≥ " : "") + h.GetValue<int>().ToString("N0", Ui.De) + " Hz");
+            if (state["PadHz"] is JsonValue ph) parts.Add(Altdaten.Text(state, "Pad", "Controller") + " " + ph.GetValue<int>().ToString("N0", Ui.De) + " Hz");
             if (state["DriftL"] is JsonValue dl) parts.Add("Drift " + dl.GetValue<int>() + " / " + state["DriftR"]?.GetValue<int>() + " %");
             state["Text"] = tone == "good" ? "in Ordnung" : "auffällig";
             state["Tone"] = tone;
@@ -369,6 +401,8 @@ sealed class EingabePage : UserControl, IPage
         timer.Stop();
         try { Save(); } catch (Exception) { }
         try { PulsRigPad.Vibrate(pad, false); } catch (Exception) { }
+        try { if (ps > 0) PulsRigPlaystation.Vibrate(false); } catch (Exception) { }
+        try { PulsRigPlaystation.Stop(); } catch (Exception) { }
         try { PulsRigMouse.Stop(); } catch (Exception) { }
     }
 }

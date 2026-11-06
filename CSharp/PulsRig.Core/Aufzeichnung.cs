@@ -14,6 +14,8 @@ namespace PulsRig.Core
         public string Game = "";
         public DateTime Begin;
         public Dictionary<string, List<double>> Data = new Dictionary<string, List<double>>();
+        // Spalten mit Text statt Zahl (Stoerer: Name des Programms neben dem Spiel)
+        public Dictionary<string, List<string>> Texts = new Dictionary<string, List<string>>();
         public double Seconds => Column("Sekunde") is { Count: > 0 } s ? s[s.Count - 1] : 0;
         public List<double>? Column(string name) => Data.TryGetValue(name, out var list) ? list : null;
     }
@@ -27,6 +29,8 @@ namespace PulsRig.Core
 
     public static class Aufzeichnung
     {
+        static readonly string[] TextColumns = { "Stoerer" };
+
         public static Spielsitzung Read(IList<string> lines)
         {
             var s = new Spielsitzung { Begin = DateTime.Now };
@@ -39,13 +43,16 @@ namespace PulsRig.Core
                 if (m.Groups[1].Value == "Beginn" && DateTime.TryParseExact(m.Groups[2].Value, "yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime b)) s.Begin = b;
             }
             string[] names = lines[1].Split(';');
-            foreach (string n in names) s.Data[n] = new List<double>();
+            foreach (string n in names)
+                if (TextColumns.Contains(n)) s.Texts[n] = new List<string>();
+                else s.Data[n] = new List<double>();
             for (int i = 2; i < lines.Count; i++)
             {
                 string[] cells = lines[i].Split(';');
                 if (cells.Length != names.Length) continue;
                 for (int c = 0; c < names.Length; c++)
-                    s.Data[names[c]].Add(double.TryParse(cells[c], NumberStyles.Float, CultureInfo.InvariantCulture, out double v) ? v : double.NaN);
+                    if (s.Texts.TryGetValue(names[c], out var texts)) texts.Add(cells[c]);
+                    else s.Data[names[c]].Add(double.TryParse(cells[c], NumberStyles.Float, CultureInfo.InvariantCulture, out double v) ? v : double.NaN);
             }
             return s;
         }
