@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using PulsRig.Core;
@@ -250,8 +250,8 @@ sealed class ProblemPage : UserControl, IPage
         grid.Children.Add(text);
         if (state is { } st && st.Text.Length > 0)
         {
-            var pill = new Border { CornerRadius = new CornerRadius(999), Padding = new Thickness(10, 4, 10, 4), Background = Ui.Alpha(color, "1A"), VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 12, 10), HorizontalAlignment = HorizontalAlignment.Left, MaxWidth = 150, Child = Ui.Text(st.Text, 11, st.Tone.Length > 0 ? color : "Leise", wrap: true) };
+            var pill = Ui.Pill(st.Text, color, 11, st.Tone.Length > 0 ? color : "Leise", wrap: true, maxWidth: 150);
+            pill.Margin = new Thickness(0, 0, 12, 10); pill.HorizontalAlignment = HorizontalAlignment.Left;
             Grid.SetColumn(pill, 1);
             Grid.SetRow(pill, 1); grid.Children.Add(pill);
         }

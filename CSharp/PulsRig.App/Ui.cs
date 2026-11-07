@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -32,6 +32,17 @@ static class Ui
 
     // Farbe mit Deckkraft in Hex wie im Entwurf ("#6D43C9" + "2E")
     public static SolidColorBrush Alpha(string color, string alpha) => Brush("#" + alpha + color.TrimStart('#'));
+
+    // Status-Abzeichen wie die Marke „0.7 Beta“ und der Knopf „Als Admin neu starten“ in der Titelleiste:
+    // leicht gerundetes Rechteck, zarte Füllung und feiner Rand in der Farbe, kein Punkt.
+    // textColor: abweichende Schriftfarbe (Hex oder Ressource), sonst die Farbe selbst
+    public static Border Pill(string text, string color, double size = 11, string? textColor = null, bool wrap = false, double maxWidth = double.PositiveInfinity)
+    {
+        var t = Text(text, size, textColor ?? color, wrap: wrap);
+        t.VerticalAlignment = VerticalAlignment.Center;
+        return new Border { CornerRadius = new CornerRadius(8), Padding = new Thickness(10, 3, 10, 4), Background = Alpha(color, "12"),
+            BorderBrush = Alpha(color, "30"), BorderThickness = new Thickness(1), VerticalAlignment = VerticalAlignment.Center, MaxWidth = maxWidth, Child = t };
+    }
 
     public static Border Tile(string color, string tint, Thickness? padding = null)
     {

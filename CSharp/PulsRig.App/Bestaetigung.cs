@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -92,11 +92,9 @@ static class Bestaetigung
 
     static Border Chip(string text, string color)
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal };
-        row.Children.Add(new Ellipse { Width = 7, Height = 7, Fill = Ui.Brush(color), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 7, 0) });
-        row.Children.Add(Ui.Text(text, 11.5, color));
-        return new Border { CornerRadius = new CornerRadius(999), Padding = new Thickness(10, 5, 12, 6), Margin = new Thickness(0, 0, 8, 8), Background = Ui.Alpha(color, "14"),
-            BorderBrush = Ui.Alpha(color, "2E"), BorderThickness = new Thickness(1), Child = row };
+        var chip = Ui.Pill(text, color, 11.5);
+        chip.Margin = new Thickness(0, 0, 8, 8);
+        return chip;
     }
 
     static bool Show(FrameworkElement owner, StackPanel panel, (string Label, bool Primary)[] choices)

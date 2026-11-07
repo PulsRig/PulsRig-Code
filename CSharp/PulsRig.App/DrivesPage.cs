@@ -73,8 +73,7 @@ sealed class DrivesPage : UserControl, IPage
         var edge = new LinearGradientBrush { StartPoint = new Point(0.25, 0), EndPoint = new Point(0.75, 1) };
         edge.GradientStops.Add(new GradientStop(Ui.Hex(edgeColor), 0));
         edge.GradientStops.Add(new GradientStop(Ui.Hex("#1A1224"), 0.45));
-        var tag = new Border { CornerRadius = new CornerRadius(999), Padding = new Thickness(11, 4, 11, 4), Background = Ui.Brush(c.Ok ? "#10261C" : "#2A2012"), VerticalAlignment = VerticalAlignment.Center,
-            Child = Ui.Text(c.Tag, 11.5, c.Ok ? Hardwaremodell.Good : Hardwaremodell.Warn) };
+        var tag = Ui.Pill(c.Tag, c.Ok ? Hardwaremodell.Good : Hardwaremodell.Warn, 11.5);
         var head = new DockPanel();
         DockPanel.SetDock(tag, Dock.Right);
         head.Children.Add(tag);

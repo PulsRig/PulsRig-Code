@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -220,7 +220,7 @@ sealed class TreiberPage : UserControl, IPage
                 p.Chipset && s.Board != null ? () => Open(s.Board.Url) : RepairDevices)).ToList();
 
         // Katalog-Hinweise: echte Treiber lassen sich direkt installieren; reine Beschreibungen ohne Treibercode bringen nichts und fehlen
-        var hints = s.Hints.Where(h => !h.NoCode).Select(h => new Zeile(Lila, h.Title, h.Device + " · installiert " + h.Installed + " · Katalog vom " + h.Date + (h.Size.Length > 0 ? " · " + h.Size : ""),
+        var hints = s.Hints.Where(h => !h.NoCode && !settings.IsIgnored(Treiberinstallation.CatalogKey(h.Title, h.Version))).Select(h => new Zeile(Lila, h.Title, h.Device + " · installiert " + h.Installed + " · Katalog vom " + h.Date + (h.Size.Length > 0 ? " · " + h.Size : ""),
             "Katalog", h.Query.Length == 0 ? "Katalog öffnen" : "Installieren",
             h.Query.Length == 0 ? () => Open(h.Url) : Guarded(h.Title + " installieren?",
                 "PulsRig lädt das Paket aus dem Microsoft-Katalog, prüft Prüfsumme, Microsoft-Signatur und ob es dieses Gerät nennt, sichert den bisherigen Treiber und installiert den neuen."
@@ -308,8 +308,8 @@ sealed class TreiberPage : UserControl, IPage
         grid.Children.Add(text);
         if (r.Hint.Length > 0)
         {
-            var pill = new Border { CornerRadius = new CornerRadius(999), Padding = new Thickness(10, 4, 10, 4), Background = Ui.Alpha(r.Bar == Grau ? Lila : r.Bar, "1A"), VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 12, 0), Child = Ui.Text(r.Hint, 11.5, r.Bar == Grau ? Lila : r.Bar) };
+            var pill = Ui.Pill(r.Hint, r.Bar == Grau ? Lila : r.Bar, 11.5);
+            pill.Margin = new Thickness(0, 0, 12, 0);
             Grid.SetColumn(pill, 2);
             grid.Children.Add(pill);
         }

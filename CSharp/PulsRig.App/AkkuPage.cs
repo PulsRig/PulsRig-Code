@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Management;
 using System.Windows;
@@ -251,7 +251,7 @@ sealed class AkkuPage : UserControl, IPage
         grid.Children.Add(text);
         if (state is { Text: { Length: > 0 } pill })
         {
-            var p = new Border { CornerRadius = new CornerRadius(999), Padding = new Thickness(10, 4, 10, 4), Background = Ui.Alpha(color, "1A"), VerticalAlignment = VerticalAlignment.Center, Child = Ui.Text(pill, 11, color) };
+            var p = Ui.Pill(pill, color);
             Grid.SetColumn(p, 2);
             grid.Children.Add(p);
         }

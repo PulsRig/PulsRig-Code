@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
@@ -20,7 +20,7 @@ sealed class DetailPage : UserControl, IPage
     readonly TextBlock state = Ui.Text("", 11), model = Ui.Text("", 20, "Text", bold: true), sub = Ui.Text("", 12.5, "Leise");
     readonly TextBlock big = new() { FontSize = 54, FontWeight = FontWeights.SemiBold, LineHeight = 54 }, unit = Ui.Text("", 14, "Halbleise");
     readonly TextBlock axisL = Ui.Text("", 10.5, "#3E3150", mono: true), axisR = Ui.Text("", 10.5, "#3E3150", mono: true);
-    readonly Border stateChip = new() { CornerRadius = new CornerRadius(999), Padding = new Thickness(10, 4, 10, 4) };
+    readonly Border stateChip = new() { CornerRadius = new CornerRadius(8), Padding = new Thickness(10, 3, 10, 4), BorderThickness = new Thickness(1) };
     readonly Ellipse stateDot = new() { Width = 6, Height = 6, Margin = new Thickness(0, 0, 6, 0) };
     readonly ContentControl chart = new() { VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 12, 0, 0) };
     readonly List<(TextBlock Title, TextBlock State, TextBlock Value, ContentControl Bar, TextBlock Note, Border Tile)> facts = new();
@@ -180,7 +180,7 @@ sealed class DetailPage : UserControl, IPage
         state.Text = d.State;
         state.Foreground = Ui.Brush(d.StateColor);
         stateDot.Fill = Ui.Brush(d.StateColor);
-        stateChip.Background = Ui.Brush(d.StateBg);
+        stateChip.Background = Ui.Alpha(d.StateColor, "12"); stateChip.BorderBrush = Ui.Alpha(d.StateColor, "30");
         model.Text = d.Model;
         sub.Text = d.Sub;
         big.Text = d.Big;

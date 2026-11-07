@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -121,11 +121,7 @@ sealed class WerkzeugePage : UserControl, IPage
         LayoutTransform = new ScaleTransform(size / 24, size / 24), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
     };
 
-    static Border Pill(string text, string color) => new()
-    {
-        CornerRadius = new CornerRadius(999), Padding = new Thickness(10, 4, 10, 4), Background = Ui.Alpha(color, "1A"), VerticalAlignment = VerticalAlignment.Center,
-        Child = Ui.Text(text, 11, color),
-    };
+    static Border Pill(string text, string color) => Ui.Pill(text, color);
 
     // Hinweise auf den Kacheln aus echten Werten: Gerätefehler des letzten Scans, letzte Sicherung
     static string IntentHint(Absicht a)
@@ -427,11 +423,9 @@ sealed class WerkzeugePage : UserControl, IPage
 
     static Border Counter(string text, string color)
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal };
-        row.Children.Add(new Ellipse { Width = 7, Height = 7, Fill = Ui.Brush(color), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) });
-        row.Children.Add(Ui.Text(text, 12, color, bold: true));
-        return new Border { CornerRadius = new CornerRadius(999), Padding = new Thickness(10, 4, 12, 5), Margin = new Thickness(0, 0, 6, 0), Background = Ui.Alpha(color, "14"),
-            BorderBrush = Ui.Alpha(color, "2E"), BorderThickness = new Thickness(1), Child = row };
+        var pill = Ui.Pill(text, color, 12);
+        pill.Margin = new Thickness(0, 0, 6, 0);
+        return pill;
     }
 
     // Ergebnis der Prüfung: Zähler und Zusammenfassung, die Prüfpunkte als Liste, was die Schritte gemeldet haben, und die Knöpfe
@@ -487,8 +481,8 @@ sealed class WerkzeugePage : UserControl, IPage
             row.Children.Add(name);
             if (parts.Length > 1)
             {
-                var state = new Border { CornerRadius = new CornerRadius(999), Padding = new Thickness(10, 3, 10, 4), Background = Ui.Alpha(color, "1A"), VerticalAlignment = VerticalAlignment.Top,
-                    Child = new TextBlock { Text = parts[1], FontSize = 12, FontWeight = FontWeights.SemiBold, Foreground = Ui.Brush(color), MaxWidth = 180, TextWrapping = TextWrapping.Wrap } };
+                var state = Ui.Pill(parts[1], color, 11.5, wrap: true, maxWidth: 200);
+                state.VerticalAlignment = VerticalAlignment.Top;
                 Grid.SetColumn(state, 2);
                 row.Children.Add(state);
             }

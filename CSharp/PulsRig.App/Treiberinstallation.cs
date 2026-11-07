@@ -374,7 +374,15 @@ static class Treiberinstallation
             var code = RunTool("pnputil.exe", "/add-driver \"" + Path.Combine(files, "*.inf") + "\" /subdirs /install").Code;
             if (code == 3010) RebootRequired = true;
             // Windows meldet den neuen Treiber erst nach ein paar Sekunden - sonst fände der Scan danach noch den alten
-            if (code is 0 or 3010) { report("Warte, bis Windows den neuen Treiber meldet …"); WaitForVersion(hardwareIds.Split('|'), row.Version); }
+            var taken = true;
+            if (code is 0 or 3010) { report("Warte, bis Windows den neuen Treiber meldet …"); taken = WaitForVersion(hardwareIds.Split('|'), row.Version); }
+            // Windows hat das Paket aufgenommen, das Gerät aber beim bisherigen Treiber gelassen (der rangiert für Windows höher):
+            // der Hinweis käme sonst bei jedem Scan wieder, darum ausblenden (lässt sich unter "Ausgeblendet" zurückholen)
+            if (code == 0 && !taken)
+            {
+                TreiberEinstellungen.Current.Ignore(CatalogKey(title, version), title);
+                return message + "Das Paket ist hinzugefügt, aber Windows behält für das Gerät den bisherigen Treiber. Der Hinweis wird künftig ausgeblendet.";
+            }
             return message + (code switch
             {
                 0 => "Installiert: " + row.Title + ".",
@@ -386,17 +394,20 @@ static class Treiberinstallation
         finally { try { Directory.Delete(folder, true); } catch (Exception) { } }
     }, rescan: true);
 
-    static void WaitForVersion(string[] hardwareIds, Version? version)
+    public static string CatalogKey(string title, string version) => "katalog:" + title + "|" + version;
+
+    static bool WaitForVersion(string[] hardwareIds, Version? version)
     {
-        if (version == null) return;
+        if (version == null) return true;
         for (var start = DateTime.Now; DateTime.Now - start < TimeSpan.FromSeconds(30); Thread.Sleep(1000))
             foreach (var id in hardwareIds.Where(i => i.Length > 0))
                 try
                 {
                     using var searcher = new ManagementObjectSearcher("SELECT DriverVersion FROM Win32_PnPSignedDriver WHERE HardWareID = '" + id.Replace("\\", "\\\\").Replace("'", "\\'") + "'");
-                    foreach (var d in searcher.Get()) using (d) if (Version.TryParse(d["DriverVersion"]?.ToString(), out var v) && v >= version) return;
+                    foreach (var d in searcher.Get()) using (d) if (Version.TryParse(d["DriverVersion"]?.ToString(), out var v) && v >= version) return true;
                 }
                 catch (Exception) { }
+        return false;
     }
 
     // --- NVIDIA ------------------------------------------------------------------------------------------------------

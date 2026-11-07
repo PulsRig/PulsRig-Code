@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -151,11 +151,12 @@ sealed class BoostPage : UserControl, IPage
         return new Border { Child = layer };
     }
 
-    static Border Chip(string text, string color, string bg) => new()
+    static Border Chip(string text, string color, string bg)
     {
-        CornerRadius = new CornerRadius(999), Padding = new Thickness(11, 5, 11, 5), Margin = new Thickness(3), Background = Ui.Brush(bg), BorderBrush = Ui.Alpha(color, "33"), BorderThickness = new Thickness(1),
-        Child = Ui.Text(text, 11.5, color),
-    };
+        var chip = Ui.Pill(text, color, 11.5);
+        chip.Margin = new Thickness(3);
+        return chip;
+    }
 
     static Border Tile(string title, string state, string stateColor, string value, string note, string color, string tint, bool hit = false)
     {

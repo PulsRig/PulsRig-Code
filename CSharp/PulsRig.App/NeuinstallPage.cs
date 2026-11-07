@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -359,7 +359,7 @@ sealed class NeuinstallPage : UserControl, IPage
         if (installed.TryGetValue(id, out var state))
         {
             var color = state.StartsWith("fehl") ? Beere : state.StartsWith("läuft") ? Bernstein : Gruen;
-            var pill = new Border { CornerRadius = new CornerRadius(999), Padding = new Thickness(10, 4, 10, 4), Background = Ui.Alpha(color, "1A"), VerticalAlignment = VerticalAlignment.Center, Child = Ui.Text(state, 11, color) };
+            var pill = Ui.Pill(state, color);
             Grid.SetColumn(pill, 2);
             grid.Children.Add(pill);
         }
@@ -400,8 +400,8 @@ sealed class NeuinstallPage : UserControl, IPage
         grid.Children.Add(text);
         if (state is { Text.Length: > 0 } st)
         {
-            var pill = new Border { CornerRadius = new CornerRadius(999), Padding = new Thickness(10, 4, 10, 4), Background = Ui.Alpha(color, "1A"), VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 12, 0), Child = Ui.Text(st.Text, 11, color) };
+            var pill = Ui.Pill(st.Text, color);
+            pill.Margin = new Thickness(0, 0, 12, 0);
             Grid.SetColumn(pill, 2);
             grid.Children.Add(pill);
         }
