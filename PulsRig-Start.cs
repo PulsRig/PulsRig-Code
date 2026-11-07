@@ -220,7 +220,9 @@ static class PulsRigHelper
         if (list == null || list is string) return games;
         foreach (object entry in list)
         {
-            string name = Path.GetFileNameWithoutExtension(Convert.ToString(entry));
+            // nur ".exe" abschneiden: GetFileNameWithoutExtension machte aus "BeamNG.drive.x64" den Starter "BeamNG.drive"
+            string name = Path.GetFileName(Convert.ToString(entry) ?? "");
+            if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) name = name.Substring(0, name.Length - 4);
             if (!string.IsNullOrEmpty(name) && name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0) games.Add(name);
         }
         return games;
