@@ -65,9 +65,12 @@ sealed class Livelinie : FrameworkElement
 
     double Progress => pushed == DateTime.MinValue ? 1 : Math.Clamp((DateTime.Now - pushed) / step, 0, 1);
 
+    long bucket = -1;
     void Frame(object? sender, EventArgs e)
     {
-        if (pushed == DateTime.MinValue) return;
+        // 30 Bilder je Sekunde im selben Takt wie der Puls-Ring: die Linie rückt je Bild nur Bruchteile eines Pixels,
+        // und beide landen im selben Zeichenvorgang des Fensters (60 Bilder je Sekunde kosteten hier den größten Teil)
+        if (pushed == DateTime.MinValue || !Bildtakt.Neu(ref bucket)) return;
         InvalidateVisual();
         if (Progress >= 1) pushed = DateTime.MinValue;
     }

@@ -1,12 +1,13 @@
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace PulsRig.App;
 
 // Ring-Animation aus dem Nova-HUD (frame() in hud.html), Bild für Bild über OnRender gezeichnet: außen zwei feine Ringe und
 // der gezackte Puls-Bogen mit Lichtpunkt, im Knopf (Sphere) die rotierende Partikel-Kugel. Kein DropShadowEffect: das
-// Glühen ist ein breiter, blasser Strich unter dem feinen und ein radialer Verlauf um den Punkt. Pinsel für die Partikel
-// liegen fertig eingefroren vor, damit je Bild nichts Neues entsteht außer der Bogen-Geometrie.
+// Glühen ist ein breiter, blasser Strich unter dem feinen und ein radialer Verlauf um den Punkt. Die Partikel-Kugel
+// wird als ein Bild gerechnet (DrawSphere).
 public sealed class NovaRing : FrameworkElement
 {
     static readonly Color Lila = Color.FromRgb(109, 67, 201), Beere = Color.FromRgb(168, 50, 111), Hell = Color.FromRgb(177, 159, 224);
@@ -14,7 +15,6 @@ public sealed class NovaRing : FrameworkElement
     const double W = 262, C = 120, Steps = 90, Band = W * .02 - 1.5;
     const int N = 520, Tones = 8, Alphas = 16;
     static readonly (double X, double Y, double Z, double Ph)[] Points = Build();
-    static readonly Brush[,] Dots = BuildDots();
     static readonly Pen[] Rings =
     {
         Frozen(new Pen(new SolidColorBrush(Color.FromArgb(56, 90, 70, 130)), 1)),
@@ -71,10 +71,26 @@ public sealed class NovaRing : FrameworkElement
         dc.DrawEllipse(Brushes.White, null, end, 2.6, 2.6);
     }
 
+    // Die Kugel entsteht in einem eigenen Bild (WriteableBitmap, in Bildschirmpixeln) statt aus 520 einzelnen DrawEllipse:
+    // so geht je Bild nur ein Befehl an WPF. Jeder Punkt wird mit weicher Kante (Abdeckung je Pixel) eingemischt,
+    // Farbe und Deckkraft in denselben Stufen wie zuvor.
+    WriteableBitmap? bitmap;
+    int[] pixels = [];
+    double scale = 1;
+
     void DrawSphere(DrawingContext dc)
     {
         const double K = 76, SR = K * .82;
-        dc.PushClip(new EllipseGeometry(new Point(K, K), K - 3, K - 3));
+        var dpi = VisualTreeHelper.GetDpi(this).DpiScaleX;
+        var size = (int)Math.Ceiling(2 * K * dpi);
+        if (bitmap is null || bitmap.PixelWidth != size)
+        {
+            bitmap = new WriteableBitmap(size, size, 96 * dpi, 96 * dpi, PixelFormats.Pbgra32, null);
+            pixels = new int[size * size];
+            scale = dpi;
+        }
+        Array.Clear(pixels);
+        double clip = (K - 3) * scale, cx = K * scale;
         double rot = s * (.2 + energy * 2.7), cr = Math.Cos(rot), sr = Math.Sin(rot), ct = Math.Cos(.35), st = Math.Sin(.35);
         foreach (var (x0, y0, z0, ph) in Points)
         {
@@ -83,10 +99,37 @@ public sealed class NovaRing : FrameworkElement
             var y2 = y * ct - z * st; z = y * st + z * ct; y = y2;
             double d = Math.Clamp((z + 1.3) / 2.3, 0, 1), m = Math.Clamp((x + 1) / 2, 0, 1);
             var alpha = Math.Min(1, (.04 + d * .3) * (.5 + energy * 1.4));
-            var size = .45 + d * 1.05;
-            dc.DrawEllipse(Dots[(int)(m * (Tones - 1) + .5), (int)(alpha * (Alphas - 1) + .5)], null, new Point(K + x * SR, K + y * SR), size, size);
+            var r = (.45 + d * 1.05) * scale;
+            var tone = (int)(m * (Tones - 1) + .5) / (Tones - 1.0);
+            Dot(cx + x * SR * scale, cx + y * SR * scale, r, (int)(alpha * (Alphas - 1) + .5) / (Alphas - 1.0),
+                Lila.R + (Beere.R - Lila.R) * tone, Lila.G + (Beere.G - Lila.G) * tone, Lila.B + (Beere.B - Lila.B) * tone, cx, clip, size);
         }
-        dc.Pop();
+        bitmap.WritePixels(new Int32Rect(0, 0, size, size), pixels, size * 4, 0);
+        dc.DrawImage(bitmap, new Rect(0, 0, size / scale, size / scale));
+    }
+
+    void Dot(double px, double py, double r, double a, double cR, double cG, double cB, double c, double clip, int size)
+    {
+        int x0 = Math.Max(0, (int)(px - r - 1)), x1 = Math.Min(size - 1, (int)(px + r + 1));
+        int y0 = Math.Max(0, (int)(py - r - 1)), y1 = Math.Min(size - 1, (int)(py + r + 1));
+        // kleine Punkte nicht unter einem halben Pixel Radius, damit sie nicht flackern
+        var rr = Math.Max(r, .5);
+        for (var y = y0; y <= y1; y++)
+            for (var x = x0; x <= x1; x++)
+            {
+                double fx = x + .5, fy = y + .5;
+                double dx = fx - c, dy = fy - c, edge = clip - Math.Sqrt(dx * dx + dy * dy) + .5;
+                if (edge <= 0) continue;
+                dx = fx - px; dy = fy - py;
+                var cov = Math.Clamp(rr - Math.Sqrt(dx * dx + dy * dy) + .5, 0, 1) * Math.Min(1, edge) * a;
+                if (cov <= 0) continue;
+                var i = y * size + x;
+                var o = pixels[i];
+                double k = 1 - cov;
+                int A = (int)(cov * 255 + ((o >> 24) & 255) * k + .5), R = (int)(cov * cR + ((o >> 16) & 255) * k + .5),
+                    G = (int)(cov * cG + ((o >> 8) & 255) * k + .5), B = (int)(cov * cB + (o & 255) * k + .5);
+                pixels[i] = A << 24 | R << 16 | G << 8 | B;
+            }
     }
 
     static (double, double, double, double)[] Build()
@@ -99,20 +142,6 @@ public sealed class NovaRing : FrameworkElement
             points[i] = (Math.Cos(t) * r, y, Math.Sin(t) * r, random.NextDouble() * 6.28);
         }
         return points;
-    }
-
-    // Lila nach Beere in acht Tönen, je sechzehn Deckkraftstufen
-    static Brush[,] BuildDots()
-    {
-        var dots = new Brush[Tones, Alphas];
-        for (var t = 0; t < Tones; t++)
-            for (var a = 0; a < Alphas; a++)
-            {
-                var m = t / (Tones - 1.0);
-                byte Mix(byte l, byte b) => (byte)(l * (1 - m) + b * m);
-                dots[t, a] = Frozen(new SolidColorBrush(Color.FromArgb((byte)(255.0 * a / (Alphas - 1)), Mix(Lila.R, Beere.R), Mix(Lila.G, Beere.G), Mix(Lila.B, Beere.B))));
-            }
-        return dots;
     }
 
     static T Frozen<T>(T f) where T : Freezable { f.Freeze(); return f; }
