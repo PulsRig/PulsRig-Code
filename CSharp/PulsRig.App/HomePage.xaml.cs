@@ -277,6 +277,10 @@ public partial class HomePage : UserControl, IPage
         void Frame(object? sender, EventArgs e)
         {
             var s = clock.Elapsed.TotalSeconds;
+            // Sparen ohne sichtbaren Unterschied: minimiert nichts zeichnen, im Leerlauf höchstens 30 Bilder je Sekunde
+            // (520 Partikel je Bild kosteten bei 60 Bildern fast einen halben Prozessorkern); der Scan läuft voll
+            if (Window.GetWindow(this) is { WindowState: WindowState.Minimized }) return;
+            if (!scanning && s - last < 1 / 30.0 - .003) return;
             // auf 60 Bilder je Sekunde bezogen wie requestAnimationFrame im HUD, damit langsame Bildschirme nicht langsamer drehen
             var step = Math.Clamp((s - last) * 60, 0, 4);
             last = s;

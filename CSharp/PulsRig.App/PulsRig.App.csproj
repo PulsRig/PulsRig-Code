@@ -16,6 +16,9 @@
     <ApplicationIcon>..\..\PulsRig.ico</ApplicationIcon>
     <!-- nur für das Fenster der Grafiklast (PulsRig-Last.cs) -->
     <UseWindowsForms>true</UseWindowsForms>
+    <!-- nur deutsche Meldungen von WPF/WinForms mitliefern (die App spricht Deutsch und Englisch): spart elf
+         Sprachordner mit zusammen rund 9 MB -->
+    <SatelliteResourceLanguages>de</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>

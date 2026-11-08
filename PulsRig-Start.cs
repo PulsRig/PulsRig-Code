@@ -268,15 +268,62 @@ static class PulsRigHelper
         else StartWork("-Boost Ein", "boost-ein");
     }
 
+    // Läuft ein Programm dieses Namens (ohne ".exe", Groß/klein egal)? Früher rief der Helfer dafür je Spiel
+    // Process.GetProcessesByName auf, das jedes Mal alle Prozesse samt Threads abfragt und Process-Objekte anlegt.
+    // Jetzt holt er je Takt einmal nur die Namen (Toolhelp-Schnappschuss) und vergleicht dann in der Liste.
+    static HashSet<string> runningNames;
+
+    static bool IsRunning(string game)
+    {
+        if (runningNames == null) runningNames = ProcessNames();
+        return runningNames.Contains(game);
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    struct ProcessEntry
+    {
+        public uint dwSize, cntUsage, th32ProcessID;
+        public IntPtr th32DefaultHeapID;
+        public uint th32ModuleID, cntThreads, th32ParentProcessID;
+        public int pcPriClassBase;
+        public uint dwFlags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string szExeFile;
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)] static extern IntPtr CreateToolhelp32Snapshot(uint flags, uint processId);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern bool Process32FirstW(IntPtr snapshot, ref ProcessEntry entry);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern bool Process32NextW(IntPtr snapshot, ref ProcessEntry entry);
+    [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
+
+    static HashSet<string> ProcessNames()
+    {
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        IntPtr snapshot = CreateToolhelp32Snapshot(2 /* TH32CS_SNAPPROCESS */, 0);
+        if (snapshot == IntPtr.Zero || snapshot == new IntPtr(-1))
+        {
+            // Rückfall wie früher
+            foreach (Process process in Process.GetProcesses()) { try { names.Add(process.ProcessName); } catch { } process.Dispose(); }
+            return names;
+        }
+        try
+        {
+            var entry = new ProcessEntry { dwSize = (uint)Marshal.SizeOf(typeof(ProcessEntry)) };
+            for (bool more = Process32FirstW(snapshot, ref entry); more; more = Process32NextW(snapshot, ref entry))
+            {
+                // wie Process.ProcessName: nur ".exe" abschneiden, damit "BeamNG.drive.x64" erhalten bleibt
+                string name = entry.szExeFile ?? "";
+                if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) name = name.Substring(0, name.Length - 4);
+                if (name.Length > 0) names.Add(name);
+            }
+        }
+        finally { CloseHandle(snapshot); }
+        return names;
+    }
+
     // das erste der aufzuzeichnenden Spiele, das gerade läuft, sonst null
     static string RunningGame()
     {
-        foreach (string game in RecordedGames())
-        {
-            Process[] found = Process.GetProcessesByName(game);
-            foreach (Process process in found) process.Dispose();
-            if (found.Length > 0) return game;
-        }
+        foreach (string game in RecordedGames()) if (IsRunning(game)) return game;
         return null;
     }
 
@@ -313,7 +360,7 @@ static class PulsRigHelper
         }
         string game = PulsRigRecorder.Game;
         bool still = false;
-        try { Process[] found = Process.GetProcessesByName(game); foreach (Process process in found) process.Dispose(); still = found.Length > 0; } catch { }
+        try { still = IsRunning(game); } catch { }
         if (still && wanted) { recordMissing = 0; return; }
         recordMissing++;
         if (recordMissing >= 3 || !wanted) StopRecording(wanted ? "Spiel beendet" : "abgeschaltet");
@@ -321,6 +368,7 @@ static class PulsRigHelper
 
     static void Tick()
     {
+        runningNames = null;   // je Takt höchstens eine Liste der laufenden Programme
         ReadSettings();
         if (!Flag("Helper", false)) { Application.Exit(); return; }   // in PulsRig abgeschaltet
         // vor allem anderen: auch während der Boost umschaltet, läuft die Aufzeichnung weiter
@@ -342,12 +390,7 @@ static class PulsRigHelper
         if (admin && Flag("AutoBoost", false))
         {
             string running = null;
-            foreach (string game in Games())
-            {
-                Process[] found = Process.GetProcessesByName(game);
-                foreach (Process process in found) process.Dispose();
-                if (found.Length > 0) { running = game; break; }
-            }
+            foreach (string game in Games()) if (IsRunning(game)) { running = game; break; }
             if (autoGame == null && running != null && !File.Exists(statePath))
             {
                 Log("Helfer: " + running + " gestartet");

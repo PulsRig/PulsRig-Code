@@ -102,7 +102,7 @@
     </Style>
 
     <!-- blinkender Punkt (.p-blink) -->
-    <Storyboard x:Key="Blinken" RepeatBehavior="Forever">
+    <Storyboard x:Key="Blinken" RepeatBehavior="Forever" Timeline.DesiredFrameRate="30">
         <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity">
             <EasingDoubleKeyFrame KeyTime="0:0:0" Value="1"/>
             <EasingDoubleKeyFrame KeyTime="0:0:0.8" Value="0.35"><EasingDoubleKeyFrame.EasingFunction><SineEase EasingMode="EaseInOut"/></EasingDoubleKeyFrame.EasingFunction></EasingDoubleKeyFrame>
