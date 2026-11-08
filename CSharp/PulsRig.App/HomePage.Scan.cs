@@ -125,8 +125,10 @@ public partial class HomePage
         CompositionTarget.Rendering -= MoveRing;
         // Wellen und Fortschritt weg, der volle Ring bleibt stehen
         ScanFx.Children.Clear();
-        ScanFx.Children.Add(new Path { Data = Circle(120, 120, 108), Stroke = (Brush)FindResource("Puls"), StrokeThickness = 3,
-            Effect = new DropShadowEffect { BlurRadius = 6, ShadowDepth = 0, Color = Hex("#A8326F") } });
+        // Schein als breiter, blasser Strich darunter statt DropShadowEffect: der Effekt läge über dem animierten
+        // Puls-Ring und müsste jedes Bild neu gerechnet werden – danach ruckelte der Ring
+        ScanFx.Children.Add(new Path { Data = Circle(120, 120, 108), Stroke = new SolidColorBrush(Hex("#33A8326F")), StrokeThickness = 9 });
+        ScanFx.Children.Add(new Path { Data = Circle(120, 120, 108), Stroke = (Brush)FindResource("Puls"), StrokeThickness = 3 });
         Burst();
         ScanLabel.Text = "SCAN";
         ScanSub.Text = "Erneut prüfen";

@@ -1,3 +1,7 @@
+## Neu in 1.0.2
+
+- Der Ring auf der Startseite läuft nach dem Scan wieder flüssig, auch auf Bildschirmen mit 120 oder 144 Hz.
+
 ## Neu in 1.0.1
 
 - Die Startseite braucht deutlich weniger Prozessor, der Helfer neben der Uhr ebenfalls.

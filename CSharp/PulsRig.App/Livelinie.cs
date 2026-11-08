@@ -70,7 +70,7 @@ sealed class Livelinie : FrameworkElement
     {
         // 30 Bilder je Sekunde im selben Takt wie der Puls-Ring: die Linie rückt je Bild nur Bruchteile eines Pixels,
         // und beide landen im selben Zeichenvorgang des Fensters (60 Bilder je Sekunde kosteten hier den größten Teil)
-        if (pushed == DateTime.MinValue || !Bildtakt.Neu(ref bucket)) return;
+        if (pushed == DateTime.MinValue || !Bildtakt.Neu(ref bucket, e)) return;
         InvalidateVisual();
         if (Progress >= 1) pushed = DateTime.MinValue;
     }

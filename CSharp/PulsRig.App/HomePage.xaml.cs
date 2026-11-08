@@ -281,7 +281,8 @@ public partial class HomePage : UserControl, IPage
             // Sparen ohne sichtbaren Unterschied: minimiert nichts zeichnen, im Leerlauf höchstens 30 Bilder je Sekunde
             // (520 Partikel je Bild kosteten bei 60 Bildern fast einen halben Prozessorkern); der Scan läuft voll
             if (Window.GetWindow(this) is { WindowState: WindowState.Minimized }) return;
-            if (!scanning && !Bildtakt.Neu(ref bucket)) return;
+            // nach dem Scan erst auf 30 Bilder, wenn der Ring wieder ruhig läuft: schnell drehend sähe man den Abfall
+            if (!scanning && energy < .06 && !Bildtakt.Neu(ref bucket, e)) return;
             // auf 60 Bilder je Sekunde bezogen wie requestAnimationFrame im HUD, damit langsame Bildschirme nicht langsamer drehen
             var step = Math.Clamp((s - last) * 60, 0, 4);
             last = s;
