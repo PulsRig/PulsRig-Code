@@ -1,3 +1,10 @@
+## Neu in 1.0.1
+
+- Die Startseite braucht deutlich weniger Prozessor, der Helfer neben der Uhr ebenfalls.
+- Der Helfer erkennt Spiele mit Punkten im Namen vollständig (zum Beispiel BeamNG.drive).
+- Der Hinweis zum Treiberkatalog verschwindet, wenn Windows den älteren Treiber bewusst behält.
+- Status-Abzeichen dezenter im Stil der Titelleiste; der Adminhinweis hat jetzt Schild und Knopf.
+
 ## Neu in 0.7 Beta
 
 **Neue Oberfläche**
