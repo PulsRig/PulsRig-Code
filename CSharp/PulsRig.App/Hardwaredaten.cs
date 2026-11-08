@@ -13,6 +13,8 @@ static class Hw
     public static List<Bildschirm>? Displays { get; private set; }
     public static AbsturzDaten? Crashes { get; private set; }
     public static event Action? Changed;
+    // wann das Ereignisprotokoll zuletzt gelesen wurde: die Startseite liest es nur neu, wenn das länger her ist
+    public static DateTime CrashesAt { get; private set; }
 
     static readonly HashSet<string> Running = new();
 
@@ -44,7 +46,7 @@ static class Hw
                         if (Drives is { } d) Task.Run(() => Verschleissdaten.AddDrives(d));
                         break;
                     case "display": Displays = result as List<Bildschirm>; break;
-                    case "crash": Crashes = result as AbsturzDaten; break;
+                    case "crash": Crashes = result as AbsturzDaten; CrashesAt = DateTime.UtcNow; break;
                 }
                 Changed?.Invoke();
             });

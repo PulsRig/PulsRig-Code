@@ -59,7 +59,7 @@ static class Werkzeuglauf
         {
             string message;
             try { message = work(); } catch (Exception e) { message = Fehlermeldung.Text(e); }
-            ui.BeginInvoke(() => { State[key] = (false, message); Changed?.Invoke(); });
+            ui.BeginInvoke(() => { ForgetBackups(); State[key] = (false, message); Changed?.Invoke(); });
         }) { IsBackground = true };
         // Windows Update (Treiberverlauf) und WScript.Shell (Autostart) sprechen COM und wollen einen STA-Thread
         thread.SetApartmentState(ApartmentState.STA);
@@ -94,11 +94,21 @@ static class Werkzeuglauf
     }
 
     // Sicherungen, die PulsRig angelegt hat (von Hand oder automatisch vor einem Update), neueste zuerst
+    // Die Suche liest jede Datei der Sicherungen (eine halbe Sekunde auf dem Oberflächen-Thread) und die Werkzeug-Seite
+    // fragt beim Aufbau dreimal: deshalb gemerkt, bis sich einer der Ordner ändert, ein Werkzeug fertig wird oder 5 Minuten um sind
+    static (List<DirectoryInfo> List, DateTime Stamp, DateTime At)? backupCache;
+    public static void ForgetBackups() => backupCache = null;
+
     public static List<DirectoryInfo> BackupFolders()
     {
         try
         {
-            return Sicherungsablage.Find(Backups, Altdaten.Folder);
+            static DateTime Stamp(string dir) => Directory.Exists(dir) ? Directory.GetLastWriteTimeUtc(dir) : DateTime.MinValue;
+            var stamp = new[] { Stamp(Backups), Stamp(Altdaten.Folder) }.Max();
+            if (backupCache is { } c && c.Stamp == stamp && DateTime.UtcNow - c.At < TimeSpan.FromMinutes(5)) return c.List.ToList();
+            var list = Sicherungsablage.Find(Backups, Altdaten.Folder);
+            backupCache = (list, stamp, DateTime.UtcNow);
+            return list.ToList();
         }
         catch (Exception) { return new(); }
     }

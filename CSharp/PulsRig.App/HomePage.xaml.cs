@@ -41,7 +41,7 @@ public partial class HomePage : UserControl, IPage
         ((Storyboard)FindResource("Blinken")).Begin(GpuLiveDot, true);
         SetBoost(!demo && Spielboost.IsOn);
         Fill();
-        Loaded += (_, _) => { StartLive(); if (!demo) { Hw.Changed += FillStability; Hw.Load("crash", again: true); FillStability(); } };
+        Loaded += (_, _) => { StartLive(); if (!demo) { Hw.Changed += FillStability; Hw.Load("crash", again: DateTime.UtcNow - Hw.CrashesAt > TimeSpan.FromMinutes(2)); FillStability(); } };
         Unloaded += (_, _) => { Stop(); Hw.Changed -= FillStability; };
         Loaded += (_, _) => Probezeitlauf.Changed += FillScanResult;
         Unloaded += (_, _) => Probezeitlauf.Changed -= FillScanResult;

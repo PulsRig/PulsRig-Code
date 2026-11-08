@@ -44,7 +44,9 @@ namespace PulsRig.Core
             try
             {
                 string category = load?.CategoryName ?? "Processor";
-                string counterName = load?.CounterName ?? "% Processor Time";
+                // je Kern die belegte Zeit, nicht "% Processor Utility": die rechnet den Turbotakt mit ein und lag bei
+                // einem Kern schon über 100 %, wenn er nur kurz (etwa beim Seitenwechsel) zu 85 % beschäftigt war
+                string counterName = "% Processor Time";
                 foreach (string instance in new PerformanceCounterCategory(category).GetInstanceNames())
                 {
                     if (instance.Contains("_Total")) continue;

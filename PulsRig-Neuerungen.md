@@ -1,3 +1,8 @@
+## Neu in 1.0.3
+
+- Seitenwechsel brauchen weniger Prozessor: die Messung läuft durch, statt jedes Mal neu zu starten.
+- Die Sensoren-Seite zeigt beim stärksten Kern die echte Auslastung; vorher stand dort beim Seitenwechsel oft fälschlich 100 %.
+
 ## Neu in 1.0.2
 
 - Der Ring auf der Startseite läuft nach dem Scan wieder flüssig, auch auf Bildschirmen mit 120 oder 144 Hz.

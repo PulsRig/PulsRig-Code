@@ -30,7 +30,8 @@ static class Live
     {
         lock (Gate)
         {
-            if (users++ > 0) return;
+            // läuft noch aus der Pause nach dem letzten Release: einfach weiter
+            if (users++ > 0 || stop != null) return;
             stop = new CancellationTokenSource();
             var token = stop.Token;
             Task.Run(() => Run(token), token);
@@ -42,8 +43,20 @@ static class Live
         lock (Gate)
         {
             if (users == 0 || --users > 0) return;
-            stop?.Cancel();
-            Interlocked.Exchange(ref messung, null)?.Dispose();
+            // erst nach einer Pause beenden: beim Seitenwechsel gibt die alte Seite frei, kurz bevor die neue wieder
+            // anfordert. Ein Neustart (nvidia-smi, ein Zähler je Kern, LibreHardwareMonitor) kostet selbst so viel
+            // Prozessor, dass die neue Seite gleich danach bis zu 100 % Last anzeigte.
+            var pending = stop;
+            Task.Delay(5000).ContinueWith(_ =>
+            {
+                lock (Gate)
+                {
+                    if (users > 0 || stop != pending) return;
+                    stop?.Cancel();
+                    stop = null;
+                    Interlocked.Exchange(ref messung, null)?.Dispose();
+                }
+            });
         }
     }
 
@@ -54,6 +67,7 @@ static class Live
         {
             users = 0;
             stop?.Cancel();
+            stop = null;
             Interlocked.Exchange(ref messung, null)?.Dispose();
             try { PulsRigCpuTemp.Close(); } catch (Exception) { }
         }
