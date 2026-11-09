@@ -17,51 +17,70 @@ sealed class WerkzeugePage : UserControl, IPage
     sealed record Werkzeug(string Name, string Sub, string? Bridge = null, string? Page = null, bool Native = false);
     sealed record Absicht(string Id, string Title, string Sub, string Color, string Tint, int Span, string Icon, Werkzeug[] Tools);
 
+    // Reihenfolge = Kacheln der Übersicht (3 Spalten, rechts in Zeile 2 die Empfehlung) und Bereiche der Seitenleiste
     static readonly Absicht[] Absichten =
     {
-        new("repair", "Etwas reparieren", "Kein Ton, kein Netz, falsches Bild, Geräte mit Warnzeichen oder alte Einträge, oder der PC wacht nachts auf.", Beere, "#1F0A19", 2,
+        new("repair", "Hilfe bei Problemen", "Kein Ton, kein Netz, falsches Bild, Ruckler, Abstürze oder Geräte mit Warnzeichen, oder der PC wacht nachts auf.", Beere, "#1F0A19", 2,
             "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z", new Werkzeug[]
             {
                 // von A bis Z; der geführte Einstieg ("Was ist los?") steht als Knopf links in der Absicht
+                new("Abstürze", "Bluescreens und abgestürzte Programme mit Ursache", Page: "crash"),
                 new("Bildauflösung reparieren", "Grafiktreiber und empfohlene Auflösung prüfen", "FixResolution"),
-                new("Gerätedaten bereinigen", "Einträge längst abgesteckter Hardware entfernen", "CleanDevices"),
                 new("Gerätefehler reparieren", "Geräte mit gelbem Warnzeichen neu einrichten, auch die aus dem Treiber-Scan", "FixDevices"),
                 new("Netzwerk reparieren", "Erst per Ping messen, ob es zu Hause oder beim Anbieter hakt, dann in Stufen reparieren", "FixNetwork"),
+                new("Ping-Test", "Messen, ob die Verbindung zu Hause oder beim Anbieter hakt", Page: "ping"),
+                new("Ruckler-Detektiv", "Was beim Spielen dazwischengefunkt hat: Hintergrundprogramme, Scans, Updates", Page: "stutter"),
                 new("Standby-Detektiv", "Warum der PC aufwacht oder wach bleibt", "Standby"),
                 new("Ton reparieren", "Dienste, Stummschaltung und Ausgabegerät prüfen", "FixAudio"),
             }),
-        new("clean", "Aufräumen", "Speicherplatz und Autostart.", Gruen, "#10291F", 1,
+        new("manage", "Treiber & Sicherung", "Treiber prüfen, sichern, zurückholen und die Kernisolierung.", Lila, "#160D29", 1,
+            "M5 4h11l3 3v13H5z M8 4v5h7V4 M8 20v-6h8v6", new Werkzeug[]
+            {
+                new("Treiber-Scan", "Veraltete Treiber und Spiel-Laufzeiten finden und aktualisieren", Page: "drivers"),
+                new("Treiber sichern", "Alle Treiber von Drittherstellern sichern, mit ZIP-Datei", Native: true),
+                new("Treiber zurückholen", "Eine Sicherung wieder einspielen", Native: true),
+                new("Einzelnen Treiber sichern", "Das Treiberpaket eines Geräts in einen eigenen Ordner kopieren", Page: "single"),
+                new("Inkompatible Treiber", "Was die Kernisolierung blockiert", "IncompatibleDrivers"),
+            }),
+        new("pc", "Mein PC", "Hardware, Laufwerke, Temperaturen, Akku, Eingabegeräte und Systeminfos.", Lila, "#160D29", 1,
+            "M6 6h12v12H6z M9 2v4 M15 2v4 M9 18v4 M15 18v4 M2 9h4 M2 15h4 M18 9h4 M18 15h4", new Werkzeug[]
+            {
+                new("Hardware", "Grafikkarte, Prozessor, Arbeitsspeicher und Bildschirm im Detail", Page: "hw"),
+                new("Laufwerke", "Zustand, Belegung und was Platz frisst", Page: "drives"),
+                new("Temperaturen & Sitzungen", "Sensoren live und aufgezeichnete Spielsitzungen", Page: "sensors"),
+                new("Akku", "Kapazität und Verschleiß beim Laptop", Page: "battery"),
+                new("Controller und Maus", "Tasten, Stick-Drift, Abfragerate und ungewollte Doppelklicks prüfen", Page: "input"),
+                new("Systeminformationen", "Hardware und Windows im Überblick", "SystemInfo"),
+            }),
+        new("games", "Spielen & Leistung", "Boost, Gaming-Check, Messen, Aufrüsten und Stromverbrauch.", Bernstein, "#2A2112", 1,
+            "M7 8h10a4.5 4.5 0 0 1 0 9H7a4.5 4.5 0 0 1 0-9z M8 11v3 M6.5 12.5h3 M15 12h.01 M17 14h.01", new Werkzeug[]
+            {
+                new("Boost", "Beim Spielen Hintergrund-Dienste anhalten und Leistung hochfahren", Page: "boost"),
+                new("Gaming-Check", "Bildschirm-Hz, Resizable BAR, Spielmodus und mehr", "GamingCheck"),
+                new("Spieleliste für Boost", "Welche Spiele Boost und Aufzeichnung bekommen", "Games"),
+                new("Benchmark", "Prozessor und Grafikkarte messen und mit früher vergleichen", Page: "bench"),
+                new("Stabilitätstest", "Prozessor, Grafikkarte und Speicher unter Last prüfen", Page: "stress"),
+                new("Aufrüst-Berater", "Eine Minute im Spiel messen, was bremst, und was sich zum Aufrüsten lohnt", Page: "upgrade"),
+                new("Stromverbrauch", "Watt und Stromkosten im Jahr, dazu der FPS-Limit-Vergleich", Page: "power"),
+                new("Spiel-Laufzeiten (VC++, DirectX)", "Visual C++, DirectX und XNA prüfen und nachinstallieren, im Treiber-Scan", Page: "drivers"),
+            }),
+        new("clean", "Aufräumen", "Speicherplatz, Autostart und alte Geräteeinträge.", Gruen, "#10291F", 1,
             "M4 7h16 M10 11v6 M14 11v6 M6 7l1 13h10l1-13 M9 7V4h6v3", new Werkzeug[]
             {
                 new("Speicherplatz freigeben", "Temporäre Dateien, Shader-Cache, alte Treiberpakete", "CleanDisk"),
                 new("Autostart aufräumen", "Programme, die mit Windows starten", "Autostart"),
+                new("Gerätedaten bereinigen", "Einträge längst abgesteckter Hardware entfernen", "CleanDevices"),
             }),
-        new("manage", "Treiber verwalten", "Sichern, zurückholen, Änderungen, Scheckheft und Kernisolierung.", Lila, "#160D29", 1,
-            "M5 4h11l3 3v13H5z M8 4v5h7V4 M8 20v-6h8v6", new Werkzeug[]
+        new("history", "Verlauf & Rückgängig", "Was PulsRig geändert hat, was sich am PC geändert hat, Scheckheft und Berichte.", Lila, "#160D29", 1,
+            "M12 8v4l3 2 M3 12a9 9 0 1 0 3-6.7 M3 4v4h4", new Werkzeug[]
             {
-                new("Treiber sichern", "Alle Treiber von Drittherstellern sichern, mit ZIP-Datei", Native: true),
-                new("Treiber zurückholen", "Eine Sicherung wieder einspielen", Native: true),
-                new("Einzelnen Treiber sichern", "Das Treiberpaket eines Geräts in einen eigenen Ordner kopieren", Page: "single"),
                 new("Rückgängig-Zentrale", "Alles, was PulsRig geändert hat, an einer Stelle zurücknehmen", Page: "undo"),
                 new("Was hat sich geändert?", "Windows, Programme, Autostart und Treiber vergleichen, dazu der Treiberverlauf", Page: "changes"),
                 new("PC-Scheckheft", "Tests, Treiber, Aufrüstungen und Reinigungen über Jahre, als Bericht zum Verkauf", Page: "logbook"),
-                new("Inkompatible Treiber", "Was die Kernisolierung blockiert", "IncompatibleDrivers"),
+                new("Bericht & Diagnose", "Alles Wichtige über den PC als Bericht, etwa für den Support", Page: "report"),
+                new("Gebrauchtkauf-Check", "Einen gebrauchten PC oder Laptop vor dem Kauf prüfen", Page: "usedcheck"),
             }),
-        new("games", "Fürs Spielen", "Spiel-Laufzeiten, Gaming-Check, Messen und Systeminfos.", Bernstein, "#2A2112", 1,
-            "M7 8h10a4.5 4.5 0 0 1 0 9H7a4.5 4.5 0 0 1 0-9z M8 11v3 M6.5 12.5h3 M15 12h.01 M17 14h.01", new Werkzeug[]
-            {
-                new("Spiel-Laufzeiten (VC++, DirectX)", "Visual C++, DirectX und XNA prüfen und nachinstallieren, im Treiber-Scan", Page: "drivers"),
-                new("Benchmark", "Prozessor und Grafikkarte messen und mit früher vergleichen", Page: "bench"),
-                new("Aufrüst-Berater", "Eine Minute im Spiel messen, was bremst, und was sich zum Aufrüsten lohnt", Page: "upgrade"),
-                new("Stromverbrauch", "Watt und Stromkosten im Jahr, dazu der FPS-Limit-Vergleich", Page: "power"),
-                new("Temperaturen & Sitzungen", "Sensoren live und aufgezeichnete Spielsitzungen", Page: "sensors"),
-                new("Ruckler-Detektiv", "Was beim Spielen dazwischengefunkt hat: Hintergrundprogramme, Scans, Updates", Page: "stutter"),
-                new("Gaming-Check", "Bildschirm-Hz, Resizable BAR, Spielmodus und mehr", "GamingCheck"),
-                new("Spieleliste für Boost", "Welche Spiele Boost und Aufzeichnung bekommen", "Games"),
-                new("Controller und Maus", "Tasten, Stick-Drift, Abfragerate und ungewollte Doppelklicks prüfen", Page: "input"),
-                new("Systeminformationen", "Hardware und Windows im Überblick", "SystemInfo"),
-            }),
-        new("rescue", "Neuinstallation & Notfall", "Windows neu aufsetzen, ohne Internet einspielen oder vom USB-Stick retten.", Lila, "#160D29", 3,
+        new("rescue", "Notfall", "Windows neu aufsetzen, ohne Internet einspielen oder vom USB-Stick retten.", Lila, "#160D29", 1,
             "M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z M12 8v5 M12 16h.01", new Werkzeug[]
             {
                 new("Neuinstallation", "Vorher Treiber und Programmliste sichern, danach geführt einspielen", Page: "reinstall"),
@@ -155,12 +174,13 @@ sealed class WerkzeugePage : UserControl, IPage
         var cards = new Grid();
         root.Children.Add(new ScrollViewer { Content = cards, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
         for (var i = 0; i < 3; i++) cards.ColumnDefinitions.Add(new ColumnDefinition());
-        for (var i = 0; i < 3; i++) cards.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        for (var i = 0; i < 4; i++) cards.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         int col = 0, row = 0;
         var tiles = new List<UIElement>();
         foreach (var a in Absichten)
         {
             if (col + a.Span > 3) { col = 0; row++; }
+            if (row == 1 && col == 2) { col = 0; row++; } // dort steht die Empfehlung
             var tile = IntentTile(a);
             Grid.SetColumn(tile, col);
             Grid.SetRow(tile, row);

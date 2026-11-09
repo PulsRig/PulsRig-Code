@@ -175,7 +175,7 @@ sealed class RucklerPage : UserControl, IPage
             case "defender": Open("windowsdefender://threatsettings"); break;
             case "update": Open("ms-settings:windowsupdate-activehours"); break;
             case "boost": main.GoTop("boost"); break;
-            case "clean": main.GoTop("tools"); main.Go("clean"); break;
+            case "clean": main.GoTop("clean"); break;
             case "scan": main.GoTop("home"); Treiberscan.Start(); break;
             case "drives": main.GoTop("hw"); main.Go("drives"); break;
             case "gamingcheck": WerkzeugePage.FocusTool = "Gaming-Check"; main.Go("games"); Werkzeuglauf.Check("games:Gaming-Check", "GamingCheck"); break;

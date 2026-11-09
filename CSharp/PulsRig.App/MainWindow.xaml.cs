@@ -13,18 +13,23 @@ public partial class MainWindow : Window
 {
     static readonly Dictionary<string, string> Names = new()
     {
-        ["home"] = "Scan", ["boost"] = "Boost", ["tools"] = "Werkzeuge", ["hw"] = "Hardware", ["opt"] = "Optionen", ["boostsetup"] = "Einrichten", ["ping"] = "Ping-Test", ["power"] = "Stromverbrauch", ["bench"] = "Benchmark", ["sensors"] = "Sensoren",
+        ["home"] = "Übersicht", ["boost"] = "Boost", ["tools"] = "Werkzeuge", ["hw"] = "Hardware", ["opt"] = "Optionen", ["boostsetup"] = "Einrichten", ["ping"] = "Ping-Test", ["power"] = "Stromverbrauch", ["bench"] = "Benchmark", ["sensors"] = "Sensoren",
         ["drives"] = "Laufwerke", ["gpu"] = "Grafikkarte", ["cpu"] = "Prozessor", ["ram"] = "Arbeitsspeicher", ["stress"] = "Stabilitätstest",
         ["display"] = "Bildschirm", ["crash"] = "Abstürze", ["report"] = "Bericht & Diagnose", ["drivers"] = "Treiber",
-        ["repair"] = "Etwas reparieren", ["problem"] = "Was ist los?", ["input"] = "Controller und Maus", ["battery"] = "Akku", ["reinstall"] = "Neuinstallation", ["stick"] = "Notfall-Stick", ["usedcheck"] = "Gebrauchtkauf-Check",["upgrade"] = "Aufrüst-Berater",["clean"] = "Aufräumen", ["manage"] = "Treiber verwalten", ["games"] = "Fürs Spielen", ["rescue"] = "Neuinstallation & Notfall", ["changes"] = "Was hat sich geändert?", ["undo"] = "Rückgängig-Zentrale", ["logbook"] = "PC-Scheckheft", ["stutter"] = "Ruckler-Detektiv", ["single"] = "Einzelnen Treiber sichern",
+        ["repair"] = "Hilfe bei Problemen", ["problem"] = "Was ist los?", ["input"] = "Controller und Maus", ["battery"] = "Akku", ["reinstall"] = "Neuinstallation", ["stick"] = "Notfall-Stick", ["usedcheck"] = "Gebrauchtkauf-Check",["upgrade"] = "Aufrüst-Berater",["clean"] = "Aufräumen", ["manage"] = "Treiber & Sicherung", ["games"] = "Spielen & Leistung", ["rescue"] = "Notfall", ["pc"] = "Mein PC", ["history"] = "Verlauf & Rückgängig", ["changes"] = "Was hat sich geändert?", ["undo"] = "Rückgängig-Zentrale", ["logbook"] = "PC-Scheckheft", ["stutter"] = "Ruckler-Detektiv", ["single"] = "Einzelnen Treiber sichern",
     };
 
+    // Seitenleiste: die Bereiche aus WerkzeugePage.Absichten, jedes Werkzeug steht in genau einem davon
     static readonly (string Id, string Label, string Icon)[] RailDefs =
     {
-        ("home", "Scan", "M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14 M20 20l-4-4"),
-        ("boost", "Boost", "M4 16a8 8 0 1 1 16 0 M12 16l4-5"),
-        ("tools", "Werkzeuge", "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"),
-        ("hw", "Hardware", "M6 6h12v12H6z M9 2v4 M15 2v4 M9 18v4 M15 18v4 M2 9h4 M2 15h4 M18 9h4 M18 15h4"),
+        ("home", "Übersicht", "M3 11l9-7 9 7 M5 10v10h14V10 M10 20v-6h4v6"),
+        ("repair", "Probleme", "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"),
+        ("manage", "Treiber", "M5 4h11l3 3v13H5z M8 4v5h7V4 M8 20v-6h8v6"),
+        ("pc", "Mein PC", "M6 6h12v12H6z M9 2v4 M15 2v4 M9 18v4 M15 18v4 M2 9h4 M2 15h4 M18 9h4 M18 15h4"),
+        ("games", "Spielen", "M7 8h10a4.5 4.5 0 0 1 0 9H7a4.5 4.5 0 0 1 0-9z M8 11v3 M6.5 12.5h3 M15 12h.01 M17 14h.01"),
+        ("clean", "Aufräumen", "M4 7h16 M10 11v6 M14 11v6 M6 7l1 13h10l1-13 M9 7V4h6v3"),
+        ("history", "Verlauf", "M12 8v4l3 2 M3 12a9 9 0 1 0 3-6.7 M3 4v4h4"),
+        ("rescue", "Notfall", "M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z M12 8v5 M12 16h.01"),
     };
     const string OptIcon = "M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0 M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2";
 
@@ -72,8 +77,8 @@ public partial class MainWindow : Window
         var grid = new Grid();
         grid.Children.Add(bar);
         grid.Children.Add(inner);
-        var b = new Button { Style = (Style)FindResource("Flach"), Width = 68, Padding = new Thickness(0, 10, 0, 10), Tag = "12",
-            Margin = new Thickness(0, 0, 0, 6), Content = grid, Foreground = (Brush)FindResource("Leise"),
+        var b = new Button { Style = (Style)FindResource("Flach"), Width = 68, Padding = new Thickness(0, 8, 0, 8), Tag = "12",
+            Margin = new Thickness(0, 0, 0, 4), Content = grid, Foreground = (Brush)FindResource("Leise"),
             HorizontalContentAlignment = HorizontalAlignment.Stretch };
         System.Windows.Automation.AutomationProperties.SetName(b, label);
         b.Click += (_, _) => GoTop(id);
@@ -83,7 +88,8 @@ public partial class MainWindow : Window
         return b;
     }
 
-    string Section => stack.Count > 1 ? stack[1] : "home";
+    // markiert ist der Bereich, durch den man gekommen ist (etwa Mein PC › Hardware › Grafikkarte)
+    string Section => stack.Skip(1).FirstOrDefault(railButtons.ContainsKey) ?? "home";
 
     public void Go(string id) { stack.Add(id); Show(true); }
     // neu starten, etwa nach dem Wechsel der Sprache: die Texte werden beim Start geladen
@@ -122,7 +128,7 @@ public partial class MainWindow : Window
             "drives" => new DrivesPage(demo),
             "drivers" => new TreiberPage(this, demo),
             "tools" => new WerkzeugePage(this, null),
-            "repair" or "clean" or "manage" or "games" or "rescue" => new WerkzeugePage(this, cur),
+            "repair" or "clean" or "manage" or "games" or "rescue" or "pc" or "history" => new WerkzeugePage(this, cur),
             "boost" => new BoostPage(this),
             "opt" => new OptionenPage(this),
             "boostsetup" => new BoostSetupPage(this),

@@ -133,7 +133,7 @@ sealed class PingPage : UserControl, IPage
                 list.Children.Add(row);
                 var fix = new Button { Style = (Style)Application.Current.FindResource("Flach"), Height = 34, Padding = new Thickness(14, 0, 14, 0), Tag = "17", HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 10),
                     Background = Ui.Brush("#140C1D"), BorderBrush = Ui.Res("KarteRand"), BorderThickness = new Thickness(1), VerticalContentAlignment = VerticalAlignment.Center, Content = Ui.Text("Netzwerk reparieren", 12, "Text", bold: true) };
-                fix.Click += (_, _) => { WerkzeugePage.FocusTool = "Netzwerk reparieren"; window.GoTop("tools"); window.Go("repair"); Werkzeuglauf.Check("repair:Netzwerk reparieren", "FixNetwork"); };
+                fix.Click += (_, _) => { WerkzeugePage.FocusTool = "Netzwerk reparieren"; window.GoTop("repair"); Werkzeuglauf.Check("repair:Netzwerk reparieren", "FixNetwork"); };
                 list.Children.Add(fix);
             }
             else if (routerTone == "warn")

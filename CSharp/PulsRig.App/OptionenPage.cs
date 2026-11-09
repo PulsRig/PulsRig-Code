@@ -228,7 +228,7 @@ sealed class OptionenPage : UserControl, IPage
         var grid = new Grid { VerticalAlignment = VerticalAlignment.Bottom };
         var items = new (string Name, string Icon, Action Do)[]
         {
-            ("Treiberverlauf", "M12 8v4l3 2 M3 12a9 9 0 1 0 3-6.7 M3 4v4h4", () => { window.GoTop("tools"); window.Go("changes"); }),
+            ("Treiberverlauf", "M12 8v4l3 2 M3 12a9 9 0 1 0 3-6.7 M3 4v4h4", () => { window.GoTop("changes"); }),
             ("Zielordner", "M3 6h6l2 2h10v11H3z", () => { try { System.IO.Directory.CreateDirectory(Werkzeuglauf.Backups); Process.Start(new ProcessStartInfo("explorer.exe", "\"" + Werkzeuglauf.Backups + "\"") { UseShellExecute = true }); } catch (Exception) { } }),
             ("Kurzanleitung", "M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z M20 4h-4a2 2 0 0 0-2 2", () => Bestaetigung.Ask(this, "PulsRig in Kürze",
                 "Scan: fragt Windows Update, NVIDIA, AMD und den Microsoft-Katalog nach neueren Treibern; installiert wird nur nach Rückfrage, vorher entsteht ein Wiederherstellungspunkt.\n\n" +

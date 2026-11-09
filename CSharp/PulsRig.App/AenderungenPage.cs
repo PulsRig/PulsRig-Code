@@ -98,7 +98,7 @@ sealed class AenderungenPage : UserControl, IPage
                 var (action, run) = change.Kind switch
                 {
                     "crashes" => ("Ansehen", (Action?)(() => { main.GoTop("hw"); main.Go("crash"); })),
-                    "autostart" when change.Tone == "warn" => ("Autostart", () => { main.GoTop("tools"); main.Go("clean"); }),
+                    "autostart" when change.Tone == "warn" => ("Autostart", () => { main.GoTop("clean"); }),
                     _ => ("", null),
                 };
                 list.Children.Add(NeuinstallPage.Row(change.Title, change.Sub, change.Tone.Length > 0 ? ("", change.Tone) : null, action, run));

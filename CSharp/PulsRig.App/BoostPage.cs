@@ -218,7 +218,7 @@ sealed class BoostPage : UserControl, IPage
         var gameTile = Tile("Gaming-Check", score is { } sc ? (sc >= 85 ? "gut" : sc >= 60 ? "geht so" : "prüfen") : "", score >= 85 ? Mint : "#F6C989",
             score is { } v ? v + " / 100" : "Prüfen", check != null ? string.Join(" · ", check.Lines.Where(l => !l.Ok).Select(l => l.Label).DefaultIfEmpty("alles grün")) : "Sieben Einstellungen, die fürs Spielen zählen – Tippen prüft", Gruen, "#10291F");
         gameTile.Cursor = System.Windows.Input.Cursors.Hand;
-        gameTile.MouseLeftButtonUp += (_, _) => { window.GoTop("tools"); window.Go("games"); };
+        gameTile.MouseLeftButtonUp += (_, _) => { window.GoTop("games"); };
         tiles.Add(gameTile);
         if (!arrived) Ui.Arrive(tiles);
         arrived = true;

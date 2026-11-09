@@ -244,8 +244,7 @@ sealed class TreiberPage : UserControl, IPage
     void RepairDevices()
     {
         WerkzeugePage.FocusTool = "Gerätefehler reparieren";
-        main.GoTop("tools");
-        main.Go("repair");
+        main.GoTop("repair");
         Werkzeuglauf.Check("repair:Gerätefehler reparieren", "FixDevices");
     }
 
