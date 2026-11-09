@@ -7,7 +7,7 @@ namespace PulsRig.Core
         public const string Name = "PulsRig";
 
         // die Version von PulsRig: PulsRig-Paket.ps1 liest sie hier für Setup und ZIP
-        public const string Version = "1.0.3";
+        public const string Version = "1.0.4";
     }
 }
 

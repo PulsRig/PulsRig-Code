@@ -9,6 +9,9 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <!-- Speicher-Analyse braucht EnumerationOptions, nur die neue Oberfläche nutzt sie -->
+    <Compile Remove="Platzanalyse.cs" />
+    <Compile Remove="Rueckgaengig.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">

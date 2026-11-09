@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Management;
 using System.Windows;
@@ -14,7 +14,7 @@ sealed class EinzeltreiberPage : UserControl, IPage
 {
     const string Lila = "#8C6BD6";
 
-    sealed record Paket(string Inf, string Names, string Version, string Provider);
+    sealed record Paket(string Inf, string Names, string Version, string Provider, string Origin = "", bool Warn = false);
 
     // Ergebnisse bleiben beim Seitenwechsel stehen
     static readonly Dictionary<string, (bool Ok, string Text)> done = new(StringComparer.OrdinalIgnoreCase);
@@ -34,9 +34,10 @@ sealed class EinzeltreiberPage : UserControl, IPage
         {
             packages = new()
             {
-                new("oem42.inf", "NVIDIA GeForce RTX 3080", "32.0.15.8157", "NVIDIA"),
-                new("oem7.inf", "Realtek Gaming 2.5GbE Family Controller", "10.68.1001.2023", "Realtek"),
-                new("oem19.inf", "Realtek High Definition Audio · NVIDIA High Definition Audio", "6.0.9600.1", "Realtek Semiconductor Corp."),
+                new("oem42.inf", "NVIDIA GeForce RTX 3080", "32.0.15.8157", "NVIDIA", "vom Hersteller oder von Hand installiert · von Microsoft geprüft"),
+                new("oem7.inf", "Realtek Gaming 2.5GbE Family Controller", "10.68.1001.2023", "Realtek", "über Windows Update · von Microsoft geprüft"),
+                new("oem19.inf", "Realtek High Definition Audio · NVIDIA High Definition Audio", "6.0.9600.1", "Realtek Semiconductor Corp.", "vom Hersteller oder von Hand installiert · signiert von Realtek Semiconductor Corp."),
+                new("oem55.inf", "USB Gamepad", "1.0.0.3", "Generic", "nicht signiert – Herkunft unklar", true),
             };
             Fill();
             return;
@@ -49,18 +50,21 @@ sealed class EinzeltreiberPage : UserControl, IPage
     // die Pakete von Drittherstellern mit den Geräten, die sie nutzen
     static List<Paket> Read()
     {
-        var map = new Dictionary<string, List<(string Name, string Version, string Provider)>>(StringComparer.OrdinalIgnoreCase);
-        using var searcher = new ManagementObjectSearcher("SELECT DeviceName, DriverVersion, DriverProviderName, InfName FROM Win32_PnPSignedDriver");
+        var map = new Dictionary<string, List<(string Name, string Version, string Provider, bool Signed, string Signer)>>(StringComparer.OrdinalIgnoreCase);
+        List<string> updates;
+        try { updates = Ereignisse.UpdateTitles(); } catch (Exception) { updates = new(); }
+        using var searcher = new ManagementObjectSearcher("SELECT DeviceName, DriverVersion, DriverProviderName, InfName, IsSigned, Signer FROM Win32_PnPSignedDriver");
         foreach (ManagementObject o in searcher.Get())
         {
             var inf = (o["InfName"]?.ToString() ?? "").Trim();
             var name = (o["DeviceName"]?.ToString() ?? "").Trim();
             if (name.Length == 0 || Sicherung.PackagesToBackup(new[] { inf }).Length == 0) continue;
             if (!map.TryGetValue(inf, out var list)) map[inf] = list = new();
-            list.Add((name, (o["DriverVersion"]?.ToString() ?? "").Trim(), (o["DriverProviderName"]?.ToString() ?? "").Trim()));
+            list.Add((name, (o["DriverVersion"]?.ToString() ?? "").Trim(), (o["DriverProviderName"]?.ToString() ?? "").Trim(), o["IsSigned"] is true, (o["Signer"]?.ToString() ?? "").Trim()));
         }
         return map.Select(p => new Paket(p.Key.ToLowerInvariant(), string.Join(" · ", p.Value.Select(d => d.Name).Distinct().Take(3)) + (p.Value.Select(d => d.Name).Distinct().Count() > 3 ? " …" : ""),
                 p.Value[0].Version, p.Value[0].Provider))
+            .Select(p => { var d = map[p.Inf][0]; var (text, warn) = Herkunft.Of(d.Signed, d.Signer, d.Provider, d.Version, updates); return p with { Origin = text, Warn = warn }; })
             .OrderBy(p => p.Provider, StringComparer.OrdinalIgnoreCase).ThenBy(p => p.Names, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
@@ -119,14 +123,14 @@ sealed class EinzeltreiberPage : UserControl, IPage
             var can = busy.Length == 0 && App.IsAdmin;
             foreach (var p in packages)
             {
-                var sub = string.Join(" · ", new[] { p.Provider, p.Version.Length > 0 ? "Version " + p.Version : "", p.Inf }.Where(s => s.Length > 0));
+                var sub = string.Join(" · ", new[] { p.Provider, p.Version.Length > 0 ? "Version " + p.Version : "", p.Inf }.Where(s => s.Length > 0)) + (p.Origin.Length > 0 ? " · " + p.Origin : "");
                 if (busy == p.Inf) list.Children.Add(NeuinstallPage.Row(p.Names, sub, ("läuft …", "accent")));
                 else if (done.TryGetValue(p.Inf, out var r))
                 {
                     list.Children.Add(r.Ok ? NeuinstallPage.Row(p.Names, r.Text, ("gesichert", "good"), "Ordner öffnen", () => Open(r.Text))
                         : NeuinstallPage.Row(p.Names, r.Text, ("fehlgeschlagen", "bad"), "Nochmal", can ? () => Save(p) : null));
                 }
-                else list.Children.Add(NeuinstallPage.Row(p.Names, sub, null, "Sichern", can ? () => Save(p) : null));
+                else list.Children.Add(NeuinstallPage.Row(p.Names, sub, p.Warn ? ("ansehen", "bad") : null, "Sichern", can ? () => Save(p) : null));
             }
         }
         var scroll = new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Padding = new Thickness(0, 0, 6, 0) };

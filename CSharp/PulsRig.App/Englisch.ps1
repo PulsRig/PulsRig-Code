@@ -6,6 +6,77 @@
 # Zusammengesetzte Texte ("3 Laufwerke · 1,15 TB frei") zerlegt das Programm selbst und fragt jeden Teil einzeln an.
 @{
     Words    = @(
+        # --- Herkunft-Anzeige (09.11.2026)
+        'über Windows Update', 'via Windows Update'
+        'vom Hersteller oder von Hand installiert', 'installed by the manufacturer or by hand'
+        'von Microsoft geprüft', 'tested by Microsoft'
+        'nicht signiert – Herkunft unklar', 'not signed – origin unclear'
+        'ansehen', 'check'
+        # --- Rückgängig-Zentrale (09.11.2026)
+        'Rückgängig-Zentrale', 'Undo center'
+        'Alles, was PulsRig geändert hat, an einer Stelle zurücknehmen', 'Undo everything PulsRig changed in one place'
+        'Alles, was PulsRig an deinem PC geändert hat – neueste zuerst. Wo es sicher geht, nimmst du es hier mit einem Klick zurück.', 'Everything PulsRig changed on your PC – newest first. Where it is safe, you undo it here with one click.'
+        'Noch keine Änderungen. Sobald PulsRig etwas umstellt – Autostart, Boost, Treiber oder ein Werkzeug –, steht es hier.', 'No changes yet. As soon as PulsRig changes something – startup, boost, drivers or a tool – it shows up here.'
+        'Heute', 'Today'
+        'Gestern', 'Yesterday'
+        'Wieder einschalten', 'Turn back on'
+        'Wieder ausschalten', 'Turn back off'
+        'Boost ausschalten', 'Turn boost off'
+        'Wiederherstellung öffnen', 'Open System Restore'
+        'zurückgenommen', 'undone'
+        'schon aus', 'already off'
+        'nur zur Übersicht', 'for reference only'
+        'Zurücknehmen?', 'Undo?'
+        'Zurückgenommen.', 'Undone.'
+        'Spiel-Boost eingeschaltet', 'Game boost turned on'
+        'Treiber installiert, vorher Wiederherstellungspunkt angelegt', 'Driver installed, restore point created beforehand'
+        'Treiber installiert, Windows hat heute schon einen Wiederherstellungspunkt', 'Driver installed, Windows already has a restore point from today'
+        'Treiber installiert, ohne Wiederherstellungspunkt (Computerschutz aus)', 'Driver installed without a restore point (system protection off)'
+        'Treiber installiert, ohne Wiederherstellungspunkt (in den Einstellungen aus)', 'Driver installed without a restore point (turned off in settings)'
+        'Im Demo-Modus wird nichts zurückgenommen.', 'Nothing is undone in demo mode.'
+        'Dieser Eintrag gilt für alle Benutzer – dafür muss PulsRig als Administrator laufen.', 'This entry applies to all users – PulsRig must run as administrator for that.'
+        'Windows öffnet die Systemwiederherstellung. Dort wählst du den Punkt vor der Treiberinstallation – Windows startet dabei neu. Eigene Dateien bleiben erhalten, später installierte Programme und Treiber nicht.', 'Windows opens System Restore. Pick the point before the driver installation there – Windows restarts. Your own files stay, programs and drivers installed later do not.'
+        'Energieplan, angehaltene Dienste und Prioritäten werden zurückgestellt. Geschlossene Programme startest du selbst.', 'Power plan, stopped services and priorities are reset. You restart closed programs yourself.'
+        # --- Speicher-Analyse (09.11.2026)
+        'Deine größten Dateien', 'Your biggest files'
+        'Rechts stehen nur deine eigenen Dateien wie Videos, Downloads oder ISO-Abbilder – keine Dateien von Spielen, Programmen oder Windows. PulsRig löscht nichts selbst, Anklicken öffnet den Explorer.', 'The right side only lists your own files such as videos, downloads or ISO images – no files of games, programs or Windows. PulsRig deletes nothing by itself, clicking opens Explorer.'
+        'Spieldateien zeigt PulsRig nicht einzeln – das Spiel braucht sie. Wenn du Platz brauchst, deinstalliere das Spiel im Launcher (Steam, Epic, Xbox …).', 'PulsRig does not list game files one by one – the game needs them. If you need space, uninstall the game in its launcher (Steam, Epic, Xbox …).'
+        'Programmdateien zeigt PulsRig nicht einzeln. Wenn du Platz brauchst, deinstalliere das Programm unter Einstellungen › Apps.', 'PulsRig does not list program files one by one. If you need space, uninstall the program under Settings › Apps.'
+        'Das gehört zu Windows und bleibt, wie es ist. Alte Update-Reste räumt „Speicherplatz freigeben“ unter Werkzeuge auf.', 'This belongs to Windows and stays as it is. Old update leftovers are cleaned up by “Free up disk space” under Tools.'
+        'Der Papierkorb wird über den Desktop geleert – PulsRig fasst ihn nicht an.', 'The recycle bin is emptied from the desktop – PulsRig does not touch it.'
+        'Hier liegen keine großen eigenen Dateien.', 'There are no big files of your own here.'
+        'Spiel · im Launcher deinstallieren', 'Game · uninstall in the launcher'
+        'Programm · unter Apps deinstallieren', 'Program · uninstall under Apps'
+        'Windows · nicht anfassen', 'Windows · leave alone'
+        'Papierkorb', 'Recycle bin'
+        'Benutzerordner', 'User folder'
+        'Apps & Spiele', 'Apps & games'
+        'Andere', 'Other'
+        'Dokumente', 'Documents'
+        'Bilder', 'Pictures'
+        'Musik', 'Music'
+        'unter Apps oder im Launcher deinstallieren', 'uninstall under Apps or in the launcher'
+        'nicht anfassen', 'leave alone'
+        'räumt „Speicherplatz freigeben“ unter Werkzeuge auf', 'cleaned up by “Free up disk space” under Tools'
+        'über den Desktop leeren', 'empty from the desktop'
+        'sonstige Ordner', 'other folders'
+        'deine Dateien  ›', 'your files  ›'
+        'Was belegt Platz?', 'What takes up space?'
+        'Zeigt die größten Ordner und Dateien', 'Shows the biggest folders and files'
+        'Durchsucht das Laufwerk nach den größten Ordnern und Dateien. Ändert und löscht nichts.', 'Searches the drive for the biggest folders and files. Changes and deletes nothing.'
+        'Ansehen oder abbrechen', 'View or cancel'
+        '‹ Laufwerke', '‹ Drives'
+        'Durchsucht das Laufwerk – das dauert je nach Größe ein bis wenige Minuten.', 'Searching the drive – this takes one to a few minutes depending on its size.'
+        'Du kannst die Seite verlassen, die Analyse läuft weiter.', 'You can leave this page, the analysis keeps running.'
+        'Die Analyse wurde abgebrochen.', 'The analysis was cancelled.'
+        'Analysieren', 'Analyze'
+        'Im Explorer öffnen', 'Open in Explorer'
+        'Im Explorer zeigen', 'Show in Explorer'
+        'Neu analysieren', 'Analyze again'
+        'Hineinschauen', 'Look inside'
+        'Dateien direkt hier', 'Files right here'
+        'Keine Unterordner.', 'No subfolders.'
+        'Größte Ordner', 'Biggest folders'
         'beim Neustart', 'at restart'
         # --- Durchsicht für 1.0 (06.11.2026): Reste aus dem Probelauf auf Englisch
         'Gewählte Programme schließt der Boost nach Rückfrage, wenn du ihn selbst einschaltest – der automatische Boost schließt nie Programme.', 'When you turn on the boost yourself, it closes the chosen programs after asking – the automatic boost never closes programs.'
@@ -2508,6 +2579,22 @@
         '1 möglicher Grund für Ruckler', '1 possible cause of stutter'
     )
     Patterns = @(
+        # --- Herkunft-Anzeige
+        @{ R = '^signiert von (.+)$'; F = 'signed by $1' }
+        # --- Rückgängig-Zentrale
+        @{ R = '^Spiel-Boost für (.+) eingeschaltet$'; F = 'Game boost for $1 turned on' }
+        @{ R = '^Treibersicherung (.+) eingespielt$'; F = 'Driver backup $1 restored' }
+        @{ R = '^(\d\d:\d\d) · (.+) · zurück über einen Wiederherstellungspunkt von Windows$'; F = '$1 · $2 · undo via a Windows restore point' }
+        @{ R = '^„(.+)“ wird zurückgenommen\. Das wirkt ab der nächsten Anmeldung\.$'; F = '“$1” will be undone. It takes effect at the next sign-in.' }
+        # --- Speicher-Analyse
+        @{ R = '^Was belegt (.+)\?$'; F = 'What takes up space on $1?' }
+        @{ R = '^Analysiert … ([\d.]+) Dateien$'; F = 'Analyzing … $1 files' }
+        @{ R = '^([\d.]+) Dateien gezählt …$'; F = '$1 files counted …' }
+        @{ R = '^([\d.]+) Dateien(  ›)?$'; F = '$1 files$2' }
+        @{ R = '^(.+) in ([\d.]+) Dateien · (\d+) s · (\d+) Ordner ohne Leserecht \(mit Adminrechten mehr\)$'; F = '$1 in $2 files · $3 s · $4 folders without read access (more with admin rights)' }
+        @{ R = '^(.+) in ([\d.]+) Dateien · (\d+) s · (\d+) Ordner ohne Leserecht$'; F = '$1 in $2 files · $3 s · $4 folders without read access' }
+        @{ R = '^(.+) in ([\d.]+) Dateien · (\d+) s$'; F = '$1 in $2 files · $3 s' }
+        @{ R = '^Gerade wird Laufwerk (.+) analysiert\. Danach ist dieses dran\.$'; F = 'Drive $1 is being analyzed right now. This one comes next.' }
         @{ R = '^(\d+) mögliche Gründe für Ruckler, der häufigste zuerst$'; F = '$1 possible causes of stutter, most frequent first' }
         @{ R = '^(.+) hat dazwischengefunkt$'; F = '$1 interfered' }
         @{ R = '^(\d+) Hinweise prüfen$'; F = 'Review $1 findings' }

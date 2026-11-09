@@ -137,6 +137,7 @@ static class Werkzeuglauf
                 var status = Convert.ToInt32(result?["ReturnValue"] ?? -1);
                 Sicherungsablage.RequireRestorePoint(status);
                 message = "Wiederherstellungspunkt erstellt. ";
+                Rueckgaengiglauf.Record("Treiber", "Treibersicherung " + folder.Name + " eingespielt", "restorepoint");
             }
             catch (Exception e) { throw new InvalidOperationException("Kein bestätigter Wiederherstellungspunkt. Die Treiber wurden nicht eingespielt. " + e.Message); }
         // 259 = nichts Neueres dabei, 3010 = Neustart nötig
@@ -168,7 +169,12 @@ static class Werkzeuglauf
         var log = new List<string>();
         foreach (var step in steps)
         {
-            try { var text = step.Run(); log.Add("✓ " + step.Text + (text.Length > 0 && text != "ok" ? " – " + text : "")); }
+            try
+            {
+                var text = step.Run();
+                log.Add("✓ " + step.Text + (text.Length > 0 && text != "ok" ? " – " + text : ""));
+                Rueckgaengiglauf.Record(Rueckgaengiglauf.Area(tool), step.Text, step.Undo, step.UndoData);
+            }
             catch (Exception e) { log.Add("✕ " + step.Text + " – " + Fehlermeldung.Text(e)); }
         }
         Werkbefund? again = null;

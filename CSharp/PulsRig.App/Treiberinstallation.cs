@@ -184,7 +184,7 @@ static class Treiberinstallation
     // wie New-DriverRestorePoint (Checkpoint-Computer): Art 10 = Treiberinstallation; Windows legt höchstens einen am Tag an
     static string RestorePoint()
     {
-        if (!TreiberEinstellungen.Current.RestorePoint) return "";
+        if (!TreiberEinstellungen.Current.RestorePoint) { Rueckgaengiglauf.Record("Treiber", "Treiber installiert, ohne Wiederherstellungspunkt (in den Einstellungen aus)"); return ""; }
         try
         {
             using var restore = new ManagementClass(@"\\.\root\default", "SystemRestore", null);
@@ -194,9 +194,14 @@ static class Treiberinstallation
             args["EventType"] = 100;
             var result = restore.InvokeMethod("CreateRestorePoint", args, null);
             var code = Convert.ToInt32(result?["ReturnValue"] ?? 0);
+            Rueckgaengiglauf.Record("Treiber", code == 0 ? "Treiber installiert, vorher Wiederherstellungspunkt angelegt" : "Treiber installiert, Windows hat heute schon einen Wiederherstellungspunkt", "restorepoint");
             return code == 0 ? "Wiederherstellungspunkt erstellt. " : "Kein neuer Wiederherstellungspunkt (Code " + code + "). ";
         }
-        catch (Exception) { return "Kein Wiederherstellungspunkt – vermutlich ist der Computerschutz für C: aus. "; }
+        catch (Exception)
+        {
+            Rueckgaengiglauf.Record("Treiber", "Treiber installiert, ohne Wiederherstellungspunkt (Computerschutz aus)");
+            return "Kein Wiederherstellungspunkt – vermutlich ist der Computerschutz für C: aus. ";
+        }
     }
 
     static dynamic NewSession()

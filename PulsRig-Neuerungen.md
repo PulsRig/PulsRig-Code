@@ -1,3 +1,9 @@
+## Neu in 1.0.4
+
+- Laufwerke: „Was belegt Platz?“ zeigt wie die Windows-Einstellungen, wofür der Platz draufgeht (Apps & Spiele, Windows, Temporäre Dateien, eigene Ordner), und die größten Ordner zum Hineinschauen. Gelöscht wird dabei nichts.
+- Rückgängig-Zentrale unter Werkzeuge › Treiber verwalten: alles, was PulsRig geändert hat, an einer Stelle – Autostart und Boost mit einem Klick zurücknehmen, Treiber über die Systemwiederherstellung.
+- „Einzelnen Treiber sichern“ zeigt bei jedem Treiber die Herkunft: über Windows Update oder vom Hersteller, von Microsoft geprüft oder nur signiert. Unsignierte Treiber werden markiert.
+
 ## Neu in 1.0.3
 
 - Seitenwechsel brauchen weniger Prozessor: die Messung läuft durch, statt jedes Mal neu zu starten.

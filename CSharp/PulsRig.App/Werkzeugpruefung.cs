@@ -14,7 +14,8 @@ namespace PulsRig.App;
 // Step: eine Aktion direkt an der Zeile, als Schalter (On = Zustand) oder als Knopf mit der Aufschrift Button
 sealed record Pruefzeile(bool Ok, string Label, string Detail = "", Schritt? Step = null, bool? On = null, string Button = "", bool Unknown = false);
 // Admin: braucht Adminrechte; Ask: vorher fragen (nicht beim bloßen Öffnen einer Seite von Windows)
-sealed record Schritt(string Text, Func<string> Run, bool Optional = false, bool Admin = true, bool Ask = true);
+// Undo/UndoData: wie die Rückgängig-Zentrale den Schritt zurücknimmt (Core.Rueckgaengig), leer = nur protokollieren
+sealed record Schritt(string Text, Func<string> Run, bool Optional = false, bool Admin = true, bool Ask = true, string Undo = "", string UndoData = "");
 sealed record Werkbefund(List<Pruefzeile> Lines, string Summary, List<Schritt> Steps, string Question = "Jetzt ausführen?");
 
 // Prüfungen und Reparaturen aus Treiber-Werkzeuge.ps1 (Invoke-*Tool), Ablauf und Regeln unverändert

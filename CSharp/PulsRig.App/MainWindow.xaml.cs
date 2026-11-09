@@ -16,7 +16,7 @@ public partial class MainWindow : Window
         ["home"] = "Scan", ["boost"] = "Boost", ["tools"] = "Werkzeuge", ["hw"] = "Hardware", ["opt"] = "Optionen", ["boostsetup"] = "Einrichten", ["ping"] = "Ping-Test", ["power"] = "Stromverbrauch", ["bench"] = "Benchmark", ["sensors"] = "Sensoren",
         ["drives"] = "Laufwerke", ["gpu"] = "Grafikkarte", ["cpu"] = "Prozessor", ["ram"] = "Arbeitsspeicher", ["stress"] = "Stabilitätstest",
         ["display"] = "Bildschirm", ["crash"] = "Abstürze", ["report"] = "Bericht & Diagnose", ["drivers"] = "Treiber",
-        ["repair"] = "Etwas reparieren", ["problem"] = "Was ist los?", ["input"] = "Controller und Maus", ["battery"] = "Akku", ["reinstall"] = "Neuinstallation", ["stick"] = "Notfall-Stick", ["usedcheck"] = "Gebrauchtkauf-Check",["upgrade"] = "Aufrüst-Berater",["clean"] = "Aufräumen", ["manage"] = "Treiber verwalten", ["games"] = "Fürs Spielen", ["rescue"] = "Neuinstallation & Notfall", ["changes"] = "Was hat sich geändert?", ["logbook"] = "PC-Scheckheft", ["stutter"] = "Ruckler-Detektiv", ["single"] = "Einzelnen Treiber sichern",
+        ["repair"] = "Etwas reparieren", ["problem"] = "Was ist los?", ["input"] = "Controller und Maus", ["battery"] = "Akku", ["reinstall"] = "Neuinstallation", ["stick"] = "Notfall-Stick", ["usedcheck"] = "Gebrauchtkauf-Check",["upgrade"] = "Aufrüst-Berater",["clean"] = "Aufräumen", ["manage"] = "Treiber verwalten", ["games"] = "Fürs Spielen", ["rescue"] = "Neuinstallation & Notfall", ["changes"] = "Was hat sich geändert?", ["undo"] = "Rückgängig-Zentrale", ["logbook"] = "PC-Scheckheft", ["stutter"] = "Ruckler-Detektiv", ["single"] = "Einzelnen Treiber sichern",
     };
 
     static readonly (string Id, string Label, string Icon)[] RailDefs =
@@ -132,6 +132,7 @@ public partial class MainWindow : Window
             "sensors" => new SensorPage(),
             "problem" => new ProblemPage(this),
             "changes" => new AenderungenPage(this, demo),
+            "undo" => new RueckgaengigPage(demo),
             "logbook" => new ScheckheftPage(demo),
             "stutter" => new RucklerPage(this, demo),
             "single" => new EinzeltreiberPage(demo),

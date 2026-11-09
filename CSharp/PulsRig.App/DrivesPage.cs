@@ -11,15 +11,19 @@ sealed class DrivesPage : UserControl, IPage
 {
     readonly bool demo;
     readonly UniformGrid grid = new() { Columns = 3 };
+    readonly Platzansicht space;
+    string open = "";
     bool stopped;
 
     public DrivesPage(bool demo)
     {
         this.demo = demo;
+        space = new Platzansicht(demo, () => { open = ""; Fill(); });
         Content = grid;
         Fill();
         Hw.Changed += Fill;
         Tempotest.Changed += Fill;
+        Platzlauf.Changed += Fill;
         if (!demo) Hw.Load("drives");
     }
 
@@ -55,6 +59,15 @@ sealed class DrivesPage : UserControl, IPage
     void Fill()
     {
         if (stopped) return;
+        if (open.Length > 0)
+        {
+            if (Content != space) { Content = space; space.Show(open); Ui.Arrive(new UIElement[] { space }); }
+            else space.Show(open);
+            return;
+        }
+        // Einblenden nur beim Hereinkommen, nicht bei jeder neuen Messung (sonst flackern die Karten immer wieder)
+        var arrive = Content != grid || grid.Children.Count == 0 || grid.Children[0] is TextBlock;
+        Content = grid;
         grid.Children.Clear();
         var cards = Cards();
         if (cards.Count == 0)
@@ -63,11 +76,11 @@ sealed class DrivesPage : UserControl, IPage
             return;
         }
         grid.Columns = Math.Clamp(cards.Count, 3, 4);
-        foreach (var c in cards) grid.Children.Add(CardView(c));
-        Ui.Arrive(grid.Children.Cast<UIElement>());
+        foreach (var c in cards) grid.Children.Add(CardView(c, l => { open = l; Fill(); }));
+        if (arrive) Ui.Arrive(grid.Children.Cast<UIElement>());
     }
 
-    static Border CardView(Card c)
+    Border CardView(Card c, Action<string> openSpace)
     {
         var edgeColor = c.Ok ? "#666D43C9" : "#99F2B661";
         var edge = new LinearGradientBrush { StartPoint = new Point(0.25, 0), EndPoint = new Point(0.75, 1) };
@@ -104,10 +117,26 @@ sealed class DrivesPage : UserControl, IPage
             ToolTip = Tempotest.Results.TryGetValue(letter, out var last) && last.Error.Length > 0 ? last.Error : "Schreibt eine Testdatei von bis zu 1 GB und löscht sie wieder. Richtwerte: Festplatte 80–200, SATA-SSD 400–550, NVMe-SSD ab 1.500 MB/s" };
         if (Tempotest.Measuring.Length > 0) { action.Opacity = 0.45; action.Cursor = System.Windows.Input.Cursors.Arrow; }
         else action.Click += (_, _) => Tempotest.Start(letter);
+        // Speicher-Analyse: zweiter Knopf, läuft im Hintergrund weiter
+        var (spaceText, spaceTip) = Platzlauf.Running == letter ? ("Analysiert … " + Platzansicht.Count(Platzlauf.Seen) + " Dateien", "Ansehen oder abbrechen")
+            : Platzlauf.Results.ContainsKey(letter) || demo ? ("Was belegt Platz?", "Zeigt die größten Ordner und Dateien")
+            : ("Was belegt Platz?", "Durchsucht das Laufwerk nach den größten Ordnern und Dateien. Ändert und löscht nichts.");
+        var spaceButton = new Button { Style = (Style)Application.Current.FindResource("Flach"), Height = 40, Tag = "12", Background = Ui.Brush("#140C1D"), BorderBrush = Ui.Res("KarteRand"),
+            BorderThickness = new Thickness(1), Margin = new Thickness(0, 0, 0, 8), HorizontalContentAlignment = HorizontalAlignment.Center, VerticalContentAlignment = VerticalAlignment.Center,
+            Content = Ui.Text(spaceText, 13, bold: true), ToolTip = spaceTip };
+        spaceButton.Click += (_, _) =>
+        {
+            if (!demo && Platzlauf.Running.Length == 0 && !Platzlauf.Results.ContainsKey(letter)) Platzlauf.Start(letter);
+            openSpace(letter);
+        };
+        var buttons = new StackPanel { VerticalAlignment = VerticalAlignment.Bottom };
+        action.VerticalAlignment = VerticalAlignment.Stretch;
+        buttons.Children.Add(spaceButton);
+        buttons.Children.Add(action);
         var body = new DockPanel();
         var kind = Ui.Text(c.Kind, 13, "Leise");
         foreach (var top in new FrameworkElement[] { head, kind, bar, used, facts }) { DockPanel.SetDock(top, Dock.Top); body.Children.Add(top); }
-        body.Children.Add(action);
+        body.Children.Add(buttons);
         return new Border { CornerRadius = new CornerRadius(24), BorderThickness = new Thickness(1), BorderBrush = edge, Padding = new Thickness(22), Margin = new Thickness(7, 0, 7, 0),
             Background = new LinearGradientBrush(Ui.Hex("#0B0710"), Ui.Hex("#09060D"), 90), Child = body };
     }
@@ -118,5 +147,6 @@ sealed class DrivesPage : UserControl, IPage
         stopped = true;
         Hw.Changed -= Fill;
         Tempotest.Changed -= Fill;
+        Platzlauf.Changed -= Fill;
     }
 }

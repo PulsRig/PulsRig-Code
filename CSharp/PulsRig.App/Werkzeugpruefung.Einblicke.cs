@@ -252,7 +252,7 @@ static partial class Werkzeugpruefung
                 using var key = Hive(e.Machine).CreateSubKey(Approved + "\\" + e.Folder);
                 key.SetValue(e.Name, Core.Autostart.Approved(on, DateTime.Now), RegistryValueKind.Binary);
                 return on ? "startet wieder mit Windows" : "startet nicht mehr mit Windows";
-            }, Optional: true, Admin: e.Machine, Ask: false), On: e.Enabled));
+            }, Optional: true, Admin: e.Machine, Ask: false, Undo: "autostart", UndoData: Core.Rueckgaengig.AutostartData(e.Machine, e.Folder, e.Name, e.Enabled)), On: e.Enabled));
         }
         if (orphans.Count > 1)
             steps.Add(new("Alle " + orphans.Count + " Reste entfernen", () => string.Join("; ", orphans.Select(e => RemoveStep(e, Core.Autostart.Title(e.Name, e.Description)).Run())), Optional: true, Admin: orphans.Any(e => e.Machine)));

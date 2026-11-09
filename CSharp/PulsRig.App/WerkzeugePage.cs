@@ -42,6 +42,7 @@ sealed class WerkzeugePage : UserControl, IPage
                 new("Treiber sichern", "Alle Treiber von Drittherstellern sichern, mit ZIP-Datei", Native: true),
                 new("Treiber zurückholen", "Eine Sicherung wieder einspielen", Native: true),
                 new("Einzelnen Treiber sichern", "Das Treiberpaket eines Geräts in einen eigenen Ordner kopieren", Page: "single"),
+                new("Rückgängig-Zentrale", "Alles, was PulsRig geändert hat, an einer Stelle zurücknehmen", Page: "undo"),
                 new("Was hat sich geändert?", "Windows, Programme, Autostart und Treiber vergleichen, dazu der Treiberverlauf", Page: "changes"),
                 new("PC-Scheckheft", "Tests, Treiber, Aufrüstungen und Reinigungen über Jahre, als Bericht zum Verkauf", Page: "logbook"),
                 new("Inkompatible Treiber", "Was die Kernisolierung blockiert", "IncompatibleDrivers"),
@@ -68,6 +69,9 @@ sealed class WerkzeugePage : UserControl, IPage
                 new("Offline-Paket", "Treiberpaket für eine Neuinstallation ohne Internet", "OfflinePackage"),
             }),
     };
+
+    // Anzeigename eines Werkzeugs zu seinem internen Namen (für die Rückgängig-Zentrale)
+    public static string NameOf(string bridge) => Absichten.SelectMany(x => x.Tools).FirstOrDefault(t => t.Bridge == bridge)?.Name ?? bridge;
 
     readonly MainWindow window;
     readonly Absicht? intent;

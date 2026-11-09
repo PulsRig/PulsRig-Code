@@ -212,6 +212,7 @@ static class Spielboost
         Zustand Snapshot(long after) => new(DateTime.Now.ToString("dd.MM.yyyy HH:mm"), planChanged ? plan.Active!.Value.Guid : null, planChanged ? plan.Active!.Value.Name : null,
             stopped, closed, before, after, game, priorities);
         Save(Snapshot(before));
+        Rueckgaengiglauf.Record("Boost", game != null ? "Spiel-Boost für " + game + " eingeschaltet" : "Spiel-Boost eingeschaltet", "boost");
         // frei wird Speicher nur durch geschlossene Programme; ohne sie bliebe nur das übliche Schwanken als „freigemacht“
         if (closed.Count == 0) return;
         report("Speicher der geschlossenen Programme wird frei …");
@@ -264,6 +265,7 @@ static class Spielboost
             try { using var service = new ServiceController(name); if (service.Status == ServiceControllerStatus.Stopped) service.Start(); } catch (Exception) { }
         if (state?.Priorities is { Count: > 0 } priorities) { report("Prioritäten werden zurückgestellt …"); Restore(priorities); }
         File.Delete(StateFile);
+        Rueckgaengiglauf.Settle("boost", "");
     }
 
     // dieselben Felder wie im PowerShell-Programm (ConvertTo-Json), damit es den Zustand lesen kann

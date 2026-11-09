@@ -1,4 +1,4 @@
-using System.Diagnostics.Eventing.Reader;
+﻿using System.Diagnostics.Eventing.Reader;
 using System.Text.RegularExpressions;
 using PulsRig.Core;
 
@@ -47,6 +47,14 @@ static class Ereignisse
         foreach (var e in Read("Microsoft-Windows-Windows Defender/Operational", "EventID=1000 and " + Since(days), ref readable, 200))
             if (e.TimeCreated is { } t) list.Add(new RucklerEreignis { When = t, Kind = "defender", Text = "Scan" });
         return list;
+    }
+
+    // für die Herkunft-Anzeige: Titel aller über Windows Update installierten Updates (WindowsUpdateClient 19)
+    public static List<string> UpdateTitles()
+    {
+        var readable = true;
+        return Read("System", "Provider[@Name='Microsoft-Windows-WindowsUpdateClient'] and EventID=19", ref readable, 3000)
+            .Select(e => Prop(e, 0)?.ToString() ?? "").Where(t => t.Length > 0).ToList();
     }
 
     // für die Probezeit: wann Windows zuletzt einen Treiber je Gerät installiert hat (UserPnp 20001, 30 Tage), Ticks
