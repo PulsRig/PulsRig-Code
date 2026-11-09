@@ -1,3 +1,10 @@
+## Neu in 1.0.5
+
+- Neue Seitenleiste mit acht Bereichen: Übersicht, Probleme, Treiber, Mein PC, Spielen, Aufräumen, Verlauf und Notfall. Jedes Werkzeug steht an genau einer Stelle.
+- Spielprofile: Bei jedem Boost-Spiel lässt sich festlegen, was der automatische Boost tut – Energieplan, Dienste anhalten, Spiel bevorzugen, Aufzeichnen.
+- Neu: Programm-Updates per winget – zeigt veraltete Programme und aktualisiert sie auf Klick, einzeln oder alle.
+- Neue Fensterknöpfe oben rechts.
+
 ## Neu in 1.0.4
 
 - Laufwerke: „Was belegt Platz?“ zeigt wie die Windows-Einstellungen, wofür der Platz draufgeht (Apps & Spiele, Windows, Temporäre Dateien, eigene Ordner), und die größten Ordner zum Hineinschauen. Gelöscht wird dabei nichts.

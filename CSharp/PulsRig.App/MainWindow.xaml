@@ -74,13 +74,18 @@
                                 </StackPanel>
                             </Border>
                         </StackPanel>
-                        <Button Style="{StaticResource Flach}" Width="32" Height="28" Margin="8,0,0,0" Foreground="{StaticResource Leise}"
+                        <!-- Fensterknöpfe: Lila/Beere wie die Reihe Q, Hover-Animation in MainWindow.Fensterknoepfe.cs -->
+                        <Button x:Name="MinButton" Style="{StaticResource Flach}" Width="34" Height="28" Margin="8,0,2,0" Tag="9"
+                                BorderThickness="1" BorderBrush="Transparent" Loaded="Fensterknopf_Loaded"
                                 Click="Minimize_Click" ToolTip="Minimieren" AutomationProperties.Name="Minimieren">
-                            <TextBlock Text="–" FontSize="15"/>
+                            <Path Data="M0,0 H10" Stroke="{StaticResource Leise}" StrokeThickness="1.8" Width="12" Height="2" Stretch="Fill"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" RenderTransformOrigin="0.5,0.5"/>
                         </Button>
-                        <Button Style="{StaticResource Flach}" Width="32" Height="28" Foreground="{StaticResource Leise}"
+                        <Button x:Name="CloseButton" Style="{StaticResource Flach}" Width="34" Height="28" Tag="9"
+                                BorderThickness="1" BorderBrush="Transparent" Loaded="Fensterknopf_Loaded"
                                 Click="Close_Click" ToolTip="Schließen" AutomationProperties.Name="Schließen">
-                            <TextBlock Text="✕" FontSize="14"/>
+                            <Path Data="M0,0 L10,10 M10,0 L0,10" Stroke="{StaticResource Leise}" StrokeThickness="1.8" Width="11" Height="11" Stretch="Fill"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" RenderTransformOrigin="0.5,0.5"/>
                         </Button>
                     </StackPanel>
                     <DockPanel VerticalAlignment="Center">

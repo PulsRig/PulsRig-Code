@@ -160,15 +160,27 @@ static class Spielboost
     public static bool OnQuietly(string? game)
     {
         if (IsOn) return true;
+        // das Spielprofil kann dem Boost nur etwas wegnehmen (Core.Spielprofil)
+        var profile = Profile(game);
         var plan = Prepare() with { Apps = new() };
-        if (!plan.GameModeOff && !plan.SwitchPlan && plan.Services.Count == 0 && Prioritize(plan.Games, game, dryRun: true).Count == 0) return false;
-        TurnOn(plan, false, _ => { }, game);
+        if (!profile.PowerPlan) plan = plan with { SwitchPlan = false };
+        if (!profile.Services) plan = plan with { Services = new() };
+        if (!plan.GameModeOff && !plan.SwitchPlan && plan.Services.Count == 0 && (!profile.Priority || Prioritize(plan.Games, game, dryRun: true).Count == 0)) return false;
+        TurnOn(plan, false, _ => { }, game, profile.Priority);
         return true;
+    }
+
+    // Profil eines Spiels aus "GameProfiles"; ohne Spiel oder Profil ist alles an
+    public static Spielprofil Profile(string? game)
+    {
+        if (string.IsNullOrEmpty(game)) return new();
+        var node = Altdaten.Settings()["GameProfiles"]?[game];
+        return Spielprofil.From(key => node?[key] is System.Text.Json.Nodes.JsonValue v && v.TryGetValue<bool>(out var b) ? b : null);
     }
 
     public static void OffQuietly() { if (IsOn) TurnOff(_ => { }); }
 
-    static void TurnOn(Plan plan, bool closeApps, Action<string> report, string? game = null)
+    static void TurnOn(Plan plan, bool closeApps, Action<string> report, string? game = null, bool prioritize = true)
     {
         var before = FreeMemory();
         if (plan.GameModeOff)
@@ -202,8 +214,8 @@ static class Spielboost
             report("Programme werden geschlossen …");
             foreach (var (name, _) in plan.Apps) if (Close(name)) closed.Add(name);
         }
-        report("Spiel wird bevorzugt, Hintergrundprogramme treten zurück …");
-        var priorities = Prioritize(plan.Games, game, dryRun: false);
+        if (prioritize) report("Spiel wird bevorzugt, Hintergrundprogramme treten zurück …");
+        var priorities = prioritize ? Prioritize(plan.Games, game, dryRun: false) : new List<string>();
         // Zwischenablage leeren, wenn unter Einrichten gewählt (die Zwischenablage gehört dem Fenster-Thread)
         if (game == null && Altdaten.Flag(Altdaten.Settings()["Boost"], "Clipboard", false))
             try { System.Windows.Application.Current.Dispatcher.Invoke(System.Windows.Clipboard.Clear); } catch (Exception) { }

@@ -33,7 +33,7 @@ sealed class WerkzeugePage : UserControl, IPage
                 new("Standby-Detektiv", "Warum der PC aufwacht oder wach bleibt", "Standby"),
                 new("Ton reparieren", "Dienste, Stummschaltung und Ausgabegerät prüfen", "FixAudio"),
             }),
-        new("manage", "Treiber & Sicherung", "Treiber prüfen, sichern, zurückholen und die Kernisolierung.", Lila, "#160D29", 1,
+        new("manage", "Treiber & Sicherung", "Treiber prüfen, sichern, zurückholen, die Kernisolierung und Programm-Updates.", Lila, "#160D29", 1,
             "M5 4h11l3 3v13H5z M8 4v5h7V4 M8 20v-6h8v6", new Werkzeug[]
             {
                 new("Treiber-Scan", "Veraltete Treiber und Spiel-Laufzeiten finden und aktualisieren", Page: "drivers"),
@@ -41,6 +41,7 @@ sealed class WerkzeugePage : UserControl, IPage
                 new("Treiber zurückholen", "Eine Sicherung wieder einspielen", Native: true),
                 new("Einzelnen Treiber sichern", "Das Treiberpaket eines Geräts in einen eigenen Ordner kopieren", Page: "single"),
                 new("Inkompatible Treiber", "Was die Kernisolierung blockiert", "IncompatibleDrivers"),
+                new("Programm-Updates", "Veraltete Programme finden und per winget aktualisieren", Page: "updates"),
             }),
         new("pc", "Mein PC", "Hardware, Laufwerke, Temperaturen, Akku, Eingabegeräte und Systeminfos.", Lila, "#160D29", 1,
             "M6 6h12v12H6z M9 2v4 M15 2v4 M9 18v4 M15 18v4 M2 9h4 M2 15h4 M18 9h4 M18 15h4", new Werkzeug[]

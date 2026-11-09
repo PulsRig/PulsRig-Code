@@ -6,6 +6,31 @@
 # Zusammengesetzte Texte ("3 Laufwerke · 1,15 TB frei") zerlegt das Programm selbst und fragt jeden Teil einzeln an.
 @{
     Words    = @(
+        # --- Spielprofile und Programm-Updates (09.11.2026)
+        'Spielprofil: Bei jedem gewählten Spiel legst du fest, was der automatische Boost beim Start tut. Was aus ist, lässt er bei diesem Spiel weg.', 'Game profile: for each chosen game you decide what the automatic boost does when it starts. Whatever is off is skipped for that game.'
+        'Spiel bevorzugen', 'Prioritize game'
+        'Klick: bei diesem Spiel weglassen', 'Click: skip for this game'
+        'Klick: bei diesem Spiel wieder dazunehmen', 'Click: include again for this game'
+        'Programm-Updates', 'App updates'
+        'Veraltete Programme finden und per winget aktualisieren', 'Find outdated apps and update them via winget'
+        'Treiber prüfen, sichern, zurückholen, die Kernisolierung und Programm-Updates.', 'Check, back up and restore drivers, plus core isolation and app updates.'
+        'Veraltete Programme', 'Outdated apps'
+        'Was winget kennt und wofür es eine neuere Fassung gibt. PulsRig aktualisiert nur, was du anklickst.', 'Apps winget knows that have a newer version. PulsRig only updates what you click.'
+        'sucht …', 'searching …'
+        'alles aktuell', 'all up to date'
+        'Neu suchen', 'Search again'
+        'Alle aktualisieren', 'Update all'
+        'Nacheinander, ohne weitere Fragen von winget', 'One after another, without further questions from winget'
+        'PROGRAMME', 'APPS'
+        'Aktualisieren', 'Update'
+        'aktualisiert', 'updated'
+        'schon aktuell', 'already up to date'
+        'läuft gerade – erst schließen', 'running – close it first'
+        'Programme aktualisieren', 'Update apps'
+        'Name von winget gekürzt, bitte im Programm selbst aktualisieren', 'name shortened by winget, please update in the app itself'
+        'Ein Programm wird mit winget aktualisiert.', 'One app is updated with winget.'
+        'Laufende Programme vorher schließen. Fragt ein Installer nach Adminrechten, dort selbst bestätigen.', 'Close running apps first. If an installer asks for admin rights, confirm it there yourself.'
+        'winget fehlt auf diesem PC. Den „App-Installer“ aus dem Microsoft Store installieren und es noch einmal versuchen.', 'winget is missing on this PC. Install “App Installer” from the Microsoft Store and try again.'
         # --- Herkunft-Anzeige (09.11.2026)
         'über Windows Update', 'via Windows Update'
         'vom Hersteller oder von Hand installiert', 'installed by the manufacturer or by hand'
@@ -2603,6 +2628,11 @@
         '1 möglicher Grund für Ruckler', '1 possible cause of stutter'
     )
     Patterns = @(
+        @{ R = '^(\d+) Updates?$'; F = '$1 updates' }
+        @{ R = '^Alle \((\d+)\)$'; F = 'All ($1)' }
+        @{ R = '^(\d+) Programme werden nacheinander mit winget aktualisiert\.$'; F = '$1 apps are updated one after another with winget.' }
+        @{ R = '^(\d+) von (\d+) Programmen sind aktuell\.$'; F = '$1 of $2 apps are up to date.' }
+        @{ R = '^(\d+) von (\d+) Programmen aktualisiert$'; F = '$1 of $2 apps updated' }
         # --- Herkunft-Anzeige
         @{ R = '^signiert von (.+)$'; F = 'signed by $1' }
         # --- Rückgängig-Zentrale

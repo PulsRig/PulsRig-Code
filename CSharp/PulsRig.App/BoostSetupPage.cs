@@ -21,6 +21,7 @@ sealed class BoostSetupPage : UserControl, IPage
         public string Type = "", Name = "", Title = "", Sub = "", Value = "";
         public double Share;
         public bool Checked, Suggested;
+        public Spielprofil? Profile;   // nur bei Spielen
     }
 
     sealed record Wahl(List<Eintrag> Apps, List<Eintrag> Services, List<Eintrag> Options, List<Eintrag> Games, bool AutoBoost);
@@ -30,7 +31,7 @@ sealed class BoostSetupPage : UserControl, IPage
     readonly MainWindow window;
     readonly Grid root = new();
     Wahl? data;
-    int tab;
+    int tab, shownTab = -1;
     bool stopped;
 
     public BoostSetupPage(MainWindow window)
@@ -107,8 +108,8 @@ sealed class BoostSetupPage : UserControl, IPage
         var running = Process.GetProcesses().Select(p => { try { return p.ProcessName; } catch (Exception) { return ""; } }).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var knownGames = Werkzeugpruefung.KnownGames();
         var games = knownGames.Values.OrderBy(g => g.Name).Select(g => new Eintrag { Type = "game", Name = g.Exe, Title = g.Name, Sub = g.Exe + ".exe" + (running.Contains(g.Exe) ? " · läuft gerade" : ""),
-            Checked = boostGames.Contains(g.Exe, StringComparer.OrdinalIgnoreCase) }).ToList();
-        games.AddRange(boostGames.Where(e => !knownGames.ContainsKey(e)).Select(e => new Eintrag { Type = "game", Name = e, Title = e, Sub = "gemerkt, Windows kennt es nicht mehr", Checked = true }));
+            Checked = boostGames.Contains(g.Exe, StringComparer.OrdinalIgnoreCase), Profile = Spielboost.Profile(g.Exe) }).ToList();
+        games.AddRange(boostGames.Where(e => !knownGames.ContainsKey(e)).Select(e => new Eintrag { Type = "game", Name = e, Title = e, Sub = "gemerkt, Windows kennt es nicht mehr", Checked = true, Profile = Spielboost.Profile(e) }));
         return new(apps, services, options, games, Altdaten.Flag(settings, "AutoBoost", false));
     }
 
@@ -117,6 +118,9 @@ sealed class BoostSetupPage : UserControl, IPage
     void Fill()
     {
         if (stopped) return;
+        // beim Umschalten eines Eintrags bleibt die Liste, wo sie war; nur ein neuer Reiter beginnt oben
+        var keep = root.Children.OfType<ScrollViewer>().FirstOrDefault() is { } old && shownTab == tab ? old.VerticalOffset : (double?)null;
+        shownTab = tab;
         root.Children.Clear();
         root.RowDefinitions.Clear();
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -148,6 +152,7 @@ sealed class BoostSetupPage : UserControl, IPage
         {
             if (tab == 3 && !data.AutoBoost)
                 list.Children.Add(Note("Boost automatisch ist ausgeschaltet – einschalten unter Optionen → Überwachung. Die Auswahl hier gilt dann sofort."));
+            if (tab == 3) list.Children.Add(Note("Spielprofil: Bei jedem gewählten Spiel legst du fest, was der automatische Boost beim Start tut. Was aus ist, lässt er bei diesem Spiel weg."));
             if (tab == 0) list.Children.Add(Note("Gewählte Programme schließt der Boost nach Rückfrage, wenn du ihn selbst einschaltest – der automatische Boost schließt nie Programme."));
             var items = Current;
             if (items.Count == 0) list.Children.Add(Note(tab == 1 ? "Keine entbehrlichen Dienste gefunden." : tab == 3 ? "Windows kennt auf diesem PC noch keine Spiele." : "Nichts zur Auswahl."));
@@ -156,7 +161,8 @@ sealed class BoostSetupPage : UserControl, IPage
         var scroll = new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Padding = new Thickness(0, 0, 6, 0) };
         Grid.SetRow(scroll, 1);
         root.Children.Add(scroll);
-        Ui.Arrive(list.Children.Cast<UIElement>().Take(12));
+        if (keep is { } y) scroll.Loaded += (_, _) => scroll.ScrollToVerticalOffset(y);
+        else Ui.Arrive(list.Children.Cast<UIElement>().Take(12));
 
         // Fuß: Zählung und Knöpfe wie Update-BoostState
         var foot = new DockPanel { Margin = new Thickness(0, 12, 0, 0) };
@@ -216,6 +222,7 @@ sealed class BoostSetupPage : UserControl, IPage
         var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 8, 12, 8) };
         text.Children.Add(Ui.Text(item.Title, 14, "Text", bold: true, wrap: true));
         if (item.Sub.Length > 0) { var s = Ui.Text(item.Sub, 12, "Leise", wrap: true); s.Margin = new Thickness(0, 2, 0, 0); text.Children.Add(s); }
+        if (item is { Type: "game", Checked: true, Profile: { } profile }) text.Children.Add(Chips(profile));
         Grid.SetColumn(text, 1);
         grid.Children.Add(text);
         if (item.Value.Length > 0)
@@ -232,6 +239,39 @@ sealed class BoostSetupPage : UserControl, IPage
             BorderBrush = Ui.Brush(item.Checked ? "#2E2140" : "#1A1224"), Padding = new Thickness(16, 0, 16, 0), Margin = new Thickness(0, 0, 0, 8), Child = grid, Cursor = System.Windows.Input.Cursors.Hand };
         row.MouseLeftButtonUp += (_, _) => { item.Checked = !item.Checked; Fill(); };
         return row;
+    }
+
+    // Schalter des Spielprofils; ein Klick darauf schaltet nicht das ganze Spiel um
+    WrapPanel Chips(Spielprofil profile)
+    {
+        var wrap = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
+        foreach (var key in Spielprofil.Keys)
+        {
+            var on = profile.Get(key);
+            // an: Bernstein wie die Spiel-Zeile, aus: nur leiser Rahmen
+            string bg = on ? "#24F2B661" : "#00000000", bgHover = on ? "#3DF2B661" : "#0FFFFFFF";
+            string border = on ? "#B3F2B661" : "#2E2140", borderHover = on ? Bernstein : "#5A4A70";
+            var label = new StackPanel { Orientation = Orientation.Horizontal };
+            var mark = Ui.Text(on ? "✓" : "+", 10.5, on ? Bernstein : "Leise", bold: true);
+            mark.Margin = new Thickness(0, 0, 5, 0);
+            mark.VerticalAlignment = VerticalAlignment.Center;
+            label.Children.Add(mark);
+            var name = Ui.Text(Spielprofil.Label(key), 11.5, on ? "Text" : "Leise", bold: on);
+            name.VerticalAlignment = VerticalAlignment.Center;
+            label.Children.Add(name);
+            var chip = new Border
+            {
+                CornerRadius = new CornerRadius(11), Padding = new Thickness(9, 3, 11, 4), Margin = new Thickness(0, 0, 6, 4), Cursor = System.Windows.Input.Cursors.Hand,
+                Background = Ui.Brush(bg), BorderBrush = Ui.Brush(border), BorderThickness = new Thickness(1),
+                Child = label,
+                ToolTip = on ? "Klick: bei diesem Spiel weglassen" : "Klick: bei diesem Spiel wieder dazunehmen",
+            };
+            chip.MouseEnter += (_, _) => { chip.Background = Ui.Brush(bgHover); chip.BorderBrush = Ui.Brush(borderHover); };
+            chip.MouseLeave += (_, _) => { chip.Background = Ui.Brush(bg); chip.BorderBrush = Ui.Brush(border); };
+            chip.MouseLeftButtonUp += (_, e) => { e.Handled = true; profile.Set(key, !on); Fill(); };
+            wrap.Children.Add(chip);
+        }
+        return wrap;
     }
 
     // wie Set-BoostRecommended: die Spiele bleiben, wie sie sind
@@ -257,6 +297,15 @@ sealed class BoostSetupPage : UserControl, IPage
                 ["Clipboard"] = data.Options.First(x => x.Name == "Clipboard").Checked,
             };
             s["BoostGames"] = Altdaten.Array(data.Games.Where(x => x.Checked).Select(x => x.Name));
+            // nur abweichende Profile; ein Spiel ohne Eintrag bekommt alles
+            var profiles = new JsonObject();
+            foreach (var g in data.Games.Where(x => x.Checked && x.Profile is { IsDefault: false }))
+            {
+                var o = new JsonObject();
+                foreach (var key in Spielprofil.Keys) o[key] = g.Profile!.Get(key);
+                profiles[g.Name] = o;
+            }
+            s["GameProfiles"] = profiles;
         });
     }
 

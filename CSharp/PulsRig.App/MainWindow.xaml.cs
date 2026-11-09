@@ -16,7 +16,7 @@ public partial class MainWindow : Window
         ["home"] = "Übersicht", ["boost"] = "Boost", ["tools"] = "Werkzeuge", ["hw"] = "Hardware", ["opt"] = "Optionen", ["boostsetup"] = "Einrichten", ["ping"] = "Ping-Test", ["power"] = "Stromverbrauch", ["bench"] = "Benchmark", ["sensors"] = "Sensoren",
         ["drives"] = "Laufwerke", ["gpu"] = "Grafikkarte", ["cpu"] = "Prozessor", ["ram"] = "Arbeitsspeicher", ["stress"] = "Stabilitätstest",
         ["display"] = "Bildschirm", ["crash"] = "Abstürze", ["report"] = "Bericht & Diagnose", ["drivers"] = "Treiber",
-        ["repair"] = "Hilfe bei Problemen", ["problem"] = "Was ist los?", ["input"] = "Controller und Maus", ["battery"] = "Akku", ["reinstall"] = "Neuinstallation", ["stick"] = "Notfall-Stick", ["usedcheck"] = "Gebrauchtkauf-Check",["upgrade"] = "Aufrüst-Berater",["clean"] = "Aufräumen", ["manage"] = "Treiber & Sicherung", ["games"] = "Spielen & Leistung", ["rescue"] = "Notfall", ["pc"] = "Mein PC", ["history"] = "Verlauf & Rückgängig", ["changes"] = "Was hat sich geändert?", ["undo"] = "Rückgängig-Zentrale", ["logbook"] = "PC-Scheckheft", ["stutter"] = "Ruckler-Detektiv", ["single"] = "Einzelnen Treiber sichern",
+        ["repair"] = "Hilfe bei Problemen", ["problem"] = "Was ist los?", ["input"] = "Controller und Maus", ["battery"] = "Akku", ["reinstall"] = "Neuinstallation", ["updates"] = "Programm-Updates", ["stick"] = "Notfall-Stick", ["usedcheck"] = "Gebrauchtkauf-Check",["upgrade"] = "Aufrüst-Berater",["clean"] = "Aufräumen", ["manage"] = "Treiber & Sicherung", ["games"] = "Spielen & Leistung", ["rescue"] = "Notfall", ["pc"] = "Mein PC", ["history"] = "Verlauf & Rückgängig", ["changes"] = "Was hat sich geändert?", ["undo"] = "Rückgängig-Zentrale", ["logbook"] = "PC-Scheckheft", ["stutter"] = "Ruckler-Detektiv", ["single"] = "Einzelnen Treiber sichern",
     };
 
     // Seitenleiste: die Bereiche aus WerkzeugePage.Absichten, jedes Werkzeug steht in genau einem davon
@@ -146,6 +146,7 @@ public partial class MainWindow : Window
             "battery" => new AkkuPage(),
             "upgrade" => new AufruestPage(),
             "reinstall" => new NeuinstallPage(this),
+            "updates" => new UpdatesPage(),
             "stick" => new NeuinstallPage(this, 2),
             "usedcheck" => new GebrauchtkaufPage(),
             "gpu" or "cpu" or "ram" or "stress" or "display" or "crash" or "report" => new DetailPage(cur, this, demo),

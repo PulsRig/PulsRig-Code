@@ -208,9 +208,20 @@ static class PulsRigHelper
     // aufgezeichnet werden die Boost-Spiele und die, die nur aufgezeichnet werden sollen (ohne Boost)
     static List<string> RecordedGames()
     {
-        var games = GameList("BoostGames");
+        // ein Boost-Spiel, dessen Spielprofil "Aufzeichnen" ausschaltet, fehlt hier (außer es steht selbst in der RecordList)
+        var games = GameList("BoostGames").FindAll(name => ProfileFlag(name, "Record"));
         foreach (string name in GameList("RecordList")) if (!games.Contains(name)) games.Add(name);
         return games;
+    }
+
+    // Schalter aus "GameProfiles" (Core.Spielprofil); fehlt er, ist er an
+    static bool ProfileFlag(string game, string key)
+    {
+        var profiles = Value("GameProfiles") as IDictionary<string, object>;
+        object profile, value;
+        if (profiles == null || !profiles.TryGetValue(game, out profile)) return true;
+        var flags = profile as IDictionary<string, object>;
+        return flags == null || !flags.TryGetValue(key, out value) || !(value is bool) || (bool)value;
     }
 
     static List<string> GameList(string key)
