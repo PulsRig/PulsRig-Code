@@ -26,6 +26,8 @@ sealed class DetailPage : UserControl, IPage
     readonly List<(TextBlock Title, TextBlock State, TextBlock Value, ContentControl Bar, TextBlock Note, Border Tile)> facts = new();
     readonly UniformGrid actions = new() { Columns = 3, VerticalAlignment = VerticalAlignment.Bottom };
     string shownActions = "";
+    // Farben der Faktenkacheln beim letzten Füllen: Live-Seiten füllen jede Sekunde, die Farben ändern sich dabei fast nie
+    readonly string[] shownLook = new string[4];
     readonly TextBlock tip = new() { FontSize = 12.5, Foreground = Ui.Res("Halbleise"), TextWrapping = TextWrapping.Wrap, LineHeight = 19 };
     readonly bool live;
     ChartKind shownChart = (ChartKind)(-1);
@@ -197,6 +199,10 @@ sealed class DetailPage : UserControl, IPage
             facts[i].Bar.Content = Ui.Bar(f.Bar, f.Color, 5, reuse: facts[i].Bar.Content);
             facts[i].Note.Text = f.Note;
             facts[i].Title.Text = f.Title;
+            // neue Pinsel nur, wenn sich die Farben geändert haben: jeder neue Hintergrund ließe die Kachel neu zeichnen
+            var look = f.Color + "|" + f.Tint;
+            if (i < shownLook.Length && shownLook[i] == look) continue;
+            if (i < shownLook.Length) shownLook[i] = look;
             facts[i].Title.Foreground = Ui.Brush(f.Color);
             facts[i].Tile.Background = Ui.Tint(f.Tint);
             facts[i].Tile.BorderBrush = Ui.Alpha(f.Color, "2E");

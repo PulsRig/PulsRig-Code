@@ -42,6 +42,8 @@ static class Helfer
     static int Schtasks(string arguments)
     {
         using var p = Process.Start(new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "schtasks.exe"), arguments) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true })!;
+        p.ErrorDataReceived += (_, _) => { };
+        p.BeginErrorReadLine();
         p.StandardOutput.ReadToEnd();
         p.WaitForExit();
         return p.ExitCode;

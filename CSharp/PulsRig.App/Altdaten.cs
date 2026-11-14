@@ -23,18 +23,21 @@ static class Altdaten
     // die Daten daneben in Treiber\
     public static string? Portable => ProgramRoot is { } r && !r.StartsWith(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), StringComparison.OrdinalIgnoreCase) ? r : null;
 
-    // installiert %LOCALAPPDATA%\PulsRig, ohne Installation Treiber\ daneben, beim Entwickeln Treiber\ neben dem Ordner CSharp
-    public static string Folder
+    // installiert %LOCALAPPDATA%\PulsRig, ohne Installation Treiber\ daneben, beim Entwickeln Treiber\ neben dem Ordner CSharp.
+    // Einmal je Programmlauf bestimmt: fast jeder Zugriff auf Einstellungen, Ergebnisse und Boost-Zustand fragt danach,
+    // und die Suche kostete jedes Mal mehrere Blicke ins Dateisystem. Der Ordner wechselt im Lauf nicht.
+    public static string Folder => folder.Value;
+
+    static readonly Lazy<string> folder = new(FindFolder);
+
+    static string FindFolder()
     {
-        get
-        {
-            if (Portable is { } stick) return Path.Combine(stick, "Treiber");
-            var installed = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PulsRig");
-            if (File.Exists(Path.Combine(installed, "PulsRig-Einstellungen.json"))) return installed;
-            for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
-                if (Directory.Exists(Path.Combine(dir.FullName, "CSharp")) && Directory.Exists(Path.Combine(dir.FullName, "Treiber"))) return Path.Combine(dir.FullName, "Treiber");
-            return installed;
-        }
+        if (Portable is { } stick) return Path.Combine(stick, "Treiber");
+        var installed = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PulsRig");
+        if (File.Exists(Path.Combine(installed, "PulsRig-Einstellungen.json"))) return installed;
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
+            if (Directory.Exists(Path.Combine(dir.FullName, "CSharp")) && Directory.Exists(Path.Combine(dir.FullName, "Treiber"))) return Path.Combine(dir.FullName, "Treiber");
+        return installed;
     }
 
     public static string SettingsFile => Path.Combine(Folder, "PulsRig-Einstellungen.json");
@@ -113,21 +116,50 @@ static class Ergebnisse
     public static JsonObject Read()
     {
         lock (Gate)
-            try { return System.IO.File.Exists(File) ? JsonNode.Parse(System.IO.File.ReadAllText(File)) as JsonObject ?? new() : new(); }
+            try { return Load() ?? new(); }
             catch (Exception) { return new(); }
     }
 
-    // erst daneben schreiben, dann an den Platz (wie Save-TextFile): bricht es ab, bleibt die alte Datei heil
+    // null ohne Datei; ist sie gerade gesperrt oder halb geschrieben, mehrmals versuchen. Bleibt sie unlesbar, kommt
+    // die Ausnahme beim Aufrufer an
+    static JsonObject? Load()
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                if (!System.IO.File.Exists(File)) return null;
+                using var stream = new FileStream(File, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                using var reader = new StreamReader(stream, Encoding.UTF8);
+                return JsonNode.Parse(reader.ReadToEnd()) as JsonObject ?? new();
+            }
+            catch (Exception) when (attempt < 5) { Thread.Sleep(50 * (attempt + 1)); }
+        }
+    }
+
+    // erst daneben schreiben, dann an den Platz (wie Save-TextFile): bricht es ab, bleibt die alte Datei heil.
+    // Ist die Datei nicht lesbar, nicht den ganzen Verlauf mit einem fast leeren überschreiben: Ist sie nur gesperrt,
+    // unterbleibt die Änderung (Ausnahme); ist sie beschädigt, wird sie vorher als .defekt beiseitegelegt.
     public static void Change(Action<JsonObject> change)
     {
         lock (Gate)
         {
-            var results = Read();
+            JsonObject results;
+            try { results = Load() ?? new(); }
+            catch (JsonException)
+            {
+                try { System.IO.File.Copy(File, File + ".defekt", true); } catch (Exception) { }
+                results = new();
+            }
             change(results);
             Directory.CreateDirectory(Altdaten.Folder);
             var draft = File + ".neu";
             System.IO.File.WriteAllText(draft, results.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), new UTF8Encoding(true));
-            System.IO.File.Move(draft, File, true);
+            for (var attempt = 0; ; attempt++)
+            {
+                try { System.IO.File.Move(draft, File, true); return; }
+                catch (IOException) when (attempt < 5) { Thread.Sleep(50 * (attempt + 1)); }
+            }
         }
     }
 

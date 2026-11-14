@@ -20,7 +20,10 @@ namespace PulsRig.Core
         Process? nvidia;
         readonly PerformanceCounter? load;
         readonly PerformanceCounter? performance;
-        readonly List<PerformanceCounter> cores = new List<PerformanceCounter>();
+        // je logischem Kern die belegte Zeit: alle Kerne kommen je Takt aus einer einzigen Abfrage der Kategorie
+        // (ReadCategory). Ein eigener Zähler je Kern liest die ganze Kategorie jedes Mal neu - bei 16 Kernen 16-mal.
+        readonly PerformanceCounterCategory? coreCategory;
+        Dictionary<string, CounterSample>? coreLast;
         readonly PerformanceCounter? available;
         readonly double baseMhz;
         readonly double totalMb;
@@ -43,19 +46,10 @@ namespace PulsRig.Core
             // je logischem Kern ein Zähler: für den Aufrüst-Berater zählt der am stärksten belastete Kern, nicht der Mittelwert
             try
             {
-                string category = load?.CategoryName ?? "Processor";
-                // je Kern die belegte Zeit, nicht "% Processor Utility": die rechnet den Turbotakt mit ein und lag bei
-                // einem Kern schon über 100 %, wenn er nur kurz (etwa beim Seitenwechsel) zu 85 % beschäftigt war
-                string counterName = "% Processor Time";
-                foreach (string instance in new PerformanceCounterCategory(category).GetInstanceNames())
-                {
-                    if (instance.Contains("_Total")) continue;
-                    var counter = new PerformanceCounter(category, counterName, instance);
-                    counter.NextValue();
-                    cores.Add(counter);
-                }
+                coreCategory = new PerformanceCounterCategory(load?.CategoryName ?? "Processor");
+                CoreMax();   // erster Stand: der nächste Takt hat damit einen Vergleichswert
             }
-            catch (Exception) { cores.Clear(); }
+            catch (Exception) { coreCategory = null; }
             // Arbeitsspeicher: die Gesamtgröße einmal lesen, den freien Rest danach aus einem Leistungszähler - das kostet
             // im Sekundentakt viel weniger als jedes Mal eine Abfrage an Windows
             try
@@ -88,6 +82,33 @@ namespace PulsRig.Core
             catch (Exception) { nvidia = null; }
         }
 
+        // Der am stärksten belastete Kern seit dem letzten Aufruf in Prozent; null beim ersten Aufruf oder ohne Zähler.
+        // Je Kern die belegte Zeit, nicht "% Processor Utility": die rechnet den Turbotakt mit ein und lag bei einem
+        // Kern schon über 100 %, wenn er nur kurz (etwa beim Seitenwechsel) zu 85 % beschäftigt war
+        double? CoreMax()
+        {
+            if (coreCategory == null) return null;
+            var data = coreCategory.ReadCategory();
+            if (!data.Contains(CoreCounter)) return null;
+            var now = new Dictionary<string, CounterSample>();
+            double top = 0.0;
+            bool any = false;
+            foreach (InstanceData item in data[CoreCounter].Values)
+            {
+                if (item.InstanceName.Contains("_Total")) continue;
+                now[item.InstanceName] = item.Sample;
+                if (coreLast != null && coreLast.TryGetValue(item.InstanceName, out CounterSample old))
+                {
+                    top = Math.Max(top, CounterSample.Calculate(old, item.Sample));
+                    any = true;
+                }
+            }
+            coreLast = now;
+            return any ? top : (double?)null;
+        }
+
+        const string CoreCounter = "% Processor Time";
+
         public static double? Number(string? text) =>
             double.TryParse((text ?? "").Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ? value : (double?)null;
 
@@ -108,16 +129,16 @@ namespace PulsRig.Core
             if (nvidia != null && !nvidia.HasExited)
             {
                 // die Zeile des NVIDIA-Werkzeugs gibt zugleich den Sekundentakt vor
-                ParseNvidiaLine(nvidia.StandardOutput.ReadLine(), values);
+                string? line = null;
+                try { line = nvidia.StandardOutput.ReadLine(); } catch (Exception) { }
+                // keine Zeile heißt: das Werkzeug ist gerade zu Ende gegangen. Ohne Pause liefe die Schleife ungebremst,
+                // bis Windows den Prozess als beendet meldet
+                if (line == null) Thread.Sleep(1000);
+                else ParseNvidiaLine(line, values);
             }
             else Thread.Sleep(1000);
             try { if (load != null) values["CpuLoad"] = Math.Min(100.0, load.NextValue()); } catch (Exception) { }
-            if (cores.Count > 0)
-            {
-                double top = 0.0;
-                foreach (var counter in cores) { try { top = Math.Max(top, counter.NextValue()); } catch (Exception) { } }
-                values["CpuCoreMax"] = Math.Min(100.0, top);
-            }
+            try { if (CoreMax() is double top) values["CpuCoreMax"] = Math.Min(100.0, top); } catch (Exception) { }
             try { if (performance != null && baseMhz > 0) values["CpuClock"] = baseMhz * performance.NextValue() / 100.0 / 1000.0; } catch (Exception) { }
             try { if (available != null && totalMb > 0) values["Ram"] = Math.Max(0.0, 100.0 * (1.0 - available.NextValue() / totalMb)); } catch (Exception) { }
             return values;
@@ -144,8 +165,7 @@ namespace PulsRig.Core
         {
             if (nvidia != null) { try { if (!nvidia.HasExited) nvidia.Kill(); } catch (Exception) { } nvidia.Dispose(); nvidia = null; }
             load?.Dispose(); performance?.Dispose(); available?.Dispose();
-            foreach (var counter in cores) counter.Dispose();
-            cores.Clear();
+            coreLast = null;
         }
     }
 }

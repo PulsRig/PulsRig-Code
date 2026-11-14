@@ -369,6 +369,12 @@ sealed class EingabePage : UserControl, IPage
         var bounces = Enumerable.Range(0, 5).Where(b => PulsRigMouse.Bounces[b] > 0).Select(b => MouseButtons[b] + " " + PulsRigMouse.Bounces[b] + "×").ToList();
         var bounceMax = PulsRigMouse.Bounces.Max();
         if (hz == 0 && clicks < 20 && driftResult == null && seen.Count == 0 && padHz == 0) return;
+        // lässt sich die Ergebnisdatei gerade nicht schreiben, bleibt nur dieser Stand ungespeichert
+        try { SaveResult(clicks, bounces, bounceMax); } catch (Exception e) { Fehlerprotokoll.Write(e); }
+    }
+
+    void SaveResult(int clicks, List<string> bounces, int bounceMax)
+    {
         Ergebnisse.Change(results =>
         {
             var cards = results["Cards"] as JsonObject ?? (JsonObject)(results["Cards"] = new JsonObject());

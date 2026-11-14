@@ -41,8 +41,7 @@ sealed class SensorPage : UserControl, IPage
         void Add(List<double> list, double? v) { if (v is { } d) { list.Add(d); if (list.Count > Live.Keep) list.RemoveAt(0); } }
         Add(gpuLoad, Live.Get("GpuLoad"));
         Add(cpuClock, Live.Get("CpuClock"));
-        // nicht mitten in einem Klick neu aufbauen: sonst geht er verloren
-        if (tab == 0 && System.Windows.Input.Mouse.LeftButton != System.Windows.Input.MouseButtonState.Pressed) Fill();
+        if (tab == 0) UpdateLive();
     }
 
     static string Folder => System.IO.Path.Combine(Altdaten.Folder, "Aufzeichnungen");
@@ -79,15 +78,15 @@ sealed class SensorPage : UserControl, IPage
         root.Children.Add(body);
     }
 
-    UIElement LiveView()
+    // die sechs Kacheln von "Live" mit den Werten dieses Takts
+    (string Title, string Value, string Note, string Color, string Tint, List<double> History, double Max)[] LiveTiles()
     {
-        var grid = Ui.Mosaic(3, 2, 12);
         string N(double? v, string unit, string format = "N0") => v is { } d ? d.ToString(format, Ui.De) + unit : "–";
         var cpuNote = Live.CpuTempStatus switch
         {
             "nolib" => "Ordner Sensoren fehlt", "nodriver" => "braucht den Treiber PawnIO", "noadmin" => "nur mit Adminrechten", "none" => "nicht lesbar", _ => "LibreHardwareMonitor",
         };
-        var tiles = new (string Title, string Value, string Note, string Color, string Tint, List<double> History, double Max)[]
+        return new (string Title, string Value, string Note, string Color, string Tint, List<double> History, double Max)[]
         {
             ("Grafikkarte", N(Live.Get("GpuTemp"), " °C"), Live.Values["GpuName"] as string ?? "nur bei NVIDIA messbar", Lila, "#160D29", Live.GpuTemp, 100),
             ("Last der Grafikkarte", N(Live.Get("GpuLoad"), " %"), Live.Get("GpuPower") is { } w ? w.ToString("N0", Ui.De) + " W" + (Live.Get("GpuFan") is { } f ? " · Lüfter " + f.ToString("N0", Ui.De) + " %" : "") : "", Beere, "#1F0A19", gpuLoad, 100),
@@ -97,6 +96,16 @@ sealed class SensorPage : UserControl, IPage
             ("Auslastung", N(Live.Get("CpuLoad"), " %"), Live.Get("CpuCoreMax") is { } c ? "stärkster Kern " + c.ToString("N0", Ui.De) + " %" : "", Gruen, "#10291F", Live.CpuLoad, 100),
             ("Takt", N(Live.Get("CpuClock"), " GHz", "N1"), Live.Get("CpuPower") is { } p ? p.ToString("N0", Ui.De) + " W" : "", "#8C6BD6", "#160D29", cpuClock, Math.Max(1, cpuClock.DefaultIfEmpty(1).Max() * 1.1)),
         };
+    }
+
+    // Wert, Notiz und Platz für den Verlauf je Kachel, in der Reihenfolge von LiveTiles
+    readonly List<(TextBlock Value, TextBlock Note, DockPanel Panel)> liveParts = new();
+
+    UIElement LiveView()
+    {
+        var grid = Ui.Mosaic(3, 2, 12);
+        liveParts.Clear();
+        var tiles = LiveTiles();
         for (var i = 0; i < tiles.Length; i++)
         {
             var (title, value, note, color, tint, history, max) = tiles[i];
@@ -111,7 +120,10 @@ sealed class SensorPage : UserControl, IPage
             var n = Ui.Text(note, 11.5, "Leise");
             DockPanel.SetDock(n, Dock.Top);
             panel.Children.Add(n);
-            panel.Children.Add(Spark(title, history, max, color));
+            // letzter Platz der Kachel: der Verlauf, solange es noch keinen gibt ein leerer Rahmen
+            panel.Children.Add(new Border());
+            liveParts.Add((v, n, panel));
+            SetSpark(panel, title, history, max, color);
             var tile = Ui.Tile(color, tint, new Thickness(18, 16, 18, 14));
             tile.CornerRadius = new CornerRadius(22);
             tile.Child = panel;
@@ -120,18 +132,37 @@ sealed class SensorPage : UserControl, IPage
         return grid;
     }
 
-    // Livelinie der letzten Minute als Linie; je Kachel bleibt dasselbe Element über alle Takte stehen und gleitet flüssig
+    // jede Sekunde: nur Werte, Notizen und Verläufe wechseln, die Kacheln bleiben stehen. Früher baute die Seite alle
+    // sechs Kacheln je Takt neu auf (und musste dafür Klicks abwarten, die sonst verloren gingen)
+    void UpdateLive()
+    {
+        if (stopped) return;
+        var tiles = LiveTiles();
+        if (liveParts.Count != tiles.Length) { Fill(); return; }
+        for (var i = 0; i < tiles.Length; i++)
+        {
+            var (value, note, panel) = liveParts[i];
+            if (value.Text != tiles[i].Value) value.Text = tiles[i].Value;
+            if (note.Text != tiles[i].Note) note.Text = tiles[i].Note;
+            SetSpark(panel, tiles[i].Title, tiles[i].History, tiles[i].Max, tiles[i].Color);
+        }
+    }
+
+    // Verlauf der letzten Minute als Linie; je Kachel bleibt dasselbe Element über alle Takte stehen und gleitet flüssig
     readonly Dictionary<string, Livelinie> sparks = new();
 
-    FrameworkElement Spark(string key, List<double> values, double max, string color)
+    void SetSpark(DockPanel panel, string key, List<double> values, double max, string color)
     {
-        if (values.Count < 2) return new Border();
+        if (values.Count < 2) return;
         if (!sparks.TryGetValue(key, out var spark))
             sparks[key] = spark = new Livelinie(color, area: false) { Height = 46, Margin = new Thickness(0, 10, 0, 0), VerticalAlignment = VerticalAlignment.Bottom };
-        (spark.Parent as Panel)?.Children.Remove(spark);
         spark.High = max;
         spark.Set(values, Live.Tick);
-        return spark;
+        if (ReferenceEquals(spark.Parent, panel)) return;
+        // nach einem Wechsel des Reiters hängt die Linie noch an der alten Kachel
+        (spark.Parent as Panel)?.Children.Remove(spark);
+        panel.Children.RemoveAt(panel.Children.Count - 1);
+        panel.Children.Add(spark);
     }
 
     UIElement Sessions()
@@ -203,7 +234,14 @@ sealed class SensorPage : UserControl, IPage
                     var points = Verschleissdaten.Points();
                     var cleaned = Verschleissdaten.LastCleaning();
                     return (new List<Verschleissbefund> { Verschleiss.Trend(points, 'G', cleaned), Verschleiss.Trend(points, 'C', cleaned) }, Verschleissdaten.Ssds(Hw.Drives ?? Abfragen.Drives()), points.Count(p => p.Src != "kurz"));
-                }).ContinueWith(t => Dispatcher.BeginInvoke(() => { wearLoading = false; if (t.IsCompletedSuccessfully) wear = t.Result; if (tab == 2) Fill(); }));
+                }).ContinueWith(t => Dispatcher.BeginInvoke(() =>
+                {
+                    wearLoading = false;
+                    // gescheitert: leer zeigen statt gleich wieder zu lesen – sonst liefe das Lesen im Kreis
+                    wear = t.IsCompletedSuccessfully ? t.Result : (new List<Verschleissbefund>(), new List<Verschleissbefund>(), 0);
+                    if (t.Exception is { } problem) Fehlerprotokoll.Write(problem);
+                    if (tab == 2) Fill();
+                }));
             }
             return list;
         }

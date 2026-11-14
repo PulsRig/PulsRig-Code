@@ -21,6 +21,8 @@ static partial class Werkzeugpruefung
         var start = new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, file), arguments) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true,
             StandardOutputEncoding = Encoding.GetEncoding(System.Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage) };
         using var process = Process.Start(start)!;
+        process.ErrorDataReceived += (_, _) => { };
+        process.BeginErrorReadLine();
         var output = process.StandardOutput.ReadToEnd();
         process.WaitForExit();
         return (process.ExitCode, output.Split('\n').Select(l => l.TrimEnd('\r')).ToList());

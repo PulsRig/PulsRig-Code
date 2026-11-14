@@ -34,6 +34,9 @@ static partial class Werkzeugpruefung
     {
         var start = new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, file), arguments) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
         using var process = Process.Start(start)!;
+        // die Fehlerausgabe nebenher leeren: liest sie niemand, bleibt ein Werkzeug mit viel Fehlertext stehen
+        process.ErrorDataReceived += (_, _) => { };
+        process.BeginErrorReadLine();
         var output = process.StandardOutput.ReadToEnd();
         process.WaitForExit();
         if (!(ok.Length == 0 ? new[] { 0 } : ok).Contains(process.ExitCode)) throw new InvalidOperationException(file + " meldet Code " + process.ExitCode);

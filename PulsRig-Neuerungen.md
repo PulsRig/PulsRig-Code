@@ -1,3 +1,13 @@
+## Neu in 1.0.6
+
+- Das PC-Scheckheft führt nur noch wirklich bestandene Stabilitätstests als „bestanden“; abgebrochene oder durchgefallene standen dort bisher auch.
+- Der Verlauf der Ergebnisse geht nicht mehr verloren, wenn die Datei beim Speichern gerade gesperrt oder beschädigt ist.
+- Der Klick auf die Meldung „neuere Treiber“ des Helfers neben der Uhr öffnet jetzt die Treiber-Seite.
+- Die Sensoren-Seite braucht weniger Prozessor: die Live-Kacheln bleiben stehen, nur die Werte wechseln.
+- Wer während eines Scans die Seite wechselt, lässt nichts mehr unsichtbar weiterlaufen.
+- Rückfragen erscheinen in der englischen Fassung zuverlässig auf Englisch.
+- Mehrere kleine Absicherungen gegen Hänger und Abbrüche (Verschleiß-Auswertung, Arbeitsspeicher, Windows-Werkzeuge).
+
 ## Neu in 1.0.5
 
 - Neue Seitenleiste mit acht Bereichen: Übersicht, Probleme, Treiber, Mein PC, Spielen, Aufräumen, Verlauf und Notfall. Jedes Werkzeug steht an genau einer Stelle.

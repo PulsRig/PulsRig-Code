@@ -26,11 +26,14 @@ static class Hw
         };
         if ((known && !again) || !Running.Add(what)) return;
         var ui = System.Windows.Application.Current.Dispatcher;
+        // "Neu einlesen" liest das Ereignisprotokoll wirklich neu; der erste Blick darf sich das Ergebnis mit der
+        // Prüfung beim Start teilen (Ereignisse.Crashes)
+        var fresh = again && Crashes != null;
         Task.Run(() =>
         {
             object? result = what switch
             {
-                "cpu" => Abfragen.Cpu(), "gpu" => Abfragen.Gpu(), "ram" => Abfragen.Memory(), "drives" => Abfragen.Drives(), "display" => Abfragen.Displays(), "crash" => Ereignisse.Crashes(), _ => null,
+                "cpu" => Abfragen.Cpu(), "gpu" => Abfragen.Gpu(), "ram" => Abfragen.Memory(), "drives" => Abfragen.Drives(), "display" => Abfragen.Displays(), "crash" => Ereignisse.Crashes(fresh), _ => null,
             };
             ui.BeginInvoke(() =>
             {

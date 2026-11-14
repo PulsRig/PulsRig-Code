@@ -141,6 +141,11 @@ namespace PulsRig.Core
             Key = "stress|" + p.D + "|" + p.Name,
         };
 
+        // bestandene Stabilitätstests. Abgebrochene oder durchgefallene (Fail) bleiben Messpunkte für die Kühlung,
+        // bekommen aber keinen Eintrag: das Scheckheft soll beim Verkauf nichts als bestanden ausweisen, was es nicht war
+        public static List<HeftEintrag> Stresses(IEnumerable<Messpunkt> points) =>
+            points.Where(p => p.Src == "Stresstest" && !p.Fail).Select(Stress).ToList();
+
         // höchste Temperaturen beim Spielen je Monat; der Eintrag des laufenden Monats wird jeweils ersetzt
         public static List<HeftEintrag> Temperatures(IEnumerable<Messpunkt> points)
         {

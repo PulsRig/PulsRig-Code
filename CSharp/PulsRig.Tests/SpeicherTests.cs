@@ -121,6 +121,15 @@ public class SpeicherTests
         Assert.Empty(Speicher.ParseSmbios(null, 0));
     }
 
+    [Fact]
+    public void AbgeschnitteneBiosTabelleWirftNicht()
+    {
+        var raw = Table((16384, "DIMM 0", "P0 CHANNEL A"), (16384, "DIMM 1", "P0 CHANNEL B"));
+        // an jeder Stelle abgeschnitten: nie eine Ausnahme, höchstens eine leere oder kürzere Liste
+        for (var length = 0; length < raw.Length; length++)
+            Assert.True(Speicher.ParseSmbios(raw.Take(length).ToArray(), 2).Count <= 2);
+    }
+
     [Theory]
     [InlineData("Unknown", "")]
     [InlineData("0000", "")]

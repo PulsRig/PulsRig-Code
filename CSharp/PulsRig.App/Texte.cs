@@ -21,7 +21,7 @@ static class Texte
 
     static readonly DependencyPropertyDescriptor TextChanged = DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock));
     static readonly ConditionalWeakTable<TextBlock, object> Seen = new();
-    static bool busy, pending;
+    static bool busy;
 
     public static void Start()
     {
@@ -42,6 +42,9 @@ static class Texte
     public static void Attach(Window window)
     {
         if (English == null) return;
+        // je Fenster ein eigener Merker: mit einem gemeinsamen blieb eine Rückfrage deutsch, wenn sie aufging, während
+        // für das Hauptfenster schon ein Durchgang vorgemerkt war – der lief dann nur durch das Hauptfenster
+        var pending = false;
         window.LayoutUpdated += (_, _) =>
         {
             if (pending) return;

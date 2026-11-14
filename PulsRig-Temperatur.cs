@@ -76,10 +76,21 @@ public static class PulsRigCpuTemp
         catch { return false; }
     }
 
+    // Die Rechte eines laufenden Programms ändern sich nicht: einmal fragen statt bei jedem Lesen (einmal je Sekunde),
+    // jede Frage legte ein neues Abbild der Anmeldung an, das erst die Speicherbereinigung wieder freigab
+    static bool adminKnown, admin;
+
     public static bool IsAdmin()
     {
-        try { return new System.Security.Principal.WindowsPrincipal(System.Security.Principal.WindowsIdentity.GetCurrent()).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator); }
-        catch { return false; }
+        if (adminKnown) return admin;
+        try
+        {
+            using (var identity = System.Security.Principal.WindowsIdentity.GetCurrent())
+                admin = new System.Security.Principal.WindowsPrincipal(identity).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+        }
+        catch { admin = false; }
+        adminKnown = true;
+        return admin;
     }
 
     public static bool LibraryPresent()
@@ -93,7 +104,9 @@ public static class PulsRigCpuTemp
         {
             double value = double.NaN;
             Power = double.NaN;
-            if (LibraryPresent() && DriverInstalled() && IsAdmin())
+            // je Lesen einmal nachsehen, nicht noch einmal für den Grund weiter unten
+            bool library = LibraryPresent(), driver = library && DriverInstalled();
+            if (library && driver && IsAdmin())
             {
                 try { value = ReadLibrary(); } catch (Exception e) { value = double.NaN; Error = (e.InnerException ?? e).GetType().Name + ": " + (e.InnerException ?? e).Message; }
                 if (!double.IsNaN(value)) { Source = "LibreHardwareMonitor"; Status = "ok"; return value; }
@@ -101,8 +114,8 @@ public static class PulsRigCpuTemp
             value = ReadCoreTemp();
             if (!double.IsNaN(value)) { Source = "Core Temp"; Sensor = "Core Temp"; Status = "ok"; return value; }
             Source = "";
-            if (!LibraryPresent()) Status = "nolib";
-            else if (!DriverInstalled()) Status = "nodriver";
+            if (!library) Status = "nolib";
+            else if (!driver) Status = "nodriver";
             else if (!IsAdmin()) Status = "noadmin";
             else Status = "none";
             return double.NaN;

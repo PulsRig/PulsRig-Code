@@ -73,7 +73,7 @@ static class Scheckheftdaten
         foreach (var r in (history["Benchmarks"] as JsonArray ?? new()).OfType<JsonObject>())
             if (Scheckheft.Benchmark(Altdaten.Text(r, "D", ""), Num(r, "S"), Num(r, "M"), Num(r, "G"), Num(r, "R")) is { } b) found.Add(b);
         var points = Verschleissdaten.Points();
-        found.AddRange(points.Where(p => p.Src == "Stresstest").Select(Scheckheft.Stress));
+        found.AddRange(Scheckheft.Stresses(points));
         found.AddRange(Scheckheft.Temperatures(points));
         found.AddRange(Probezeitlauf.Read(history).Select(Scheckheft.Driver));
         var snaps = (history["Snapshots"] as JsonArray ?? new()).OfType<JsonObject>()

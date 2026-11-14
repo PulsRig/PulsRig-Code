@@ -68,13 +68,18 @@ static class Ui
         if (reuse is Border { Tag: double[] old, Child: Border moving } same && same.Height == height)
         {
             old[0] = part;
-            moving.Background = fill != null ? Brush(fill) : new LinearGradientBrush(Hex(color), Hex("#A8326F"), 0);
+            // der Pinsel bleibt, solange die Farbe bleibt (Live-Seiten rufen das jede Sekunde für jeden Balken auf)
+            if (!Equals(moving.Tag, fill ?? color))
+            {
+                moving.Tag = fill ?? color;
+                moving.Background = fill != null ? Brush(fill) : new LinearGradientBrush(Hex(color), Hex("#A8326F"), 0);
+            }
             if (same.ActualWidth > 0)
                 moving.BeginAnimation(FrameworkElement.WidthProperty, new DoubleAnimation(same.ActualWidth * part, TimeSpan.FromMilliseconds(700)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } });
             return same;
         }
         var fillBrush = fill != null ? (Brush)Brush(fill) : new LinearGradientBrush(Hex(color), Hex("#A8326F"), 0);
-        var bar = new Border { Height = height, CornerRadius = new CornerRadius(height / 2), Background = fillBrush, HorizontalAlignment = HorizontalAlignment.Left };
+        var bar = new Border { Height = height, CornerRadius = new CornerRadius(height / 2), Background = fillBrush, HorizontalAlignment = HorizontalAlignment.Left, Tag = fill ?? color };
         var share0 = new[] { part };
         var track = new Border { Height = height, CornerRadius = new CornerRadius(height / 2), Background = Brush("#10FFFFFF"), Child = bar, Tag = share0 };
         track.SizeChanged += (_, e) => { bar.BeginAnimation(FrameworkElement.WidthProperty, null); bar.Width = e.NewSize.Width * share0[0]; };

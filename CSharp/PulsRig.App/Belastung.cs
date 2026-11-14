@@ -185,7 +185,7 @@ static class Belastung
         Last = new(title + " – " + what + ", " + Clock(Math.Min(Elapsed, Seconds)) + " Minuten", text, tone, DateTime.Now.ToString("dd.MM.yyyy HH:mm"), maxGpu, maxCpu, Temps.ToList());
         Save(Last);
         var (kind, seconds, minute) = (What, Math.Min(Elapsed, Seconds), tail.ToList());
-        Task.Run(() => Verschleissdaten.AddStress(kind, seconds, minute));
+        Task.Run(() => Verschleissdaten.AddStress(kind, seconds, minute, tone == "good"));
         State = "";
         // ein paar Sekunden später, wenn das Grafikfenster zu ist: unbenutzten Arbeitsspeicher an Windows zurückgeben
         var later = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };

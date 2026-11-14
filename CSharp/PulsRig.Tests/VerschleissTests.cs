@@ -15,6 +15,16 @@ public class VerschleissTests
     }
 
     [Fact]
+    public void VerdrehtesDatumBrichtDieAuswertungNichtAb()
+    {
+        // zehn Zeichen lang, aber kein Tag im erwarteten Format: zählt nicht mit, statt eine Ausnahme auszulösen
+        var points = new[] { P("01.10.2026", 70, 200), P("2026-10-01", 70, 200), P("2026-13-45", 70, 200) };
+        Assert.Equal("zu wenig Daten", Verschleiss.Trend(points, 'G').State);
+        Assert.Null(Verschleiss.Warning(points));
+        Assert.Equal("kein Verlauf", Verschleiss.Ssd("SSD", new[] { ("01.10.2026", 3) }).State);
+    }
+
+    [Fact]
     public void ZuWenigUndZuKurz()
     {
         Assert.Equal("zu wenig Daten", Verschleiss.Trend(new[] { P("2026-10-01", 70, 200) }, 'G').State);

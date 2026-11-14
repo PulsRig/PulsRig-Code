@@ -6,6 +6,7 @@
 //
 // Arten, sie zu starten:
 //   PulsRig.exe                 das Programm mit Fenster: App\PulsRig.App.exe (-Demo wird weitergereicht)
+//   PulsRig.exe -Scan           dasselbe, geöffnet auf der Treiber-Seite (Klick auf die Meldung des Helfers)
 //   PulsRig.exe -Helfer         der Helfer neben der Uhr (siehe PulsRigHelper unten) - ohne PowerShell, klein im Speicher
 //   PulsRig.exe -Boost Ein|Aus [-Spiel Name]   und   PulsRig.exe -Wochenscan
 //                               Arbeit ohne Fenster für den Helfer, ebenfalls in App\PulsRig.App.exe
@@ -41,12 +42,14 @@ static class PulsRigStart
 
         string mode = "app";
         string work = "";
-        bool demo = false;
+        bool demo = false, scan = false;
         for (int i = 0; i < args.Length; i++)
         {
             switch (args[i].TrimStart('-').ToLowerInvariant())
             {
                 case "demo": demo = true; break;
+                // vom Helfer nach dem Wochenscan: die Liste der neueren Treiber steht auf der Treiber-Seite
+                case "scan": scan = true; break;
                 case "helfer": mode = "helper"; break;
                 case "boost": mode = "background"; work = "-Boost \"" + (i + 1 < args.Length ? args[++i] : "Ein") + "\"" + work; break;
                 case "spiel": if (i + 1 < args.Length) work += " -Spiel \"" + args[++i] + "\""; break;
@@ -63,7 +66,8 @@ static class PulsRigStart
             if (!File.Exists(app)) throw new FileNotFoundException("Die App fehlt im Ordner des Programms – bitte PulsRig neu installieren.", app);
             if (mode == "app")
             {
-                Process.Start(new ProcessStartInfo(app) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(app), Arguments = demo ? "-Demo" : "" });
+                string arguments = (demo ? "-Demo " : "") + (scan ? "-Seite drivers" : "");
+                Process.Start(new ProcessStartInfo(app) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(app), Arguments = arguments.Trim() });
                 return 0;
             }
             var start = new ProcessStartInfo(app, work.Trim()) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = Path.GetDirectoryName(app) };

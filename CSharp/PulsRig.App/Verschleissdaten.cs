@@ -17,6 +17,7 @@ static class Verschleissdaten
         {
             D = Altdaten.Text(o, "D", ""), Src = Altdaten.Text(o, "Src", ""), Name = Altdaten.Text(o, "Name", ""), File = Altdaten.Text(o, "File", ""),
             Min = N("Min"), GT = N("GT"), GW = N("GW"), GF = N("GF"), CT = N("CT"), CC = N("CC"), CW = N("CW"),
+            Fail = Altdaten.Flag(o, "Fail", false),
         };
     }
 
@@ -25,6 +26,7 @@ static class Verschleissdaten
         var o = new JsonObject { ["D"] = p.D, ["Src"] = p.Src };
         if (p.Name.Length > 0) o["Name"] = p.Name;
         if (p.File.Length > 0) o["File"] = p.File;
+        if (p.Fail) o["Fail"] = true;
         var values = new[] { p.Min, p.GT, p.GW, p.GF, p.CT, p.CC, p.CW };
         for (var i = 0; i < Numbers.Length; i++) if (values[i] is { } v && !double.IsNaN(v)) o[Numbers[i]] = v;
         return o;
@@ -62,12 +64,13 @@ static class Verschleissdaten
         if (added.Count > 0) Add(added);
     }
 
-    // Messpunkt aus einem Stabilitätstest ab 5 Minuten: Mittel (Median) der letzten Minute
-    public static void AddStress(string what, double seconds, IReadOnlyList<(double? GT, double? GW, double? GF, double? CT, double? CC, double? CW)> tail)
+    // Messpunkt aus einem Stabilitätstest ab 5 Minuten: Mittel (Median) der letzten Minute. passed: der Test lief
+    // ohne Befund bis zum Ende – nur dann steht er im Scheckheft als bestanden
+    public static void AddStress(string what, double seconds, IReadOnlyList<(double? GT, double? GW, double? GF, double? CT, double? CC, double? CW)> tail, bool passed)
     {
         // vom Stick läuft PulsRig auf fremden PCs (Gebrauchtkauf-Check): deren Werte gehören nicht in den Verlauf
         if (Altdaten.Portable != null || seconds < 290 || tail.Count < 20) return;
-        var p = new Messpunkt { D = DateTime.Now.ToString("yyyy-MM-dd"), Src = "Stresstest", Name = what, Min = Math.Round(seconds / 60, MidpointRounding.ToEven) };
+        var p = new Messpunkt { D = DateTime.Now.ToString("yyyy-MM-dd"), Src = "Stresstest", Name = what, Min = Math.Round(seconds / 60, MidpointRounding.ToEven), Fail = !passed };
         double? R(double v, int d) => double.IsNaN(v) ? null : Math.Round(v, d, MidpointRounding.ToEven);
         if (what is "gpu" or "both") { p.GT = R(Verschleiss.Median(tail.Select(t => t.GT)), 1); p.GW = R(Verschleiss.Median(tail.Select(t => t.GW)), 1); p.GF = R(Verschleiss.Median(tail.Select(t => t.GF)), 1); }
         if (what is "cpu" or "both") { p.CT = R(Verschleiss.Median(tail.Select(t => t.CT)), 1); p.CC = R(Verschleiss.Median(tail.Select(t => t.CC)) * 1000, 0); p.CW = R(Verschleiss.Median(tail.Select(t => t.CW)), 1); }

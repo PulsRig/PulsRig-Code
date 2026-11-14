@@ -212,7 +212,10 @@ static class Abfragen
         return list;
     }
 
-    public static string NvidiaSmi()
+    // einmal je Programmlauf gesucht: die Detailseite der Grafikkarte fragt ohne NVIDIA-Karte jede Sekunde danach
+    public static string NvidiaSmi() => nvidiaSmi.Value;
+
+    static readonly Lazy<string> nvidiaSmi = new(() =>
     {
         var places = new[]
         {
@@ -220,5 +223,5 @@ static class Abfragen
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "NVIDIA Corporation", "NVSMI", "nvidia-smi.exe"),
         };
         return places.FirstOrDefault(File.Exists) ?? "";
-    }
+    });
 }

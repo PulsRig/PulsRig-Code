@@ -86,7 +86,8 @@ namespace PulsRig.Core
             while (at < raw.Length - 4)
             {
                 int kind = raw[at], length = raw[at + 1];
-                if (length < 4) break;
+                // abgeschnittene Tabelle: der Eintrag reicht über das Ende hinaus
+                if (length < 4 || at + length > raw.Length) break;
                 // hinter dem festen Teil stehen die Texte des Eintrags, jeder mit einer Null beendet, am Ende zwei Nullen
                 int next = at + length;
                 var strings = new List<string>();

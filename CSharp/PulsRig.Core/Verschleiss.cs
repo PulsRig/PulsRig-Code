@@ -23,6 +23,9 @@ namespace PulsRig.Core
         public double? CT { get; set; }
         public double? CC { get; set; }
         public double? CW { get; set; }
+        // Stabilitätstest, der nicht bestanden wurde (abgebrochen, zu heiß, Rechenfehler): die Temperaturen zählen für
+        // den Vergleich der Kühlung, im Scheckheft steht er aber nicht als "bestanden"
+        public bool Fail { get; set; }
     }
 
     public sealed class Verschleissbefund
@@ -81,6 +84,9 @@ namespace PulsRig.Core
 
         static DateTime Day(string d) => DateTime.ParseExact(d, "yyyy-MM-dd", CultureInfo.InvariantCulture);
 
+        // nur Einträge mit lesbarem Tag zählen: ein verdrehtes Datum in der Ergebnisdatei darf die Auswertung nicht abbrechen
+        static bool IsDay(string? d) => DateTime.TryParseExact(d ?? "", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+
         // Art der Last: Stabilitätstest je Teil (gpu, cpu, both) oder Spiel je Name
         public static string Kind(Messpunkt p) => p.Src == "Stresstest" ? "S|" + p.Name : p.Src + "|" + p.Name.ToLowerInvariant();
 
@@ -95,7 +101,7 @@ namespace PulsRig.Core
             var list = all.ToList();
             var bad = new[] { Trend(list, 'G', cleaned), Trend(list, 'C', cleaned) }.FirstOrDefault(t => t.Tone == "warn");
             if (bad == null) return null;
-            var last = list.Where(p => p.Src != "kurz" && p.D.Length == 10).Select(p => p.D).OrderBy(d => d, StringComparer.Ordinal).LastOrDefault() ?? "";
+            var last = list.Where(p => p.Src != "kurz" && IsDay(p.D)).Select(p => p.D).OrderBy(d => d, StringComparer.Ordinal).LastOrDefault() ?? "";
             return (bad.Title + ": Kühlung lässt nach – entstauben?", bad.Title + "|" + last);
         }
 
@@ -106,7 +112,7 @@ namespace PulsRig.Core
         {
             Func<Messpunkt, double?> temp = part == 'G' ? p => p.GT : p => p.CT;
             Func<Messpunkt, double?> watt = part == 'G' ? p => p.GW : p => p.CW;
-            var points = all.Where(p => p.Src != "kurz" && temp(p) is > 0 && p.D.Length == 10).OrderBy(p => p.D, StringComparer.Ordinal).ToList();
+            var points = all.Where(p => p.Src != "kurz" && temp(p) is > 0 && IsDay(p.D)).OrderBy(p => p.D, StringComparer.Ordinal).ToList();
             var name = part == 'G' ? "Grafikkarte" : "Prozessor";
             var effect = "";
             if (cleaned is { } c)
@@ -212,7 +218,8 @@ namespace PulsRig.Core
         // SSD: Abnutzung über die Zeit (Tag "yyyy-MM-dd", Abnutzung in %), wie Get-SsdLife
         public static Verschleissbefund Ssd(string name, IEnumerable<(string D, int W)> history)
         {
-            var list = history.Where(h => h.D.Length == 10).OrderBy(h => h.D, StringComparer.Ordinal).ToList();
+            var list = history.Where(h => IsDay(h.D)).OrderBy(h => h.D, StringComparer.Ordinal).ToList();
+            if (list.Count == 0) return new Verschleissbefund { Title = name, State = "kein Verlauf", Text = "Für dieses Laufwerk gibt es noch keinen Verlauf der Abnutzung." };
             var first = list[0];
             var last = list[list.Count - 1];
             var wear = last.W;

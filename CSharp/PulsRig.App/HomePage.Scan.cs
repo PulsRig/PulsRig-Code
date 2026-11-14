@@ -105,6 +105,18 @@ public partial class HomePage
         if (ScanLabel.Text != label) ScanLabel.Text = label;
     }
 
+    // Seite verlassen, während der Scan läuft: Takt und Ring dieser Seite enden hier. Sonst liefen sie bis zum Ende
+    // des Scans unsichtbar weiter (jedes Bild ein Aufruf) und hielten die verlassene Seite im Speicher. Der Scan selbst
+    // läuft weiter; kommt man zurück, nimmt die neue Seite den Ablauf wieder auf.
+    void LeaveScanFx()
+    {
+        scanClock?.Stop();
+        scanClock = null;
+        CompositionTarget.Rendering -= MoveRing;
+        scanArc = null;
+        scanning = false;
+    }
+
     // zweiter Klick während des Scans bricht ab
     void StopScanFx()
     {

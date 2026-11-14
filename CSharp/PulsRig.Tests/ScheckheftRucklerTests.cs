@@ -50,6 +50,22 @@ public class ScheckheftTests
     }
 
     [Fact]
+    public void NurBestandeneStabilitaetstestsStehenImHeft()
+    {
+        var points = new[]
+        {
+            new Messpunkt { D = "2026-10-20", Src = "Stresstest", Name = "both", Min = 10, GT = 71 },
+            // abgebrochen oder zu heiß: Messpunkt für die Kühlung, aber kein "bestanden"
+            new Messpunkt { D = "2026-10-21", Src = "Stresstest", Name = "gpu", Min = 6, GT = 90, Fail = true },
+            new Messpunkt { D = "2026-10-22", Src = "Spiel", Name = "Spiel", GT = 70 },
+        };
+        var list = Scheckheft.Stresses(points);
+        Assert.Single(list);
+        Assert.Equal("Stabilitätstest bestanden", list[0].Title);
+        Assert.Equal("stress|2026-10-20|both", list[0].Key);
+    }
+
+    [Fact]
     public void BerichtOhnePrivatesUndLesbarFuerGebrauchtkauf()
     {
         var parts = Teile();
