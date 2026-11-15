@@ -190,6 +190,20 @@ namespace PulsRig.Core
             return ("gering", "good");
         }
 
+        // Befehlszeile eines Run-Eintrags in Programm und Argumente teilen, für eine Aufgabe "verzögert starten"
+        public static (string File, string Arguments) SplitCommand(string? command)
+        {
+            string text = (command ?? "").Trim();
+            Match m = Regex.Match(text, "^\"([^\"]+)\"\\s*(.*)$");
+            if (!m.Success) m = Regex.Match(text, @"^(.+?\.exe)\b\s*(.*)$", RegexOptions.IgnoreCase);
+            if (m.Success) return (Environment.ExpandEnvironmentVariables(m.Groups[1].Value), m.Groups[2].Value.Trim());
+            int space = text.IndexOf(' ');
+            return space < 0 ? (Environment.ExpandEnvironmentVariables(text), "") : (Environment.ExpandEnvironmentVariables(text.Substring(0, space)), text.Substring(space + 1).Trim());
+        }
+
+        // Name der Aufgabe im Ordner \PulsRig\Verzoegert: nur Zeichen, die die Aufgabenplanung annimmt
+        public static string TaskName(string entry) => Regex.Replace(entry ?? "", @"[\/:*?""<>|]", "_").Trim();
+
         // der Name, unter dem man ein Programm kennt: Beschreibung der Programmdatei, sonst der Name des Eintrags
         public static string Title(string name, string? description)
         {

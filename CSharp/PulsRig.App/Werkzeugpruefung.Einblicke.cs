@@ -227,6 +227,7 @@ static partial class Werkzeugpruefung
         var steps = new List<Schritt>();
         if (entries.Count == 0) lines.Add(new(true, "Beim Anmelden startet kein Programm von selbst"));
         var orphans = entries.Where(e => e.Orphan).ToList();
+        var delayed = DelayedTasks();
         foreach (var e in entries)
         {
             var title = Core.Autostart.Title(e.Name, e.Description);
@@ -247,6 +248,10 @@ static partial class Werkzeugpruefung
                 impact = "bremst " + level + " (" + (l.Age <= 15 ? string.Format("{0:N1} s Rechenzeit, {1:N0} MB gelesen/geschrieben", l.Cpu, l.Io) : string.Format("{0:N0} MB Arbeitsspeicher", l.Ram)) + ")";
             }
             else if (e.Enabled) impact = "läuft gerade nicht";
+            var late = delayed.Contains(Core.Autostart.TaskName(e.Name));
+            if (late) impact = "startet verzögert, 1 Min. nach der Anmeldung";
+            else if (e.Enabled && e.Folder != "StartupFolder" && impact.StartsWith("bremst ") && !impact.StartsWith("bremst gering"))
+                steps.Add(DelayStep(e, title));
             var parts = new[] { impact, e.Company, e.File.Length > 0 ? Path.GetFileName(e.File) : "", e.Where }.Where(p => p.Length > 0);
             var on = !e.Enabled;
             lines.Add(new(true, title, string.Join(" · ", parts), new(title + (on ? " einschalten" : " ausschalten"), () =>
@@ -256,15 +261,86 @@ static partial class Werkzeugpruefung
                 return on ? "startet wieder mit Windows" : "startet nicht mehr mit Windows";
             }, Optional: true, Admin: e.Machine, Ask: false, Undo: "autostart", UndoData: Core.Rueckgaengig.AutostartData(e.Machine, e.Folder, e.Name, e.Enabled)), On: e.Enabled));
         }
+        foreach (var e in entries.Where(e => delayed.Contains(Core.Autostart.TaskName(e.Name))))
+            steps.Add(UndelayStep(e, Core.Autostart.Title(e.Name, e.Description)));
         if (orphans.Count > 1)
             steps.Add(new("Alle " + orphans.Count + " Reste entfernen", () => string.Join("; ", orphans.Select(e => RemoveStep(e, Core.Autostart.Title(e.Name, e.Description)).Run())), Optional: true, Admin: orphans.Any(e => e.Machine)));
         var active = entries.Where(e => !e.Orphan).ToList();
         return new(lines, active.Count(e => e.Enabled) + " von " + active.Count + " starten mit Windows"
             + (heavy == 0 ? "." : heavy == 1 ? ", einer davon bremst stark." : ", " + heavy + " davon bremsen stark.")
-            + " Die Bremse misst wie der Task-Manager Rechenzeit und Datenzugriffe kurz nach der Anmeldung; läuft ein Programm schon länger, zählen Arbeitsspeicher und Dauerlast. Der Schalter wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager. Einträge für alle Benutzer nur mit Adminrechten."
+            + " Die Bremse misst wie der Task-Manager Rechenzeit und Datenzugriffe kurz nach der Anmeldung; läuft ein Programm schon länger, zählen Arbeitsspeicher und Dauerlast. Der Schalter wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager. Einträge für alle Benutzer nur mit Adminrechten. „Verzögert starten“ schaltet den Eintrag aus und lässt Windows das Programm stattdessen eine Minute nach der Anmeldung starten – die Anmeldung wird schneller, das Programm ist trotzdem da."
             + (orphans.Count == 0 ? "" : orphans.Count == 1 ? " Ein Eintrag ist der Rest eines deinstallierten Programms." : " " + orphans.Count + " Einträge sind Reste deinstallierter Programme.")
             + (orphans.Count == 0 ? "" : " Entfernen löscht nur den Autostart-Eintrag und legt vorher eine Sicherung an; Programmdateien bleiben unberührt."), steps);
     }
+
+    // --- verzögert starten: eine Aufgabe in \PulsRig\Verzoegert mit Anmelde-Auslöser und 1 Minute Verzögerung, die
+    // das Programm mit normalen Rechten startet; der Run-Eintrag wird wie im Task-Manager ausgeschaltet, bleibt aber da
+    const string DelayFolder = @"\PulsRig\Verzoegert";
+
+    static HashSet<string> DelayedTasks()
+    {
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            dynamic service = Activator.CreateInstance(Type.GetTypeFromProgID("Schedule.Service")!)!;
+            service.Connect();
+            foreach (dynamic t in service.GetFolder(DelayFolder).GetTasks(0)) names.Add((string)t.Name);
+        }
+        catch (Exception) { }
+        return names;
+    }
+
+    static dynamic DelayRoot()
+    {
+        dynamic service = Activator.CreateInstance(Type.GetTypeFromProgID("Schedule.Service")!)!;
+        service.Connect();
+        dynamic root = service.GetFolder("\\");
+        try { return service.GetFolder(DelayFolder); } catch (Exception) { }
+        try { root.CreateFolder(@"\PulsRig"); } catch (Exception) { }
+        return service.GetFolder(@"\PulsRig").CreateFolder("Verzoegert");
+    }
+
+    static Schritt DelayStep(Starteintrag e, string title) => new(title + " verzögert starten", () =>
+    {
+        string command;
+        using (var key = Hive(e.Machine).OpenSubKey(e.Source) ?? throw new InvalidOperationException("Eintrag nicht mehr da"))
+            command = key.GetValue(e.Name)?.ToString() ?? "";
+        var (file, arguments) = Core.Autostart.SplitCommand(command);
+        if (!File.Exists(file)) throw new InvalidOperationException("Programmdatei nicht gefunden: " + file);
+        dynamic folder = DelayRoot();
+        dynamic service = Activator.CreateInstance(Type.GetTypeFromProgID("Schedule.Service")!)!;
+        service.Connect();
+        dynamic task = service.NewTask(0);
+        task.RegistrationInfo.Description = "Von PulsRig: startet " + title + " eine Minute nach der Anmeldung statt sofort.";
+        task.Settings.DisallowStartIfOnBatteries = false;
+        task.Settings.StopIfGoingOnBatteries = false;
+        task.Settings.ExecutionTimeLimit = "PT0S";
+        var user = Environment.UserDomainName + "\\" + Environment.UserName;
+        dynamic trigger = task.Triggers.Create(9);   // Anmeldung
+        trigger.UserId = user;
+        trigger.Delay = "PT1M";
+        dynamic action = task.Actions.Create(0);
+        action.Path = file;
+        action.Arguments = arguments;
+        action.WorkingDirectory = Path.GetDirectoryName(file) ?? "";
+        task.Principal.UserId = user;
+        task.Principal.LogonType = 3;               // nur wenn angemeldet, mit dem eigenen Token
+        task.Principal.RunLevel = 0;                // normale Rechte, nie als Administrator
+        folder.RegisterTaskDefinition(Core.Autostart.TaskName(e.Name), task, 6, null, null, 3);
+        using (var key = Hive(e.Machine).CreateSubKey(Approved + "\\" + e.Folder))
+            key.SetValue(e.Name, Core.Autostart.Approved(false, DateTime.Now), RegistryValueKind.Binary);
+        Rueckgaengiglauf.Record("Autostart aufräumen", title + " startet verzögert");
+        return "startet ab der nächsten Anmeldung eine Minute später";
+    }, Optional: true, Admin: e.Machine, Ask: false);
+
+    static Schritt UndelayStep(Starteintrag e, string title) => new(title + " wieder sofort starten", () =>
+    {
+        try { DelayRoot().DeleteTask(Core.Autostart.TaskName(e.Name), 0); } catch (Exception) { }
+        using (var key = Hive(e.Machine).CreateSubKey(Approved + "\\" + e.Folder))
+            key.SetValue(e.Name, Core.Autostart.Approved(true, DateTime.Now), RegistryValueKind.Binary);
+        Rueckgaengiglauf.Record("Autostart aufräumen", title + " startet wieder sofort");
+        return "startet wieder direkt mit Windows";
+    }, Optional: true, Admin: e.Machine, Ask: false);
 
     // Rest entfernen: Run-Wert vorher als .reg-Datei sichern (Doppelklick holt ihn zurück), eine Verknüpfung nur verschieben
     static Schritt RemoveStep(Starteintrag e, string title) => new(title + " aus dem Autostart entfernen", () =>

@@ -91,7 +91,7 @@ public class AutostartTests
     {
         var english = Sprache.Load(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Englisch.ps1")));
         Assert.Equal("high impact (1,8 s processor time, 40 MB read/written)", english.T("bremst hoch (1,8 s Rechenzeit, 40 MB gelesen/geschrieben)"));
-        Assert.StartsWith("5 of 7 start with Windows, 2 of them slow things down a lot. The impact", english.T("5 von 7 starten mit Windows, 2 davon bremsen stark. Die Bremse misst wie der Task-Manager Rechenzeit und Datenzugriffe kurz nach der Anmeldung; läuft ein Programm schon länger, zählen Arbeitsspeicher und Dauerlast. Der Schalter wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager. Einträge für alle Benutzer nur mit Adminrechten."));
+        Assert.StartsWith("5 of 7 start with Windows, 2 of them slow things down a lot. The impact", english.T("5 von 7 starten mit Windows, 2 davon bremsen stark. Die Bremse misst wie der Task-Manager Rechenzeit und Datenzugriffe kurz nach der Anmeldung; läuft ein Programm schon länger, zählen Arbeitsspeicher und Dauerlast. Der Schalter wirkt ab der nächsten Anmeldung und lässt sich jederzeit zurücknehmen, auch im Task-Manager. Einträge für alle Benutzer nur mit Adminrechten. „Verzögert starten“ schaltet den Eintrag aus und lässt Windows das Programm stattdessen eine Minute nach der Anmeldung starten – die Anmeldung wird schneller, das Programm ist trotzdem da."));
     }
 
     [Fact]

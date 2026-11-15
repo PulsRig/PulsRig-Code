@@ -1,3 +1,8 @@
+## Neu in 1.0.8
+
+- Autostart: Programme, die die Anmeldung bremsen, lassen sich verzögert starten – Windows startet sie dann eine Minute nach der Anmeldung. „Wieder sofort starten“ nimmt das zurück.
+- Programm-Updates: Das Suchergebnis gilt eine Stunde, der Knopf zeigt, wann zuletzt gesucht wurde. Schlägt ein Update fehl, steht der Grund dabei.
+
 ## Neu in 1.0.7
 
 - Der automatische Boost schließt jetzt auch die Programme, die unter Boost → Einrichten gewählt sind. Fragt ein Programm nach dem Speichern, bleibt es offen. Windows, Spiele-Starter, Grafiktreiber und Spiele gehen nie zu.

@@ -50,6 +50,15 @@ namespace PulsRig.Core
             return list;
         }
 
+        // letzte sinnvolle Zeile der winget-Ausgabe als Grund, ohne Fortschrittsbalken und Codes
+        public static string Reason(string output)
+        {
+            var lines = (output ?? "").Replace("\r\n", "\n").Split('\n').Select(l => l.LastIndexOf('\r') is var r && r >= 0 ? l.Substring(r + 1) : l)
+                .Select(l => l.Trim()).Where(l => l.Length > 3 && l.Any(char.IsLetter) && !l.Contains("█") && !l.Contains("▒") && !l.StartsWith("http")).ToList();
+            var last = lines.Count > 0 ? lines[lines.Count - 1] : "";
+            return last.Length > 120 ? last.Substring(0, 117) + "…" : last;
+        }
+
         // nur Kennungen, die winget sicher als Argument bekommt
         public static bool IsSafeId(string id) => id.Length is > 0 and <= 128 && id.All(c => char.IsLetterOrDigit(c) || c is '.' or '-' or '_' or '+');
     }

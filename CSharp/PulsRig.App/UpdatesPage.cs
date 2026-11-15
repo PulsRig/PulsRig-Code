@@ -14,6 +14,7 @@ sealed class UpdatesPage : UserControl, IPage
 {
     static string busy = "", message = "";
     static List<Programmupdate>? found;
+    static DateTime searched;
     static readonly Dictionary<string, (bool Ok, string Text)> results = new(StringComparer.OrdinalIgnoreCase);
     static event Action? Changed;
 
@@ -25,7 +26,8 @@ sealed class UpdatesPage : UserControl, IPage
         Content = root;
         Changed += Fill;
         Fill();
-        if (found == null && busy.Length == 0) Search();
+        // Ergebnis gilt eine Stunde, dann sucht die Seite beim Öffnen von selbst neu
+        if ((found == null || DateTime.Now - searched > TimeSpan.FromHours(1)) && busy.Length == 0) Search();
     }
 
     static string? Winget()
@@ -64,7 +66,7 @@ sealed class UpdatesPage : UserControl, IPage
     {
         var w = Winget() ?? throw new InvalidOperationException(Missing);
         var list = Programmupdates.Parse(Tool(w, "upgrade -s winget --accept-source-agreements --disable-interactivity").Output);
-        Application.Current.Dispatcher.Invoke(() => { found = list; results.Clear(); });
+        Application.Current.Dispatcher.Invoke(() => { found = list; searched = DateTime.Now; results.Clear(); });
         return "";
     });
 
@@ -81,7 +83,9 @@ sealed class UpdatesPage : UserControl, IPage
             foreach (var u in items)
             {
                 Application.Current.Dispatcher.Invoke(() => { results[u.Id] = (true, "läuft …"); Changed?.Invoke(); });
-                var r = Programmupdates.Result(Tool(w, "upgrade --id " + u.Id + " -e -s winget --accept-package-agreements --accept-source-agreements --disable-interactivity").Code);
+                var run = Tool(w, "upgrade --id " + u.Id + " -e -s winget --accept-package-agreements --accept-source-agreements --disable-interactivity");
+                var r = Programmupdates.Result(run.Code);
+                if (!r.Ok && Programmupdates.Reason(run.Output) is { Length: > 0 } why) r = (false, r.Text + " – " + why);
                 if (r.Ok) done++;
                 Application.Current.Dispatcher.Invoke(() => { results[u.Id] = r; Changed?.Invoke(); });
             }
@@ -101,7 +105,7 @@ sealed class UpdatesPage : UserControl, IPage
 
         var state = busy == "search" ? ("sucht …", "accent") : found == null ? ("", "") : found.Count == 0 ? ("alles aktuell", "good") : (found.Count + (found.Count == 1 ? " Update" : " Updates"), "warn");
         list.Children.Add(NeuinstallPage.Row("Veraltete Programme", "Was winget kennt und wofür es eine neuere Fassung gibt. PulsRig aktualisiert nur, was du anklickst.",
-            state.Item1.Length > 0 ? state : null, "Neu suchen", idle ? Search : null));
+            state.Item1.Length > 0 ? state : null, found != null && busy != "search" ? "Neu suchen (" + Ago(searched) + ")" : "Neu suchen", idle ? Search : null));
         if (open.Count > 1)
             list.Children.Add(NeuinstallPage.Row("Alle aktualisieren", "Nacheinander, ohne weitere Fragen von winget", null, "Alle (" + open.Count + ")", idle ? () => Upgrade(open) : null));
         if (message.Length > 0) list.Children.Add(NeuinstallPage.Row(message, "", null));
@@ -119,6 +123,8 @@ sealed class UpdatesPage : UserControl, IPage
         }
         root.Children.Add(new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Padding = new Thickness(0, 0, 6, 0) });
     }
+
+    static string Ago(DateTime t) => (DateTime.Now - t).TotalMinutes < 1 ? "gerade eben" : "vor " + (int)(DateTime.Now - t).TotalMinutes + " Min.";
 
     public void Stop()
     {

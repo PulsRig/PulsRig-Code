@@ -33,6 +33,13 @@ public class ProgrammupdatesTests
     }
 
     [Fact]
+    public void ReasonIsLastTextLine()
+    {
+        Assert.Equal("Installer-Fehler mit Exitcode: 1603", Programmupdates.Reason("Gefunden Foo [Foo.Bar]\n  ██▒▒  2 MB / 4 MB\r  ████  4 MB / 4 MB\nInstaller-Fehler mit Exitcode: 1603\n"));
+        Assert.Equal("", Programmupdates.Reason(""));
+    }
+
+    [Fact]
     public void Codes()
     {
         Assert.True(Programmupdates.Result(0).Ok);
