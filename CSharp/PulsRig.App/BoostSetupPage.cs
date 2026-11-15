@@ -153,7 +153,7 @@ sealed class BoostSetupPage : UserControl, IPage
             if (tab == 3 && !data.AutoBoost)
                 list.Children.Add(Note("Boost automatisch ist ausgeschaltet – einschalten unter Optionen → Überwachung. Die Auswahl hier gilt dann sofort."));
             if (tab == 3) list.Children.Add(Note("Spielprofil: Bei jedem gewählten Spiel legst du fest, was der automatische Boost beim Start tut. Was aus ist, lässt er bei diesem Spiel weg."));
-            if (tab == 0) list.Children.Add(Note("Gewählte Programme schließt der Boost nach Rückfrage, wenn du ihn selbst einschaltest – der automatische Boost schließt nie Programme."));
+            if (tab == 0) list.Children.Add(Note("Gewählte Programme schließt der Boost: nach Rückfrage, wenn du ihn selbst einschaltest, und ohne Rückfrage, wenn er bei einem Spiel automatisch angeht (je Spiel abschaltbar unter Spiele). Fragt ein Programm nach dem Speichern, bleibt es offen."));
             var items = Current;
             if (items.Count == 0) list.Children.Add(Note(tab == 1 ? "Keine entbehrlichen Dienste gefunden." : tab == 3 ? "Windows kennt auf diesem PC noch keine Spiele." : "Nichts zur Auswahl."));
             foreach (var item in items) list.Children.Add(Row(item));

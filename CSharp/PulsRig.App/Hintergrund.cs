@@ -3,7 +3,7 @@ using System.IO;
 namespace PulsRig.App;
 
 // Arbeit ohne Fenster für den Helfer neben der Uhr, wie PulsRig-Hintergrund.ps1. PulsRig.exe reicht sie an die App weiter:
-//   -Boost Ein [-Spiel Name]   Boost einschalten (Spielmodus, Energieplan, Dienste – Programme schließt er nie)
+//   -Boost Ein [-Spiel Name]   Boost einschalten (Spielmodus, Energieplan, Dienste, gewählte Programme schließen)
 //   -Boost Aus                 Boost ausschalten und alles zurückstellen
 //   -Wochenscan                nach neueren Treibern sehen
 // Es gibt nichts aus und fragt nichts; was es tut, steht in PulsRig-Hintergrund.log neben den Einstellungen.
@@ -44,9 +44,15 @@ static class Hintergrund
             if (boost!.Equals("Aus", StringComparison.OrdinalIgnoreCase))
             {
                 Spielboost.OffQuietly();
+                foreach (var note in Spielboost.Notes) Log("  " + note);
                 Log("Boost ist " + (Spielboost.IsOn ? "noch an" : "aus"));
             }
-            else Log(Spielboost.OnQuietly(game) ? "Boost ist an" : "Nichts umzustellen");
+            else
+            {
+                var on = Spielboost.OnQuietly(game);
+                foreach (var note in Spielboost.Notes) Log("  " + note);
+                Log(on ? "Boost ist an" : "Nichts umzustellen");
+            }
             return 0;
         }
         catch (Exception e)

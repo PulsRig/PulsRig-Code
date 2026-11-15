@@ -14,7 +14,8 @@ namespace PulsRig.App;
 // Programme schließen, die unter Boost → Einrichten gewählt sind. Der Zustand liegt in Spiel-Beschleunigung.json
 // beim PowerShell-Programm, damit jedes der beiden Programme den Boost des anderen ausschalten kann. Zurückgestellt
 // wird nur, was sich wirklich geändert hat. Dienste kommen nur aus der eigenen Liste oder von fremden Herstellern
-// (Core.Boost.IsAllowed); Programme schließt nur der Boost, den man selbst einschaltet, nie der automatische.
+// (Core.Boost.IsAllowed). Programme schließt auch der automatische Boost (seit 1.0.7), aber nur die gewählten und
+// nie ein Spiel (Core.Boost.CloseList); im Spielprofil lässt sich das je Spiel ausschalten.
 static class Spielboost
 {
     public sealed record Plan(bool GameModeOff, (string Guid, string Name)? Active, bool SwitchPlan, List<(string Name, string Display)> Services,
@@ -33,6 +34,10 @@ static class Spielboost
     public static string Step { get; private set; } = "";
     public static string Message { get; private set; } = "";
     public static event Action? Changed;
+
+    // was das letzte Ein- oder Ausschalten wirklich getan hat, Zeile für Zeile – für PulsRig-Hintergrund.log. Ohne das
+    // stand dort nur "Boost ist an", auch wenn sich kein Dienst anhalten ließ.
+    public static List<string> Notes { get; } = new();
 
     public static Zustand? State()
     {
@@ -153,20 +158,24 @@ static class Spielboost
         return true;
     }
 
-    public static void On(Plan plan, bool closeApps) => Run(report => TurnOn(plan, closeApps, report));
+    public static void On(Plan plan, bool closeApps) => Run(report => { Notes.Clear(); TurnOn(plan, closeApps, report); });
 
-    // ohne Fenster für den Helfer (Boost automatisch): schließt nie Programme und leert nie die Zwischenablage.
+    // ohne Fenster für den Helfer (Boost automatisch): schließt die gewählten Programme wie der Boost von Hand
+    // (Fenster dürfen "Speichern?" fragen und bleiben dann offen), leert aber nie die Zwischenablage.
     // Ist nichts umzustellen, bleibt der Boost aus – der Helfer meldet dann „Nichts umzustellen“.
     public static bool OnQuietly(string? game)
     {
         if (IsOn) return true;
         // das Spielprofil kann dem Boost nur etwas wegnehmen (Core.Spielprofil)
         var profile = Profile(game);
-        var plan = Prepare() with { Apps = new() };
+        var plan = Prepare();
+        Notes.Clear();
+        var allowed = Core.Boost.CloseList(plan.Apps.Select(a => a.Name), plan.Games, game);
+        plan = plan with { Apps = profile.Apps ? plan.Apps.Where(a => allowed.Contains(a.Name, StringComparer.OrdinalIgnoreCase)).ToList() : new() };
         if (!profile.PowerPlan) plan = plan with { SwitchPlan = false };
         if (!profile.Services) plan = plan with { Services = new() };
-        if (!plan.GameModeOff && !plan.SwitchPlan && plan.Services.Count == 0 && (!profile.Priority || Prioritize(plan.Games, game, dryRun: true).Count == 0)) return false;
-        TurnOn(plan, false, _ => { }, game, profile.Priority);
+        if (!plan.GameModeOff && !plan.SwitchPlan && plan.Services.Count == 0 && plan.Apps.Count == 0 && (!profile.Priority || Prioritize(plan.Games, game, dryRun: true).Count == 0)) return false;
+        TurnOn(plan, plan.Apps.Count > 0, _ => { }, game, profile.Priority);
         return true;
     }
 
@@ -196,6 +205,7 @@ static class Spielboost
         if (plan.Services.Count > 0) report("Dienste werden pausiert …");
         // alle zugleich anhalten: dauert so lange wie der langsamste (DoSvc gut 2 Sekunden), nicht wie alle zusammen
         var halted = new bool[plan.Services.Count];
+        var reasons = new string?[plan.Services.Count];
         Parallel.For(0, plan.Services.Count, i =>
         {
             try
@@ -205,17 +215,26 @@ static class Spielboost
                 service.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(20));
                 halted[i] = true;
             }
-            catch (Exception) { }
+            catch (Exception e) { reasons[i] = (e.InnerException ?? e).Message.Trim(); }
         });
         var stopped = plan.Services.Where((_, i) => halted[i]).Select(s => s.Name).ToList();
+        if (plan.GameModeOff) Notes.Add("Spielmodus eingeschaltet");
+        if (plan.SwitchPlan) Notes.Add("Energieplan: Höchstleistung");
+        if (stopped.Count > 0) Notes.Add("Dienste angehalten: " + string.Join(", ", stopped));
+        for (var i = 0; i < reasons.Length; i++)
+            if (reasons[i] != null) Notes.Add("Dienst " + plan.Services[i].Name + " nicht angehalten: " + reasons[i]);
         var closed = new List<string>();
         if (closeApps && plan.Apps.Count > 0)
         {
             report("Programme werden geschlossen …");
             foreach (var (name, _) in plan.Apps) if (Close(name)) closed.Add(name);
+            if (closed.Count > 0) Notes.Add("Programme geschlossen: " + string.Join(", ", closed));
+            var open = plan.Apps.Select(a => a.Name).Except(closed).ToList();
+            if (open.Count > 0) Notes.Add("Programme noch offen (Fenster ging nicht zu, vermutlich eine Rückfrage): " + string.Join(", ", open));
         }
         if (prioritize) report("Spiel wird bevorzugt, Hintergrundprogramme treten zurück …");
         var priorities = prioritize ? Prioritize(plan.Games, game, dryRun: false) : new List<string>();
+        if (priorities.Count > 0) Notes.Add("Priorität umgestellt: " + string.Join(", ", priorities.Select(e => e.Split('|')[1]).Distinct(StringComparer.OrdinalIgnoreCase)));
         // Zwischenablage leeren, wenn unter Einrichten gewählt (die Zwischenablage gehört dem Fenster-Thread)
         if (game == null && Altdaten.Flag(Altdaten.Settings()["Boost"], "Clipboard", false))
             try { System.Windows.Application.Current.Dispatcher.Invoke(System.Windows.Clipboard.Clear); } catch (Exception) { }
@@ -271,10 +290,22 @@ static class Spielboost
     static void TurnOff(Action<string> report)
     {
         var state = State();
-        if (state?.PowerPlan is { } guid) { report("Energieplan wird zurückgestellt …"); Tool("powercfg.exe", "/setactive " + guid); }
+        Notes.Clear();
+        if (state?.PowerPlan is { } guid) { report("Energieplan wird zurückgestellt …"); Tool("powercfg.exe", "/setactive " + guid); Notes.Add("Energieplan zurück: " + state.PowerPlanName); }
         if (state?.Services.Count > 0) report("Dienste starten wieder …");
+        // "liefen schon wieder": Windows hat den Dienst während des Spiels selbst wieder gestartet
+        var started = new List<string>();
+        var back = new List<string>();
         foreach (var name in state?.Services ?? new())
-            try { using var service = new ServiceController(name); if (service.Status == ServiceControllerStatus.Stopped) service.Start(); } catch (Exception) { }
+            try
+            {
+                using var service = new ServiceController(name);
+                if (service.Status == ServiceControllerStatus.Stopped) { service.Start(); started.Add(name); }
+                else back.Add(name);
+            }
+            catch (Exception e) { Notes.Add("Dienst " + name + " nicht gestartet: " + (e.InnerException ?? e).Message.Trim()); }
+        if (started.Count > 0) Notes.Add("Dienste wieder gestartet: " + string.Join(", ", started));
+        if (back.Count > 0) Notes.Add("Dienste liefen schon wieder (von Windows selbst gestartet): " + string.Join(", ", back));
         if (state?.Priorities is { Count: > 0 } priorities) { report("Prioritäten werden zurückgestellt …"); Restore(priorities); }
         File.Delete(StateFile);
         Rueckgaengiglauf.Settle("boost", "");

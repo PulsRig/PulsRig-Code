@@ -1,3 +1,9 @@
+## Neu in 1.0.7
+
+- Der automatische Boost schließt jetzt auch die Programme, die unter Boost → Einrichten gewählt sind. Fragt ein Programm nach dem Speichern, bleibt es offen. Windows, Spiele-Starter, Grafiktreiber und Spiele gehen nie zu.
+- Spielprofile haben dafür einen neuen Schalter „Programme schließen“ – je Spiel abschaltbar.
+- Das Protokoll des Helfers nennt, was der Boost wirklich umgestellt hat: angehaltene Dienste, geschlossene Programme und was nicht ging.
+
 ## Neu in 1.0.6
 
 - Das PC-Scheckheft führt nur noch wirklich bestandene Stabilitätstests als „bestanden“; abgebrochene oder durchgefallene standen dort bisher auch.

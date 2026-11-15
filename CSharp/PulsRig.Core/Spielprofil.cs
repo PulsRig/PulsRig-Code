@@ -1,5 +1,5 @@
 // PulsRig.Core - Spielprofile: pro Spiel, was der automatische Boost beim Start tut. Gespeichert unter "GameProfiles"
-// der gemeinsamen Einstellungen, je Programmname (ohne ".exe") ein Objekt mit vier Schaltern. Fehlt ein Schalter oder
+// der gemeinsamen Einstellungen, je Programmname (ohne ".exe") ein Objekt mit fünf Schaltern. Fehlt ein Schalter oder
 // das ganze Profil, gilt "an" - so verhält sich ein Spiel ohne Profil genau wie vorher.
 // Tabu bleibt: ein Profil kann dem Boost nur etwas wegnehmen, nie mehr erlauben (Dienste prüft weiter Boost.IsAllowed).
 using System;
@@ -9,13 +9,13 @@ namespace PulsRig.Core
 {
     public sealed class Spielprofil
     {
-        public static readonly string[] Keys = { "PowerPlan", "Services", "Priority", "Record" };
+        public static readonly string[] Keys = { "PowerPlan", "Services", "Apps", "Priority", "Record" };
 
-        public bool PowerPlan = true, Services = true, Priority = true, Record = true;
+        public bool PowerPlan = true, Services = true, Apps = true, Priority = true, Record = true;
 
-        public bool IsDefault => PowerPlan && Services && Priority && Record;
+        public bool IsDefault => PowerPlan && Services && Apps && Priority && Record;
 
-        public bool Get(string key) => key switch { "PowerPlan" => PowerPlan, "Services" => Services, "Priority" => Priority, "Record" => Record, _ => true };
+        public bool Get(string key) => key switch { "PowerPlan" => PowerPlan, "Services" => Services, "Apps" => Apps, "Priority" => Priority, "Record" => Record, _ => true };
 
         public void Set(string key, bool value)
         {
@@ -23,6 +23,7 @@ namespace PulsRig.Core
             {
                 case "PowerPlan": PowerPlan = value; break;
                 case "Services": Services = value; break;
+                case "Apps": Apps = value; break;
                 case "Priority": Priority = value; break;
                 case "Record": Record = value; break;
             }
@@ -38,10 +39,10 @@ namespace PulsRig.Core
 
         public static string Label(string key) => key switch
         {
-            "PowerPlan" => "Energieplan", "Services" => "Dienste anhalten", "Priority" => "Spiel bevorzugen", "Record" => "Aufzeichnen", _ => key,
+            "PowerPlan" => "Energieplan", "Services" => "Dienste anhalten", "Apps" => "Programme schließen", "Priority" => "Spiel bevorzugen", "Record" => "Aufzeichnen", _ => key,
         };
 
-        // kurz für die Liste, z. B. "Energieplan, Spiel bevorzugen · ohne Dienste anhalten, Aufzeichnen"
+        // kurz für die Liste, z. B. "Energieplan, Programme schließen, Spiel bevorzugen · ohne Dienste anhalten, Aufzeichnen"
         public string Describe()
         {
             if (IsDefault) return "Alles an";

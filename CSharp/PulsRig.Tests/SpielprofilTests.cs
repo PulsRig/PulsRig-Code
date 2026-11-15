@@ -18,9 +18,10 @@ public class SpielprofilTests
         var p = Spielprofil.From(key => key == "Services" ? false : key == "Record" ? false : null);
         Assert.True(p.PowerPlan);
         Assert.False(p.Services);
+        Assert.True(p.Apps);
         Assert.True(p.Priority);
         Assert.False(p.Record);
-        Assert.Equal("Energieplan, Spiel bevorzugen · ohne Dienste anhalten, Aufzeichnen", p.Describe());
+        Assert.Equal("Energieplan, Programme schließen, Spiel bevorzugen · ohne Dienste anhalten, Aufzeichnen", p.Describe());
     }
 
     [Fact]

@@ -22,6 +22,15 @@ public class BoostTabuTests
         Assert.Empty(Boost.PriorityPlan(null, null, null));
     }
 
+    // Der automatische Boost schließt nur gewählte Programme: nie Windows, Starter oder Grafiktreiber, nie ein Spiel
+    [Fact]
+    public void SchliessenNurGewaehlteUndNieEinSpiel()
+    {
+        var chosen = new[] { "Spotify", "firefox.exe", "explorer", "steam", "cs2", "NMS", "PulsRig.App", "spotify", "a\\b", "" };
+        Assert.Equal(new[] { "Spotify", "firefox" }, Boost.CloseList(chosen, new[] { "NMS.exe" }, "cs2"));
+        Assert.Empty(Boost.CloseList(null, null, null));
+    }
+
     [Fact]
     public void FremderHersteller() => Assert.True(Boost.IsAllowed("Steuer", Known, @"""C:\Program Files\Steuer\steuer.exe""", Windir));
 

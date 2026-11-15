@@ -3,7 +3,8 @@
 //
 // Tabu: die Auswahl kommt aus der Einstellungsdatei im Benutzerordner und gilt darum nicht ungeprüft. Erlaubt sind nur
 // Dienste aus der eigenen Liste oder Dienste anderer Hersteller (Programmdatei außerhalb von Windows). Programme
-// schließt der automatische Boost nie - das steht in PowerShell fest (Apps = leer), hier gibt es dafür nichts.
+// schließt der automatische Boost seit 1.0.7 auf Wunsch des Nutzers (15.11.2026) – aber nur die unter Boost →
+// Einrichten gewählten, nie Windows, Spiele-Starter, Grafiktreiber (Keep) und nie ein Spiel (CloseList).
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -63,6 +64,26 @@ namespace PulsRig.Core
                 else if (background.Contains(name)) plan.Add((pid, name, false));
             }
             return plan;
+        }
+
+        // Welche der gewählten Programme der automatische Boost schließt. Die Auswahl kommt aus der Einstellungsdatei
+        // im Benutzerordner und gilt darum nicht ungeprüft: nie etwas aus Keep, nie ein Boost-Spiel und nie das Spiel,
+        // für das der Boost gerade angeht – sonst schlösse er das, wofür er da ist.
+        public static List<string> CloseList(IEnumerable<string>? chosen, IEnumerable<string>? games, string? game)
+        {
+            var spared = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string g in games ?? new string[0]) spared.Add(Plain(g));
+            if (!string.IsNullOrWhiteSpace(game)) spared.Add(Plain(game!));
+            var list = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string entry in chosen ?? new string[0])
+            {
+                if (!IsSafeName(entry)) continue;
+                string name = Plain(entry);
+                if (name.Length == 0 || IsKept(name) || spared.Contains(name) || !seen.Add(name)) continue;
+                list.Add(name);
+            }
+            return list;
         }
 
         static string Plain(string name) => Regex.Replace(name.Trim(), @"\.exe$", "", RegexOptions.IgnoreCase);

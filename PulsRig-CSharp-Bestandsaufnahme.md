@@ -684,7 +684,8 @@ ZIP-Paket nach C# wandern.
 - **`Hintergrund.cs`** in der App: `PulsRig.App.exe -Boost Ein|Aus [-Spiel Name]` und `-Wochenscan` laufen ohne
   Fenster, mit denselben Rückgabewerten, und schreiben in `PulsRig-Hintergrund.log`. `PulsRig.exe` reicht diese
   Aufrufe an `App\PulsRig.App.exe` weiter. Fehlt die App, läuft es wie bisher in PowerShell.
-- Der automatische Boost (`Spielboost.OnQuietly`) schließt nie Programme und leert nie die Zwischenablage. Dienste
+- Der automatische Boost (`Spielboost.OnQuietly`) schließt seit 1.0.7 die gewählten Programme (`Boost.CloseList`,
+  nie ein Spiel) und leert nie die Zwischenablage. Dienste
   nimmt er nur über `Prepare` (also `Core.Boost.IsAllowed`). Ist nichts umzustellen, bleibt er aus. Das Spiel steht
   als `Game` im Zustand.
 - Der Wochenscan (`Treiberscan.Weekly`) zählt wie das Skript: keine Firmware (außer unter Optionen gewählt), keine

@@ -104,7 +104,7 @@
         'Größte Ordner', 'Biggest folders'
         'beim Neustart', 'at restart'
         # --- Durchsicht für 1.0 (06.11.2026): Reste aus dem Probelauf auf Englisch
-        'Gewählte Programme schließt der Boost nach Rückfrage, wenn du ihn selbst einschaltest – der automatische Boost schließt nie Programme.', 'When you turn on the boost yourself, it closes the chosen programs after asking – the automatic boost never closes programs.'
+        'Gewählte Programme schließt der Boost: nach Rückfrage, wenn du ihn selbst einschaltest, und ohne Rückfrage, wenn er bei einem Spiel automatisch angeht (je Spiel abschaltbar unter Spiele). Fragt ein Programm nach dem Speichern, bleibt es offen.', 'The boost closes the chosen programs: after asking when you turn it on yourself, and without asking when it starts automatically for a game (can be switched off per game under Games). A program that asks about saving stays open.'
         'läuft nicht', 'not running'
         'Misst …', 'Measuring …'
         'Größter Verbraucher', 'Biggest consumer'
